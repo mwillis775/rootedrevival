@@ -1,0 +1,16 @@
+[Unit]
+Description=Rooted Revival IPFS Pinning Service
+After=network.target ipfs.service
+Requires=ipfs.service
+
+[Service]
+Type=simple
+User=michael
+WorkingDirectory=/home/michael/projects/rootedrevival/pinning-service
+EnvironmentFile=/home/michael/projects/rootedrevival/pinning-service/.env
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

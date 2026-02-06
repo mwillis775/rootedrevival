@@ -1,0 +1,72 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+target/
+dist/
+build/
+*.d
+
+# Environment files with secrets
+.env
+.env.local
+.env.production
+*.pem
+*.key
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Data directories
+data/
+uploads/
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IPFS/Kubo
+ipfs/
+.ipfs/
+*.tar.gz
+
+# Electron
+out/
+*.dmg
+*.AppImage
+*.exe
+*.deb
+*.rpm
+
+# Rust
+Cargo.lock
+*.rlib
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.bak
+*.backup

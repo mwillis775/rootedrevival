@@ -1,0 +1,1042 @@
+/**
+ * Open Scholar - Content Type Templates
+ * 
+ * Styles for different content types: papers, videos, art, music, collections
+ */
+
+/* ========================================
+   SHARED CONTENT CARD STYLES
+   ======================================== */
+
+.content-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.content-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.content-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.content-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+}
+
+.content-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.content-type-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid;
+}
+
+.badge-paper { color: var(--primary); border-color: var(--primary); }
+.badge-video { color: #e74c3c; border-color: #e74c3c; }
+.badge-art { color: #9b59b6; border-color: #9b59b6; }
+.badge-music { color: #1abc9c; border-color: #1abc9c; }
+.badge-book { color: var(--secondary); border-color: var(--secondary); }
+.badge-dataset { color: var(--accent); border-color: var(--accent); }
+.badge-collection { color: #e67e22; border-color: #e67e22; }
+
+/* ========================================
+   PAPER TEMPLATE
+   ======================================== */
+
+.paper-card {
+    padding: var(--card-padding, 1.25rem);
+}
+
+.paper-card .paper-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.paper-card .paper-authors {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.paper-card .paper-abstract {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.paper-card .paper-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.paper-card .paper-stats {
+    display: flex;
+    gap: 15px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.paper-card .paper-discipline {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    background: var(--bg-alt);
+    color: var(--primary);
+}
+
+/* Paper detail page */
+.paper-detail {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.paper-detail-header {
+    margin-bottom: 30px;
+}
+
+.paper-detail-title {
+    font-size: 2rem;
+    line-height: 1.3;
+    margin-bottom: 15px;
+}
+
+.paper-detail-authors {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.paper-detail-authors a {
+    color: var(--primary);
+}
+
+.paper-detail-meta {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 15px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 30px;
+}
+
+.paper-detail-abstract {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: var(--bg-alt);
+    border-left: 3px solid var(--primary);
+}
+
+.paper-detail-content {
+    line-height: 1.8;
+    font-size: 1.05rem;
+}
+
+/* Citation box */
+.citation-box {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin: 30px 0;
+}
+
+.citation-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--border);
+}
+
+.citation-tab {
+    padding: 8px 15px;
+    background: none;
+    border: 1px solid transparent;
+    border-bottom: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: inherit;
+}
+
+.citation-tab:hover {
+    color: var(--text);
+}
+
+.citation-tab.active {
+    border-color: var(--border);
+    border-bottom-color: var(--bg-alt);
+    background: var(--bg-alt);
+    color: var(--primary);
+    margin-bottom: -1px;
+}
+
+.citation-content {
+    font-family: monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.citation-copy-btn {
+    margin-top: 10px;
+}
+
+/* ========================================
+   VIDEO TEMPLATE
+   ======================================== */
+
+.video-card {
+    position: relative;
+}
+
+.video-thumbnail {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: var(--bg-alt);
+    position: relative;
+    overflow: hidden;
+}
+
+.video-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-thumbnail .play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.3);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.video-card:hover .play-overlay {
+    opacity: 1;
+}
+
+.play-overlay .play-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--bg);
+}
+
+.video-duration {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    font-family: monospace;
+}
+
+.video-info {
+    padding: var(--card-padding, 1rem);
+}
+
+.video-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.video-creator {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+}
+
+.video-stats {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Video detail page */
+.video-detail {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.video-player-container {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    margin-bottom: 20px;
+}
+
+.video-player-container video,
+.video-player-container iframe {
+    width: 100%;
+    height: 100%;
+}
+
+.video-detail-info {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 30px;
+}
+
+.video-detail-main {
+    /* Main content column */
+}
+
+.video-detail-sidebar {
+    /* Related videos, uploader info */
+}
+
+.video-detail-title {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+}
+
+.video-detail-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.video-detail-description {
+    line-height: 1.7;
+    margin-bottom: 30px;
+    white-space: pre-wrap;
+}
+
+/* ========================================
+   ART / IMAGE TEMPLATE
+   ======================================== */
+
+.art-card {
+    position: relative;
+}
+
+.art-image {
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--bg-alt);
+    overflow: hidden;
+}
+
+.art-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.art-card:hover .art-image img {
+    transform: scale(1.05);
+}
+
+.art-info {
+    padding: var(--card-padding, 1rem);
+}
+
+.art-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.art-artist {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.art-medium {
+    font-size: 0.75rem;
+    color: var(--accent);
+}
+
+/* Art gallery view */
+.art-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: var(--grid-gap, 1rem);
+}
+
+/* Masonry-style layout option */
+.art-gallery.masonry {
+    columns: 4 250px;
+    column-gap: var(--grid-gap, 1rem);
+}
+
+.art-gallery.masonry .art-card {
+    break-inside: avoid;
+    margin-bottom: var(--grid-gap, 1rem);
+}
+
+.art-gallery.masonry .art-image {
+    aspect-ratio: auto;
+}
+
+/* Art detail page - lightbox style */
+.art-detail {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.art-detail-viewer {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    padding: 20px;
+}
+
+.art-detail-viewer img {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+}
+
+.art-detail-info {
+    background: var(--surface);
+    padding: 30px;
+}
+
+.art-detail-title {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+}
+
+.art-detail-artist {
+    font-size: 1.1rem;
+    color: var(--primary);
+    margin-bottom: 20px;
+}
+
+.art-detail-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+    padding: 20px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.art-meta-item label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+
+.art-meta-item span {
+    font-size: 0.95rem;
+}
+
+.art-detail-description {
+    line-height: 1.8;
+}
+
+/* ========================================
+   MUSIC / AUDIO TEMPLATE
+   ======================================== */
+
+.music-card {
+    display: flex;
+    gap: 15px;
+    padding: var(--card-padding, 1rem);
+    align-items: center;
+}
+
+.music-artwork {
+    width: 80px;
+    height: 80px;
+    background: var(--bg-alt);
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.music-artwork img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.music-play-btn {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    cursor: pointer;
+}
+
+.music-card:hover .music-play-btn {
+    opacity: 1;
+}
+
+.music-play-btn span {
+    font-size: 1.5rem;
+}
+
+.music-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.music-title {
+    font-weight: 600;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.music-artist {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+}
+
+.music-album {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.music-duration {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* Album view */
+.album-card {
+    /* Similar to art card but square */
+}
+
+.album-cover {
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--bg-alt);
+}
+
+.album-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.album-info {
+    padding: var(--card-padding, 1rem);
+}
+
+.album-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.album-artist {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+}
+
+.album-tracks {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Audio player */
+.audio-player {
+    background: var(--bg-alt);
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.audio-player-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.audio-player-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: var(--primary);
+    color: var(--bg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.audio-player-btn.small {
+    width: 30px;
+    height: 30px;
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.audio-player-progress {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.audio-player-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    position: relative;
+    cursor: pointer;
+}
+
+.audio-player-bar-fill {
+    height: 100%;
+    background: var(--primary);
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+.audio-player-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: monospace;
+}
+
+/* Music detail page */
+.music-detail {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.music-detail-header {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+.music-detail-cover {
+    width: 250px;
+    height: 250px;
+    background: var(--bg-alt);
+    flex-shrink: 0;
+}
+
+.music-detail-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.music-detail-info {
+    flex: 1;
+}
+
+.music-detail-type {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+}
+
+.music-detail-title {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.music-detail-artist {
+    font-size: 1.2rem;
+    color: var(--primary);
+    margin-bottom: 15px;
+}
+
+.tracklist {
+    background: var(--surface);
+    border: 1px solid var(--border);
+}
+
+.track-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.track-item:last-child {
+    border-bottom: none;
+}
+
+.track-item:hover {
+    background: var(--bg-alt);
+}
+
+.track-item.playing {
+    background: var(--bg-alt);
+    color: var(--primary);
+}
+
+.track-number {
+    width: 30px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.track-play-icon {
+    display: none;
+}
+
+.track-item:hover .track-number,
+.track-item.playing .track-number {
+    display: none;
+}
+
+.track-item:hover .track-play-icon,
+.track-item.playing .track-play-icon {
+    display: block;
+}
+
+.track-title {
+    flex: 1;
+}
+
+.track-duration {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-family: monospace;
+}
+
+/* ========================================
+   COLLECTION / PLAYLIST TEMPLATE
+   ======================================== */
+
+.collection-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.collection-cover-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    aspect-ratio: 1;
+    background: var(--bg-alt);
+}
+
+.collection-cover-grid .cover-item {
+    background-size: cover;
+    background-position: center;
+}
+
+.collection-info {
+    padding: var(--card-padding, 1rem);
+}
+
+.collection-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.collection-creator {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.collection-count {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Collection detail */
+.collection-detail {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.collection-header {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 40px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+}
+
+.collection-cover {
+    width: 200px;
+    height: 200px;
+    background: var(--bg-alt);
+    flex-shrink: 0;
+}
+
+.collection-header-info {
+    flex: 1;
+}
+
+.collection-detail-title {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.collection-description {
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 20px;
+}
+
+.collection-items {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.collection-item {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    align-items: center;
+}
+
+.collection-item-thumb {
+    width: 80px;
+    height: 60px;
+    background: var(--bg-alt);
+    flex-shrink: 0;
+}
+
+.collection-item-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.collection-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.collection-item-title {
+    font-weight: 600;
+    margin-bottom: 3px;
+}
+
+.collection-item-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* ========================================
+   GRID LAYOUTS
+   ======================================== */
+
+.content-grid {
+    display: grid;
+    gap: var(--grid-gap, 1.25rem);
+}
+
+.content-grid.papers {
+    grid-template-columns: 1fr;
+}
+
+.content-grid.videos {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.content-grid.art {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+.content-grid.music {
+    grid-template-columns: 1fr;
+    max-width: 800px;
+}
+
+.content-grid.albums {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.content-grid.collections {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.content-grid.mixed {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+/* ========================================
+   LIST VIEW ALTERNATIVE
+   ======================================== */
+
+.content-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.content-list-item {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.content-list-item:hover {
+    border-color: var(--primary);
+}
+
+.content-list-thumb {
+    width: 60px;
+    height: 60px;
+    background: var(--bg-alt);
+    flex-shrink: 0;
+}
+
+.content-list-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.content-list-title {
+    font-weight: 600;
+    margin-bottom: 3px;
+}
+
+.content-list-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* View toggle */
+.view-toggle {
+    display: flex;
+    gap: 5px;
+}
+
+.view-toggle-btn {
+    padding: 8px 12px;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.view-toggle-btn:hover,
+.view-toggle-btn.active {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 768px) {
+    .content-grid.videos,
+    .content-grid.art,
+    .content-grid.albums,
+    .content-grid.collections {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .video-detail-info {
+        grid-template-columns: 1fr;
+    }
+    
+    .video-detail-sidebar {
+        order: -1;
+    }
+    
+    .music-detail-header,
+    .collection-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .art-gallery.masonry {
+        columns: 2;
+    }
+}
+
+@media (max-width: 480px) {
+    .content-grid.videos,
+    .content-grid.albums,
+    .content-grid.collections {
+        grid-template-columns: 1fr;
+    }
+    
+    .art-gallery.masonry {
+        columns: 1;
+    }
+}

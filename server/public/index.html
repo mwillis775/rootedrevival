@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="terminal" data-density="normal">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📚 Open Scholar — Research, Education & Art</title>
+    <meta name="description" content="Free, open-access platform for research, educational videos, and art. Upload your work, generate citations, preserve human culture.">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&family=Comic+Sans+MS&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app-enhanced.css">
+    <link rel="stylesheet" href="/css/themes.css">
+    <link rel="stylesheet" href="/css/content-types.css">
+</head>
+<body class="scanlines">
+    <!-- Back to Launcher (visible in desktop app) -->
+    <a href="#" class="launcher-link web-hidden" id="backToLauncher">← Launcher</a>
+    
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <a href="/" class="logo">📚 Open Scholar</a>
+            <nav class="nav">
+                <a href="/" data-route="/">Home</a>
+                <a href="/browse" data-route="/browse">Browse</a>
+                <a href="/browse?type=video" data-route="/browse?type=video">🎬 Videos</a>
+                <a href="/browse?type=art" data-route="/browse?type=art">🎨 Art</a>
+                <a href="/browse?type=music" data-route="/browse?type=music">🎵 Music</a>
+            </nav>
+            <div class="auth-nav">
+                <template id="guest-nav">
+                    <a href="/login" data-route="/login" class="btn btn-ghost">Log in</a>
+                    <a href="/register" data-route="/register" class="btn btn-primary">Join free</a>
+                </template>
+                <template id="user-nav">
+                    <a href="/upload" data-route="/upload" class="btn btn-primary">Upload</a>
+                    <a href="/dashboard" data-route="/dashboard">My Stuff</a>
+                    <a href="#" data-route="/profile" id="myProfileLink">My Profile</a>
+                    <a href="/admin" data-route="/admin" class="admin-link hidden" id="adminLink">🛡️ Admin</a>
+                    <button class="btn btn-ghost" id="logoutBtn">Log out</button>
+                </template>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main id="main-content"></main>
+
+        <!-- IPFS Float Button -->
+        <button class="ipfs-float" id="ipfsHelpBtn" type="button">🛰️ Help host</button>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>📚 Open Scholar — Research, education, and art. Free forever. No ads. No paywalls.</p>
+            <p><small>© 2026 Open Scholar — A Rooted Revival Project • Preserving human culture</small></p>
+            <div class="footer-links">
+                <a href="https://github.com/rootedrevival" target="_blank">💻 GitHub</a>
+                <a href="https://discord.gg/rootedrevival" target="_blank">💬 Discord</a>
+                <a href="mailto:michaelwillisbotany@proton.me">✉️ Contact</a>
+                <a href="#" id="openRevival">🌱 Rooted Revival</a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Page Templates -->
+    
+    <!-- Home Page -->
+    <template id="page-home">
+        <section class="hero">
+            <div class="hero-content">
+                <h1>📚 Open Scholar</h1>
+                <p class="tagline">// RESEARCH • EDUCATION • ART — FREE FOREVER</p>
+                <p class="hero-description">
+                    The academic publishing industry charges $35+ per article. Streaming platforms bury art under algorithms. 
+                    We believe knowledge and creativity belong to everyone. Upload research papers, educational videos, 
+                    tutorials, lectures, music, visual art, and more. Preserve human culture forever.
+                </p>
+                <div class="cta-row">
+                    <a href="/browse" data-route="/browse" class="btn btn-primary btn-lg">🔍 Explore</a>
+                    <a href="/browse?type=video" data-route="/browse?type=video" class="btn btn-secondary btn-lg">🎬 Videos</a>
+                    <a href="/browse?type=art" data-route="/browse?type=art" class="btn btn-secondary btn-lg">🎨 Art</a>
+                    <a href="/register" data-route="/register" class="btn btn-lg">🚀 Join Free</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>🔥 Trending</h2>
+                <div id="contentTypeFilter"></div>
+            </div>
+            <div id="recent-content" class="content-grid mixed">
+                <p class="loading">Loading...</p>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>🧭 Browse by Category</h2>
+            <div id="disciplines-grid" class="disciplines-grid">
+                <p class="loading">Loading...</p>
+            </div>
+        </section>
+
+        <section class="section features">
+            <h2>Why Open Scholar?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon">🔓</div>
+                    <h3>Free Forever</h3>
+                    <p>No paywalls. No ads. No subscriptions. No data harvesting. Knowledge and art should be accessible to everyone, always.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🎬</div>
+                    <h3>All Formats Welcome</h3>
+                    <p>Research papers, video lectures, tutorials, documentaries, music, visual art, photography, podcasts—human creativity in all its forms.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📝</div>
+                    <h3>One-Click Citations</h3>
+                    <p>Generate perfect APA, MLA, Chicago, IEEE, BibTeX, or RIS citations instantly. Export directly to reference managers.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🎨</div>
+                    <h3>Express Yourself</h3>
+                    <p>Customize your profile page like the old internet. Choose themes, colors, fonts, even a profile song. Make it yours.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🛰️</div>
+                    <h3>Preserved Forever</h3>
+                    <p>Your work lives on a decentralized network. Community nodes worldwide ensure culture survives server failures and corporate shutdowns.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🌐</div>
+                    <h3>Global Community</h3>
+                    <p>Join researchers, artists, educators, and curious minds from around the world. Human culture belongs to everyone.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section class="section">
+            <h2>🌱 A Rooted Revival Project</h2>
+            <div style="max-width: 700px; color: var(--text-muted); line-height: 1.8;">
+                <p style="margin-bottom: 1rem;">
+                    OpenSource Scholar is part of the Rooted Revival ecosystem—a collective building 
+                    technology that serves life, not profit. We believe sustainable systems require 
+                    open knowledge freely shared.
+                </p>
+                <p>
+                    When you run our desktop app, you become an IPFS node, helping preserve human 
+                    knowledge for future generations. Download for Windows, Mac, or Linux to join 
+                    the network.
+                </p>
+                <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <a href="https://github.com/rootedrevival" class="btn btn-secondary" target="_blank">💻 GitHub</a>
+                    <a href="https://discord.gg/rootedrevival" class="btn btn-secondary" target="_blank">💬 Discord</a>
+                    <a href="#" id="downloadApp" class="btn btn-primary">📥 Download App</a>
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <!-- Browse Page -->
+    <template id="page-browse">
+        <section class="section">
+            <h1>🔍 Browse Research</h1>
+            
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search papers, authors, keywords..." class="search-input">
+                <button class="btn btn-primary" id="searchBtn">Search</button>
+            </div>
+
+            <div class="filters">
+                <select id="filterDiscipline" class="select">
+                    <option value="">All disciplines</option>
+                </select>
+                <select id="filterType" class="select">
+                    <option value="">All types</option>
+                    <option value="paper">Paper</option>
+                    <option value="book">Book</option>
+                    <option value="thesis">Thesis</option>
+                    <option value="preprint">Preprint</option>
+                    <option value="dataset">Dataset</option>
+                    <option value="notes">Notes</option>
+                </select>
+                <input type="number" id="filterYear" placeholder="Year" class="input input-sm">
+            </div>
+
+            <div id="search-results" class="papers-list">
+                <p class="loading">Loading...</p>
+            </div>
+
+            <div class="pagination" id="pagination"></div>
+        </section>
+    </template>
+
+    <!-- Paper Detail Page -->
+    <template id="page-paper">
+        <article class="paper-detail" id="paper-content">
+            <p class="loading">Loading...</p>
+        </article>
+    </template>
+
+    <!-- Login Page -->
+    <template id="page-login">
+        <section class="section section-narrow">
+            <h1>Log in</h1>
+            <form id="loginForm" class="form">
+                <div class="form-group">
+                    <label for="loginUsername">Username or email</label>
+                    <input type="text" id="loginUsername" name="username" required class="input">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" name="password" required class="input">
+                </div>
+                <div class="form-error" id="loginError"></div>
+                <button type="submit" class="btn btn-primary btn-block">Log in</button>
+            </form>
+            <p class="form-footer">Don't have an account? <a href="/register" data-route="/register">Join free</a></p>
+        </section>
+    </template>
+
+    <!-- Register Page -->
+    <template id="page-register">
+        <section class="section section-narrow">
+            <h1>Join OpenSource Scholar</h1>
+            <p class="subtitle">Membership is free. We never sell your data.</p>
+            <form id="registerForm" class="form">
+                <div class="form-group">
+                    <label for="regUsername">Username</label>
+                    <input type="text" id="regUsername" name="username" required minlength="3" maxlength="30" pattern="[a-zA-Z0-9_-]+" class="input">
+                    <small>Letters, numbers, underscores, hyphens only</small>
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">Email</label>
+                    <input type="email" id="regEmail" name="email" required class="input">
+                </div>
+                <div class="form-group">
+                    <label for="regDisplayName">Display name (optional)</label>
+                    <input type="text" id="regDisplayName" name="displayName" class="input">
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Password</label>
+                    <input type="password" id="regPassword" name="password" required minlength="8" class="input">
+                    <small>At least 8 characters</small>
+                </div>
+                <div class="form-error" id="registerError"></div>
+                <button type="submit" class="btn btn-primary btn-block">Create account</button>
+            </form>
+            <p class="form-footer">Already have an account? <a href="/login" data-route="/login">Log in</a></p>
+        </section>
+    </template>
+
+    <!-- Upload Page -->
+    <template id="page-upload">
+        <section class="section">
+            <h1>⬆️ Upload Research</h1>
+            <form id="uploadForm" class="form form-wide">
+                <div class="form-row">
+                    <div class="form-group flex-2">
+                        <label for="uploadTitle">Title *</label>
+                        <input type="text" id="uploadTitle" name="title" required class="input">
+                    </div>
+                    <div class="form-group">
+                        <label for="uploadType">Type</label>
+                        <select id="uploadType" name="paperType" class="select">
+                            <option value="paper">Paper</option>
+                            <option value="book">Book</option>
+                            <option value="thesis">Thesis</option>
+                            <option value="preprint">Preprint</option>
+                            <option value="dataset">Dataset</option>
+                            <option value="notes">Notes / Ideas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="uploadAbstract">Abstract</label>
+                    <textarea id="uploadAbstract" name="abstract" rows="5" class="textarea"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="uploadYear">Publication year</label>
+                        <input type="number" id="uploadYear" name="publicationYear" min="1800" max="2100" class="input">
+                    </div>
+                    <div class="form-group">
+                        <label for="uploadDoi">DOI (optional)</label>
+                        <input type="text" id="uploadDoi" name="doi" placeholder="10.xxxx/xxxxx" class="input">
+                    </div>
+                    <div class="form-group">
+                        <label for="uploadLanguage">Language</label>
+                        <select id="uploadLanguage" name="language" class="select">
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="zh">Chinese</option>
+                            <option value="ja">Japanese</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Disciplines</label>
+                    <div id="disciplineCheckboxes" class="checkbox-grid"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="uploadKeywords">Keywords (comma-separated)</label>
+                    <input type="text" id="uploadKeywords" name="keywords" placeholder="machine learning, neural networks, NLP" class="input">
+                </div>
+
+                <div class="form-group">
+                    <label for="uploadAuthors">Authors (one per line: Name | Email | Affiliation)</label>
+                    <textarea id="uploadAuthors" name="authors" rows="3" class="textarea" placeholder="Jane Doe | jane@university.edu | University of Example"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="uploadLicense">License</label>
+                        <select id="uploadLicense" name="license" class="select">
+                            <option value="CC-BY-4.0">CC BY 4.0</option>
+                            <option value="CC-BY-SA-4.0">CC BY-SA 4.0</option>
+                            <option value="CC-BY-NC-4.0">CC BY-NC 4.0</option>
+                            <option value="CC0">CC0 (Public Domain)</option>
+                            <option value="MIT">MIT</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="uploadVisibility">Visibility</label>
+                        <select id="uploadVisibility" name="visibility" class="select">
+                            <option value="public">Public</option>
+                            <option value="members">Members only</option>
+                            <option value="private">Private (draft)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-error" id="uploadError"></div>
+                <button type="submit" class="btn btn-primary">Create paper</button>
+            </form>
+        </section>
+    </template>
+
+    <!-- Dashboard Page -->
+    <template id="page-dashboard">
+        <section class="section">
+            <h1>📄 My Papers</h1>
+            <div id="my-papers" class="papers-list">
+                <p class="loading">Loading...</p>
+            </div>
+            
+            <h2 style="margin-top:2rem">📚 My Collections</h2>
+            <div id="my-collections" class="collections-list">
+                <p class="loading">Loading...</p>
+            </div>
+            
+            <h2 style="margin-top:2rem">⭐ Bookmarked Papers</h2>
+            <div id="my-bookmarks" class="papers-list">
+                <p class="loading">Loading...</p>
+            </div>
+        </section>
+    </template>
+
+    <!-- Disciplines Page -->
+    <template id="page-disciplines">
+        <section class="section">
+            <h1>🧭 Disciplines</h1>
+            <div id="all-disciplines" class="disciplines-list">
+                <p class="loading">Loading...</p>
+            </div>
+        </section>
+    </template>
+    
+    <!-- Admin Dashboard Page -->
+    <template id="page-admin">
+        <section class="section">
+            <h1>🛡️ Admin Dashboard</h1>
+            
+            <div class="admin-stats" id="admin-stats">
+                <p class="loading">Loading stats...</p>
+            </div>
+            
+            <div class="admin-tabs">
+                <button class="tab-btn active" data-tab="pending">Pending Review</button>
+                <button class="tab-btn" data-tab="users">Users</button>
+                <button class="tab-btn" data-tab="modlog">Moderation Log</button>
+            </div>
+            
+            <div class="tab-content" id="tab-pending">
+                <h2>📋 Papers Pending Review</h2>
+                <div id="pending-papers" class="papers-list">
+                    <p class="loading">Loading...</p>
+                </div>
+            </div>
+            
+            <div class="tab-content hidden" id="tab-users">
+                <h2>👥 User Management</h2>
+                <div class="search-bar">
+                    <input type="text" id="userSearchInput" placeholder="Search users..." class="search-input">
+                    <button class="btn btn-primary" id="userSearchBtn">Search</button>
+                </div>
+                <div id="admin-users" class="users-list">
+                    <p class="loading">Loading...</p>
+                </div>
+            </div>
+            
+            <div class="tab-content hidden" id="tab-modlog">
+                <h2>📜 Moderation Log</h2>
+                <div id="moderation-log" class="modlog-list">
+                    <p class="loading">Loading...</p>
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <!-- IPFS Modal -->
+    <div class="modal" id="ipfsModal" aria-hidden="true">
+        <div class="modal-backdrop" data-close></div>
+        <div class="modal-content" role="dialog" aria-modal="true">
+            <button class="modal-close" data-close aria-label="Close">✕</button>
+            <h2>🛰️ Help host OpenSource Scholar on IPFS</h2>
+            <p>
+                No API keys required. If you run IPFS (Kubo) or a local pinning service,
+                you can help preserve the library by pinning content.
+            </p>
+            <ol>
+                <li>Install IPFS (Kubo) and start a local node</li>
+                <li>Add/pin the site or specific collections</li>
+                <li>Share your mirror with the community</li>
+            </ol>
+            <div class="code-block">
+                <code>ipfs add -r ./public</code>
+                <code>ipfs pin add &lt;CID&gt;</code>
+            </div>
+            <div id="ipfsStatus" class="ipfs-status"></div>
+        </div>
+    </div>
+
+    <script src="/js/themes.js"></script>
+    <script src="/js/content-templates.js"></script>
+    <script src="/js/profile.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

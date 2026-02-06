@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  scholar:
+    build: .
+    container_name: opensource-scholar
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - SESSION_SECRET=${SESSION_SECRET:-change-me-in-production}
+      - IPFS_ENABLED=true
+      - IPFS_API_URL=http://ipfs:5001
+      - IPFS_GATEWAY_URL=http://ipfs:8080
+    volumes:
+      - scholar-data:/app/data
+    depends_on:
+      - ipfs
+    networks:
+      - scholar-net
+
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: scholar-ipfs
+    restart: unless-stopped
+    ports:
+      - "4001:4001"     # Swarm
+      - "5001:5001"     # API (internal only in production)
+      - "8080:8080"     # Gateway
+    volumes:
+      - ipfs-data:/data/ipfs
+    networks:
+      - scholar-net
+
+volumes:
+  scholar-data:
+  ipfs-data:
+
+networks:
+  scholar-net:
+    driver: bridge

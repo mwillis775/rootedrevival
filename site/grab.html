@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GrabNet — Decentralized Web Hosting Protocol</title>
+    <meta name="description" content="GrabNet is a peer-to-peer protocol for publishing and hosting websites on a decentralized network. Stable addresses, delta sync, and native HTTP serving.">
+    <meta name="keywords" content="grabnet, decentralized hosting, P2P, web3, permanent web, rust, libp2p">
+    <link rel="canonical" href="https://rootedrevival.us/grab.html">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --bg-surface: #111;
+            --bg-elevated: #1a1a1a;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --accent: #33ff33;
+            --accent-dim: rgba(51, 255, 51, 0.15);
+            --accent-glow: rgba(51, 255, 51, 0.4);
+            --amber: #ffb000;
+            --cyan: #00d4ff;
+            --purple: #b388ff;
+            --border: #333;
+            --radius: 6px;
+            --font-mono: 'Share Tech Mono', monospace;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-shadow: 0 0 10px var(--accent-glow); }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 0;
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-size: 1.3rem;
+            color: var(--purple);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon { font-size: 1.5rem; }
+
+        .nav { display: flex; gap: 25px; }
+        .nav a {
+            color: var(--text);
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .nav a:hover { color: var(--purple); }
+
+        /* Hero */
+        .hero {
+            padding: 180px 0 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 50% 0%, rgba(179, 136, 255, 0.15) 0%, transparent 50%),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(179, 136, 255, 0.03) 2px, rgba(179, 136, 255, 0.03) 4px);
+            pointer-events: none;
+        }
+
+        .terminal-prompt {
+            font-family: var(--font-mono);
+            color: var(--purple);
+            font-size: 1rem;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        .hero h1 {
+            font-family: var(--font-mono);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 400;
+            margin-bottom: 20px;
+            color: var(--purple);
+            text-shadow: 0 0 30px rgba(179, 136, 255, 0.4);
+        }
+
+        .hero-tagline {
+            font-size: 1.3rem;
+            color: var(--text);
+            max-width: 700px;
+            margin: 0 auto 20px;
+        }
+
+        .hero-sub {
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            margin-bottom: 40px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: var(--purple);
+            color: var(--bg);
+            border-color: var(--purple);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 0 30px rgba(179, 136, 255, 0.4);
+            transform: translateY(-2px);
+            color: var(--bg);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--purple);
+            border-color: var(--purple);
+        }
+        .btn-ghost:hover {
+            background: rgba(179, 136, 255, 0.15);
+        }
+
+        /* Sections */
+        section {
+            padding: 80px 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-label {
+            font-family: var(--font-mono);
+            color: var(--amber);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .section-title {
+            font-family: var(--font-mono);
+            font-size: 2rem;
+            color: var(--purple);
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .feature {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 30px;
+            transition: all 0.3s;
+        }
+
+        .feature:hover {
+            border-color: var(--purple);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .feature h3 {
+            font-family: var(--font-mono);
+            color: var(--purple);
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .feature p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            overflow-x: auto;
+            margin-top: 40px;
+        }
+
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison-table th {
+            background: var(--bg-surface);
+            color: var(--purple);
+        }
+
+        .comparison-table tr:hover td {
+            background: var(--bg-elevated);
+        }
+
+        .check { color: var(--accent); }
+        .cross { color: #ff5555; }
+
+        /* Code Block */
+        .code-block {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 30px;
+            margin-top: 40px;
+            overflow-x: auto;
+        }
+
+        .code-block pre {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--text);
+            margin: 0;
+            line-height: 1.8;
+        }
+
+        .code-block .comment {
+            color: var(--text-muted);
+        }
+
+        .code-block .command {
+            color: var(--accent);
+        }
+
+        .code-block .output {
+            color: var(--amber);
+        }
+
+        /* Architecture */
+        .architecture {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 30px;
+            margin-top: 40px;
+        }
+
+        .architecture pre {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.5;
+            overflow-x: auto;
+        }
+
+        /* Live Sites */
+        .live-sites {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .live-site {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .live-site h4 {
+            color: var(--purple);
+            font-family: var(--font-mono);
+            margin-bottom: 10px;
+        }
+
+        .live-site p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+            padding: 40px 0;
+            text-align: center;
+        }
+
+        .footer-logo {
+            font-family: var(--font-mono);
+            color: var(--purple);
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .footer-tagline {
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            margin-bottom: 10px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--purple);
+        }
+
+        @media (max-width: 768px) {
+            .nav { display: none; }
+            .hero { padding: 140px 0 60px; }
+            section { padding: 60px 0; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <a href="grab.html" class="logo">
+                <span class="logo-icon">🌐</span>
+                <span>GRAB_NET</span>
+            </a>
+            <nav class="nav">
+                <a href="#features">Features</a>
+                <a href="#quickstart">Quick Start</a>
+                <a href="#comparison">Compare</a>
+                <a href="index.html" style="color: var(--accent);">Rooted Revival</a>
+                <a href="scholar.html" style="color: var(--amber);">Open Scholar</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <p class="terminal-prompt">$ grab publish ./my-site --name awesome</p>
+                <h1>GRAB_NET<span class="cursor"></span></h1>
+                <p class="hero-tagline">Decentralized web hosting protocol. Publish websites to the permanent web with stable addresses that never change.</p>
+                <p class="hero-sub">// Written in Rust • Powered by libp2p • Single Binary</p>
+                <div class="cta-buttons">
+                    <a href="https://github.com/mwillis775/grab" target="_blank" class="btn btn-primary">View on GitHub</a>
+                    <a href="#quickstart" class="btn btn-ghost">Get Started</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="features">
+            <div class="container">
+                <div class="section-header">
+                    <p class="section-label">// Why GrabNet</p>
+                    <h2 class="section-title">Built for Websites</h2>
+                </div>
+                <div class="features-grid">
+                    <div class="feature">
+                        <div class="feature-icon">🔒</div>
+                        <h3>Stable Addresses</h3>
+                        <p>Your site ID is derived from your key + name. It never changes, even after thousands of updates. No more IPNS slowness.</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Delta Sync</h3>
+                        <p>Merkle tree diffing means only changed chunks transfer. Update a 10MB site by sending just 50KB.</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">🌐</div>
+                        <h3>Native HTTP Gateway</h3>
+                        <p>Serve sites directly over HTTP from any node. No external gateway required. Works with Cloudflare Tunnel.</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">📦</div>
+                        <h3>Single Binary</h3>
+                        <p>No Node.js, Python, or runtime dependencies. Just one Rust binary. Download and run.</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">🔐</div>
+                        <h3>Cryptographic Ownership</h3>
+                        <p>Ed25519 signatures prove you own your content. No one can impersonate your site or push fake updates.</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">🔄</div>
+                        <h3>Auto-Replication</h3>
+                        <p>Peers hosting your site automatically sync when you push updates. Your content propagates to the network.</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">👀</div>
+                        <h3>Watch Mode</h3>
+                        <p>Develop with --watch flag for automatic republishing on file changes. Perfect for local development.</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">🔧</div>
+                        <h3>Deploy Hooks</h3>
+                        <p>Run custom commands before and after publishing. Integrate with build tools and notifications.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="quickstart" style="background: var(--bg-surface);">
+            <div class="container">
+                <div class="section-header">
+                    <p class="section-label">// Quick Start</p>
+                    <h2 class="section-title">Up and Running in 2 Minutes</h2>
+                </div>
+                <div class="code-block">
+                    <pre><span class="comment"># Clone and build</span>
+<span class="command">git clone https://github.com/mwillis775/grab.git</span>
+<span class="command">cd grab && cargo build --release</span>
+
+<span class="comment"># Publish a website</span>
+<span class="command">./target/release/grab publish ./my-website --name my-site</span>
+
+<span class="output">📦 Publishing ./my-website...
+✓ Bundled 23 files (1.2 MB)
+✓ Compressed to 340 KB (72% smaller)
+✓ 45 chunks (45 new)
+
+🌐 Site ID: grab://AtnArdZARzYJ7sTKYdrn4HHYsofuSe9gonDNsrqwFFa1
+📝 Name:    my-site
+🔄 Revision: 1</span>
+
+<span class="comment"># Start gateway to serve your site</span>
+<span class="command">./target/release/grab gateway --port 8080</span>
+
+<span class="output">🌐 GrabNet Gateway running on http://127.0.0.1:8080</span>
+
+<span class="comment"># Your site is now live at:</span>
+<span class="comment"># http://127.0.0.1:8080/sites/my-site/</span></pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="comparison">
+            <div class="container">
+                <div class="section-header">
+                    <p class="section-label">// Compare</p>
+                    <h2 class="section-title">GrabNet vs The Rest</h2>
+                </div>
+                <div class="comparison-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Traditional</th>
+                                <th>IPFS</th>
+                                <th>GrabNet</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Address stability</td>
+                                <td><span class="check">✓</span> Fixed</td>
+                                <td><span class="cross">✗</span> Changes on update</td>
+                                <td><span class="check">✓</span> Stable forever</td>
+                            </tr>
+                            <tr>
+                                <td>Name resolution</td>
+                                <td><span class="check">✓</span> Fast DNS</td>
+                                <td><span class="cross">✗</span> IPNS is slow</td>
+                                <td><span class="check">✓</span> &lt;100ms via DHT</td>
+                            </tr>
+                            <tr>
+                                <td>Update efficiency</td>
+                                <td><span class="check">✓</span> Incremental</td>
+                                <td><span class="cross">✗</span> Full re-upload</td>
+                                <td><span class="check">✓</span> Delta sync</td>
+                            </tr>
+                            <tr>
+                                <td>Censorship resistance</td>
+                                <td><span class="cross">✗</span> Single server</td>
+                                <td><span class="check">✓</span> Distributed</td>
+                                <td><span class="check">✓</span> Distributed</td>
+                            </tr>
+                            <tr>
+                                <td>Native HTTP serving</td>
+                                <td><span class="check">✓</span> Yes</td>
+                                <td><span class="cross">✗</span> Needs gateway</td>
+                                <td><span class="check">✓</span> Built-in</td>
+                            </tr>
+                            <tr>
+                                <td>Setup complexity</td>
+                                <td><span class="cross">✗</span> Complex</td>
+                                <td><span class="cross">✗</span> Complex</td>
+                                <td><span class="check">✓</span> Single binary</td>
+                            </tr>
+                            <tr>
+                                <td>Ongoing cost</td>
+                                <td><span class="cross">✗</span> Server fees</td>
+                                <td><span class="check">✓</span> Free (if pinned)</td>
+                                <td><span class="check">✓</span> Free</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section style="background: var(--bg-surface);">
+            <div class="container">
+                <div class="section-header">
+                    <p class="section-label">// Live Sites</p>
+                    <h2 class="section-title">Running on GrabNet</h2>
+                </div>
+                <div class="live-sites">
+                    <div class="live-site">
+                        <h4>🌱 rootedrevival.us</h4>
+                        <p>This very website! Regenerative landscaping business running on GrabNet via Cloudflare Tunnel.</p>
+                        <p style="margin-top: 10px;"><a href="index.html">Visit →</a></p>
+                    </div>
+                    <div class="live-site">
+                        <h4>📚 Open Scholar</h4>
+                        <p>Decentralized knowledge repository for academic research, art, and education.</p>
+                        <p style="margin-top: 10px;"><a href="scholar.html">Visit →</a></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="container">
+                <div class="section-header">
+                    <p class="section-label">// Architecture</p>
+                    <h2 class="section-title">Under the Hood</h2>
+                </div>
+                <div class="architecture">
+                    <pre>
+┌─────────────────────────────────────────────────────────────────┐
+│                            CLI                                   │
+│                  grab publish | update | gateway                 │
+├─────────────────────────────────────────────────────────────────┤
+│                         Grab SDK                                 │
+│               High-level API for all operations                  │
+├─────────────────────────────────────────────────────────────────┤
+│                       HTTP Gateway                               │
+│               axum server for HTTP/HTTPS access                  │
+├───────────────────────────┬─────────────────────────────────────┤
+│       User Content        │           Publisher                  │
+│   Uploads & Moderation    │      Bundle, Chunk, Sign             │
+├───────────────────────────┴─────────────────────────────────────┤
+│                        P2P Network                               │
+│          libp2p: Kademlia DHT + Gossipsub + Noise               │
+├─────────────────────────────────────────────────────────────────┤
+│                         Storage                                  │
+│              sled: Chunks, Bundles, Keys, Metadata              │
+├─────────────────────────────────────────────────────────────────┤
+│                          Crypto                                  │
+│               BLAKE3 hashing + Ed25519 signing                   │
+└─────────────────────────────────────────────────────────────────┘
+                    </pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="getstarted" style="background: var(--bg-surface);">
+            <div class="container">
+                <div class="section-header">
+                    <p class="section-label">// Join the Network</p>
+                    <h2 class="section-title">Start Hosting</h2>
+                </div>
+                <div style="text-align: center; max-width: 600px; margin: 0 auto;">
+                    <p style="margin-bottom: 30px; color: var(--text-muted);">
+                        GrabNet is open source and free to use. Clone the repo, build the binary, 
+                        and start publishing your websites to the permanent web.
+                    </p>
+                    <div class="cta-buttons">
+                        <a href="https://github.com/mwillis775/grab" target="_blank" class="btn btn-primary">GitHub Repository</a>
+                        <a href="https://github.com/mwillis775/grab#quick-start" target="_blank" class="btn btn-ghost">Read the Docs</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-logo">
+                <span>🌐</span>
+                <span>GRAB_NET</span>
+            </div>
+            <p class="footer-tagline">// Decentralized web hosting for the permanent web</p>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">A Rooted Revival Project • MIT / Apache-2.0 License</p>
+            <div class="footer-links">
+                <a href="https://github.com/mwillis775/grab" target="_blank">GitHub</a>
+                <a href="index.html">Rooted Revival</a>
+                <a href="scholar.html">Open Scholar</a>
+                <a href="mailto:michaelwillisbotany@proton.me">Contact</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

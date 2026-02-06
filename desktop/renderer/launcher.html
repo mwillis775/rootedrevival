@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROOTED_REVIVAL_OS // LAUNCHER</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --p-green: #33ff33;
+            --p-green-dim: #1a8c1a;
+            --p-amber: #ffb000;
+            --p-red: #ff3333;
+            --p-cyan: #00ffff;
+            --bg: #0a0a0a;
+            --bg-card: #111111;
+            --border: #222222;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--p-green);
+            font-family: 'Share Tech Mono', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Scanline overlay */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.08) 50%);
+            background-size: 100% 3px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .launcher {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--p-green);
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 1.4rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 5px var(--p-green-dim); }
+            to { text-shadow: 0 0 15px var(--p-green), 0 0 30px var(--p-green-dim); }
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 30px;
+            font-size: 0.85rem;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--p-green);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .status-dot.offline { background: var(--p-red); animation: none; }
+        .status-dot.syncing { background: var(--p-amber); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Main content */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 60px;
+        }
+
+        .hero-section {
+            text-align: center;
+            max-width: 700px;
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.1rem;
+            color: var(--p-amber);
+            margin-bottom: 15px;
+        }
+
+        .hero-desc {
+            font-size: 0.95rem;
+            color: #888;
+            line-height: 1.7;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* App cards */
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .app-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 35px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--p-green), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.5s ease;
+        }
+
+        .app-card:hover {
+            border-color: var(--p-green);
+            box-shadow: 0 0 30px rgba(51, 255, 51, 0.1);
+            transform: translateY(-3px);
+        }
+
+        .app-card:hover::before {
+            transform: translateX(0);
+        }
+
+        .app-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .app-name {
+            font-size: 1.3rem;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .app-desc {
+            font-size: 0.9rem;
+            color: #777;
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+
+        .app-tags {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border: 1px solid var(--border);
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        /* IPFS Panel */
+        .ipfs-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 25px 35px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .ipfs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .ipfs-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1rem;
+            text-transform: uppercase;
+        }
+
+        .ipfs-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            color: var(--p-cyan);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        /* Buttons */
+        .btn {
+            background: transparent;
+            border: 1px solid var(--p-green);
+            color: var(--p-green);
+            padding: 10px 20px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: var(--p-green);
+            color: #000;
+        }
+
+        .btn.btn-sm {
+            padding: 6px 14px;
+            font-size: 0.75rem;
+        }
+
+        /* Footer */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            font-size: 0.8rem;
+            color: #555;
+        }
+
+        .footer a {
+            color: var(--p-green);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Quick links */
+        .quick-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .quick-link {
+            color: var(--p-amber);
+            text-decoration: none;
+            font-size: 0.85rem;
+            padding: 5px 12px;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .quick-link:hover {
+            border-color: var(--p-amber);
+        }
+    </style>
+</head>
+<body>
+    <div class="launcher">
+        <header class="header">
+            <div class="logo">ROOTED_REVIVAL_OS v1.0</div>
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-dot" id="ipfsStatusDot"></span>
+                    <span id="ipfsStatusText">IPFS: Connecting...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-dot"></span>
+                    <span>System: Online</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="main">
+            <section class="hero-section">
+                <h1 class="hero-title">Welcome</h1>
+                <p class="hero-subtitle">// FREE ACCESS TO RESEARCH, EDUCATION & ART</p>
+                <p class="hero-desc">
+                    You now have access to a growing library of peer-reviewed research, educational videos, 
+                    and creative works—all free, with no ads, no subscriptions, and no data harvesting. 
+                    Knowledge the way it should be.
+                </p>
+            </section>
+
+            <div class="apps-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="app-card" id="launchRevival">
+                    <div class="app-icon">🌱</div>
+                    <h2 class="app-name">Rooted Revival</h2>
+                    <p class="app-desc">
+                        Visit the main Rooted Revival website. Sustainable technology R&D—
+                        controlled environment agriculture, botanical genetics, fabrication, 
+                        and systems engineering for regenerative futures.
+                    </p>
+                    <div class="app-tags">
+                        <span class="tag">Website</span>
+                        <span class="tag">CEA</span>
+                        <span class="tag">Genetics</span>
+                        <span class="tag">Open Source</span>
+                    </div>
+                </div>
+
+                <div class="app-card" id="launchScholar">
+                    <div class="app-icon">📚</div>
+                    <h2 class="app-name">Open Scholar</h2>
+                    <p class="app-desc">
+                        Browse peer-reviewed research, educational videos, lectures, 
+                        tutorials, and art. Upload your own work. Generate citations 
+                        instantly. Culture preserved, knowledge shared.
+                    </p>
+                    <div class="app-tags">
+                        <span class="tag">Research</span>
+                        <span class="tag">Videos</span>
+                        <span class="tag">Art</span>
+                        <span class="tag">Free</span>
+                    </div>
+                </div>
+
+                <div class="app-card" id="launchGrabNet">
+                    <div class="app-icon">🌐</div>
+                    <h2 class="app-name">GrabNet</h2>
+                    <p class="app-desc">
+                        Publish your own website to the permanent web. Create decentralized 
+                        sites that live forever. No servers needed—just publish and share.
+                    </p>
+                    <div class="app-tags">
+                        <span class="tag">P2P</span>
+                        <span class="tag">Publishing</span>
+                        <span class="tag">Decentralized</span>
+                        <span class="tag">Hosting</span>
+                    </div>
+                </div>
+            </div>
+
+            <section class="ipfs-panel">
+                <div class="ipfs-header">
+                    <div class="ipfs-title">
+                        <span>🛰️</span>
+                        <span>IPFS Node Dashboard</span>
+                    </div>
+                    <button class="btn btn-sm" id="ipfsToggle">Stop Node</button>
+                </div>
+                <div class="ipfs-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="peerCount">--</div>
+                        <div class="stat-label">Connected Peers</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="pinnedCount">--</div>
+                        <div class="stat-label">Pinned Items</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="repoSize">--</div>
+                        <div class="stat-label">Repo Size</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="uptime">--</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="quick-links">
+                <a href="#" class="quick-link" id="linkDocs">📖 Documentation</a>
+                <a href="#" class="quick-link" id="linkGithub">💻 GitHub</a>
+                <a href="#" class="quick-link" id="linkDiscord">💬 Community</a>
+                <a href="#" class="quick-link" id="linkSettings">⚙️ Settings</a>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div>COORDINATES: 36.1540° N, 95.9928° W // TULSA, OK</div>
+            <div>
+                <a href="mailto:michaelwillisbotany@proton.me">michaelwillisbotany@proton.me</a>
+            </div>
+            <div>© 2026 ROOTED REVIVAL</div>
+        </footer>
+    </div>
+
+    <script>
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if running in Electron
+            if (window.rootedAPI) {
+                // Update IPFS status
+                updateIPFSStatus();
+                setInterval(updateIPFSStatus, 5000);
+                
+                // Navigation handlers
+                document.getElementById('launchRevival').addEventListener('click', () => {
+                    window.rootedAPI.loadRevival();
+                });
+                
+                document.getElementById('launchScholar').addEventListener('click', () => {
+                    window.rootedAPI.loadScholar();
+                });
+                
+                document.getElementById('launchGrabNet').addEventListener('click', () => {
+                    window.rootedAPI.loadGrabNet();
+                });
+                
+                // IPFS toggle
+                document.getElementById('ipfsToggle').addEventListener('click', async () => {
+                    const status = await window.rootedAPI.getIPFSStatus();
+                    if (status.running) {
+                        await window.rootedAPI.stopIPFS();
+                    } else {
+                        await window.rootedAPI.startIPFS();
+                    }
+                    updateIPFSStatus();
+                });
+                
+                // External links
+                document.getElementById('linkGithub').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.rootedAPI.openExternal('https://github.com/rootedrevival');
+                });
+                
+                document.getElementById('linkDiscord').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.rootedAPI.openExternal('https://discord.gg/rootedrevival');
+                });
+            } else {
+                // Web fallback - direct navigation
+                document.getElementById('launchRevival').addEventListener('click', () => {
+                    window.location.href = 'revival.html';
+                });
+                
+                document.getElementById('launchScholar').addEventListener('click', () => {
+                    window.location.href = '/scholar/';
+                });
+                
+                document.getElementById('launchGrabNet').addEventListener('click', () => {
+                    window.location.href = '/grabnet-gui/';
+                });
+            }
+        });
+        
+        async function updateIPFSStatus() {
+            if (!window.rootedAPI) return;
+            
+            try {
+                const status = await window.rootedAPI.getIPFSStatus();
+                const dot = document.getElementById('ipfsStatusDot');
+                const text = document.getElementById('ipfsStatusText');
+                const toggle = document.getElementById('ipfsToggle');
+                
+                if (status.running) {
+                    dot.classList.remove('offline', 'syncing');
+                    text.textContent = `IPFS: ${status.peerCount} peers`;
+                    toggle.textContent = 'Stop Node';
+                    
+                    document.getElementById('peerCount').textContent = status.peerCount;
+                    document.getElementById('repoSize').textContent = formatBytes(parseInt(status.repoSize));
+                } else {
+                    dot.classList.add('offline');
+                    text.textContent = 'IPFS: Offline';
+                    toggle.textContent = 'Start Node';
+                    
+                    document.getElementById('peerCount').textContent = '--';
+                    document.getElementById('repoSize').textContent = '--';
+                }
+            } catch (error) {
+                console.error('Failed to get IPFS status:', error);
+            }
+        }
+        
+        function formatBytes(bytes) {
+            if (!bytes || isNaN(bytes)) return '--';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let unitIndex = 0;
+            let size = bytes;
+            while (size >= 1024 && unitIndex < units.length - 1) {
+                size /= 1024;
+                unitIndex++;
+            }
+            return `${size.toFixed(1)} ${units[unitIndex]}`;
+        }
+    </script>
+</body>
+</html>

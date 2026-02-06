@@ -1,0 +1,784 @@
+/**
+ * Open Scholar - Theming System
+ * 
+ * Inspired by the old internet: GeoCities, MySpace, early web personalization.
+ * Users can customize their experience and profile owners can style their pages.
+ */
+
+/* ========================================
+   PRESET THEMES - VIEWER SELECTABLE
+   ======================================== */
+
+/* Default Terminal Theme (Rooted Revival Style) */
+[data-theme="terminal"] {
+    --primary: #33ff33;
+    --primary-dark: #1a8c1a;
+    --secondary: #ffb000;
+    --accent: #00ffff;
+    --bg: #0a0a0a;
+    --bg-alt: #111111;
+    --surface: #1a1a1a;
+    --text: #33ff33;
+    --text-muted: #888888;
+    --border: #333333;
+    --error: #ff3333;
+    --success: #33ff33;
+    --font-body: 'Share Tech Mono', 'Courier New', monospace;
+    --font-heading: 'Share Tech Mono', monospace;
+    --scanlines: block;
+}
+
+/* Vapor / Retro Wave */
+[data-theme="vapor"] {
+    --primary: #ff71ce;
+    --primary-dark: #b967ff;
+    --secondary: #01cdfe;
+    --accent: #05ffa1;
+    --bg: #1a0a2e;
+    --bg-alt: #16213e;
+    --surface: #0f3460;
+    --text: #e2e2e2;
+    --text-muted: #b4a5c7;
+    --border: #533483;
+    --error: #ff4d6d;
+    --success: #05ffa1;
+    --font-body: 'Arial', sans-serif;
+    --font-heading: 'Arial Black', sans-serif;
+    --scanlines: none;
+}
+
+/* Paper / Academic Light */
+[data-theme="paper"] {
+    --primary: #8b4513;
+    --primary-dark: #654321;
+    --secondary: #2f4f4f;
+    --accent: #b8860b;
+    --bg: #faf8f5;
+    --bg-alt: #f5f0e6;
+    --surface: #ffffff;
+    --text: #2c2416;
+    --text-muted: #6b5b4f;
+    --border: #d4c4a8;
+    --error: #8b0000;
+    --success: #228b22;
+    --font-body: 'Georgia', 'Times New Roman', serif;
+    --font-heading: 'Palatino Linotype', 'Book Antiqua', serif;
+    --scanlines: none;
+}
+
+/* Midnight / Dark Blue */
+[data-theme="midnight"] {
+    --primary: #60a5fa;
+    --primary-dark: #3b82f6;
+    --secondary: #a78bfa;
+    --accent: #fbbf24;
+    --bg: #0f172a;
+    --bg-alt: #1e293b;
+    --surface: #334155;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --border: #475569;
+    --error: #f87171;
+    --success: #4ade80;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --scanlines: none;
+}
+
+/* Solar Light */
+[data-theme="solar"] {
+    --primary: #268bd2;
+    --primary-dark: #2176b8;
+    --secondary: #859900;
+    --accent: #cb4b16;
+    --bg: #fdf6e3;
+    --bg-alt: #eee8d5;
+    --surface: #ffffff;
+    --text: #073642;
+    --text-muted: #586e75;
+    --border: #93a1a1;
+    --error: #dc322f;
+    --success: #859900;
+    --font-body: 'Roboto', sans-serif;
+    --font-heading: 'Roboto', sans-serif;
+    --scanlines: none;
+}
+
+/* Y2K / Early 2000s */
+[data-theme="y2k"] {
+    --primary: #0066ff;
+    --primary-dark: #0044cc;
+    --secondary: #ff6600;
+    --accent: #00ff00;
+    --bg: #c0c0c0;
+    --bg-alt: #a0a0a0;
+    --surface: #ffffff;
+    --text: #000080;
+    --text-muted: #404080;
+    --border: #808080;
+    --error: #ff0000;
+    --success: #008000;
+    --font-body: 'Comic Sans MS', 'Trebuchet MS', sans-serif;
+    --font-heading: 'Impact', 'Arial Black', sans-serif;
+    --scanlines: none;
+}
+
+/* High Contrast */
+[data-theme="contrast"] {
+    --primary: #ffff00;
+    --primary-dark: #cccc00;
+    --secondary: #00ffff;
+    --accent: #ff00ff;
+    --bg: #000000;
+    --bg-alt: #1a1a1a;
+    --surface: #000000;
+    --text: #ffffff;
+    --text-muted: #cccccc;
+    --border: #ffffff;
+    --error: #ff0000;
+    --success: #00ff00;
+    --font-body: 'Arial', sans-serif;
+    --font-heading: 'Arial Black', sans-serif;
+    --scanlines: none;
+}
+
+/* Hacker / Matrix */
+[data-theme="matrix"] {
+    --primary: #00ff41;
+    --primary-dark: #00b330;
+    --secondary: #008f11;
+    --accent: #00ff41;
+    --bg: #0d0208;
+    --bg-alt: #003b00;
+    --surface: #001100;
+    --text: #00ff41;
+    --text-muted: #00b330;
+    --border: #003b00;
+    --error: #ff0000;
+    --success: #00ff41;
+    --font-body: 'Courier New', monospace;
+    --font-heading: 'Courier New', monospace;
+    --scanlines: block;
+}
+
+/* Sepia / Vintage */
+[data-theme="sepia"] {
+    --primary: #704214;
+    --primary-dark: #5a3510;
+    --secondary: #8b7355;
+    --accent: #a0522d;
+    --bg: #f4ecd8;
+    --bg-alt: #e8dcc8;
+    --surface: #fff8dc;
+    --text: #3c2415;
+    --text-muted: #6b4423;
+    --border: #c4a77d;
+    --error: #8b0000;
+    --success: #556b2f;
+    --font-body: 'Courier New', monospace;
+    --font-heading: 'Courier New', monospace;
+    --scanlines: none;
+}
+
+/* ========================================
+   THEME APPLICATION
+   ======================================== */
+
+body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+body.scanlines::after {
+    display: var(--scanlines, none);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+}
+
+/* ========================================
+   THEME PICKER WIDGET
+   ======================================== */
+
+.theme-picker {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 900;
+}
+
+.theme-toggle {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 15px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+    border-color: var(--primary);
+}
+
+.theme-panel {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 15px;
+    margin-bottom: 10px;
+    min-width: 280px;
+    max-height: 400px;
+    overflow-y: auto;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+}
+
+.theme-panel.open {
+    display: block;
+}
+
+.theme-panel h4 {
+    margin-bottom: 15px;
+    color: var(--primary);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.theme-swatch {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.theme-swatch:hover,
+.theme-swatch.active {
+    border-color: var(--primary);
+    transform: scale(1.05);
+}
+
+.theme-swatch.active::after {
+    content: "✓";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: white;
+    background: rgba(0,0,0,0.4);
+}
+
+.theme-swatch[data-theme="terminal"] { background: linear-gradient(135deg, #0a0a0a 50%, #33ff33 50%); }
+.theme-swatch[data-theme="vapor"] { background: linear-gradient(135deg, #1a0a2e 50%, #ff71ce 50%); }
+.theme-swatch[data-theme="paper"] { background: linear-gradient(135deg, #faf8f5 50%, #8b4513 50%); }
+.theme-swatch[data-theme="midnight"] { background: linear-gradient(135deg, #0f172a 50%, #60a5fa 50%); }
+.theme-swatch[data-theme="solar"] { background: linear-gradient(135deg, #fdf6e3 50%, #268bd2 50%); }
+.theme-swatch[data-theme="y2k"] { background: linear-gradient(135deg, #c0c0c0 50%, #0066ff 50%); }
+.theme-swatch[data-theme="contrast"] { background: linear-gradient(135deg, #000000 50%, #ffff00 50%); }
+.theme-swatch[data-theme="matrix"] { background: linear-gradient(135deg, #0d0208 50%, #00ff41 50%); }
+.theme-swatch[data-theme="sepia"] { background: linear-gradient(135deg, #f4ecd8 50%, #704214 50%); }
+
+.theme-swatch-label {
+    font-size: 0.65rem;
+    text-align: center;
+    margin-top: 4px;
+    color: var(--text-muted);
+}
+
+/* Custom theme controls */
+.custom-theme-section {
+    border-top: 1px solid var(--border);
+    padding-top: 15px;
+}
+
+.custom-theme-section h5 {
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+    color: var(--text-muted);
+}
+
+.color-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.color-row label {
+    flex: 1;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.color-row input[type="color"] {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    padding: 0;
+    cursor: pointer;
+}
+
+/* Font size controls */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+}
+
+.font-size-controls label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.font-size-controls input[type="range"] {
+    flex: 1;
+}
+
+/* Layout density */
+.density-controls {
+    margin-top: 15px;
+}
+
+.density-controls label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 8px;
+}
+
+.density-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.density-btn {
+    flex: 1;
+    padding: 6px 10px;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.density-btn:hover,
+.density-btn.active {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--bg);
+}
+
+/* ========================================
+   LAYOUT DENSITY MODIFIERS
+   ======================================== */
+
+[data-density="compact"] {
+    --spacing-unit: 0.5rem;
+    --card-padding: 0.75rem;
+    --grid-gap: 0.75rem;
+    font-size: 0.9rem;
+}
+
+[data-density="normal"] {
+    --spacing-unit: 1rem;
+    --card-padding: 1.25rem;
+    --grid-gap: 1.25rem;
+    font-size: 1rem;
+}
+
+[data-density="comfortable"] {
+    --spacing-unit: 1.5rem;
+    --card-padding: 2rem;
+    --grid-gap: 2rem;
+    font-size: 1.1rem;
+}
+
+/* ========================================
+   PROFILE PAGE - OWNER CUSTOMIZABLE
+   ======================================== */
+
+/* Profile pages allow owners to set custom colors, backgrounds, fonts */
+.profile-page {
+    --profile-bg: var(--bg);
+    --profile-text: var(--text);
+    --profile-accent: var(--primary);
+    --profile-font: var(--font-body);
+    
+    background: var(--profile-bg);
+    color: var(--profile-text);
+    font-family: var(--profile-font);
+    min-height: 100vh;
+}
+
+.profile-page.has-bg-image {
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+.profile-page.has-bg-pattern {
+    background-repeat: repeat;
+}
+
+/* Profile header banner */
+.profile-banner {
+    height: 200px;
+    background: linear-gradient(135deg, var(--profile-accent), var(--primary-dark));
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-banner.custom-banner {
+    background-size: cover;
+    background-position: center;
+}
+
+/* Profile info card */
+.profile-card {
+    max-width: 900px;
+    margin: -80px auto 0;
+    padding: 0 20px;
+    position: relative;
+}
+
+.profile-avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 4px solid var(--profile-bg);
+    background: var(--surface);
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-name {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--profile-accent);
+    margin-bottom: 5px;
+}
+
+.profile-username {
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+
+.profile-bio {
+    line-height: 1.7;
+    margin-bottom: 20px;
+    max-width: 600px;
+}
+
+/* Profile sections (like MySpace Top 8, but for content) */
+.profile-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: var(--card-padding, 1.25rem);
+    margin-bottom: 20px;
+}
+
+.profile-section-title {
+    font-size: 1.1rem;
+    color: var(--profile-accent);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Profile customization panel (owner only) */
+.profile-customizer {
+    position: fixed;
+    right: 0;
+    top: 60px;
+    width: 300px;
+    height: calc(100vh - 60px);
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    z-index: 800;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.profile-customizer.open {
+    transform: translateX(0);
+}
+
+.customizer-toggle {
+    position: fixed;
+    right: 20px;
+    bottom: 80px;
+    background: var(--primary);
+    color: var(--bg);
+    border: none;
+    padding: 12px 20px;
+    font-family: inherit;
+    cursor: pointer;
+    z-index: 801;
+}
+
+.customizer-section {
+    margin-bottom: 25px;
+}
+
+.customizer-section h4 {
+    font-size: 0.85rem;
+    color: var(--primary);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.customizer-row {
+    margin-bottom: 12px;
+}
+
+.customizer-row label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+}
+
+.customizer-row input[type="text"],
+.customizer-row input[type="url"],
+.customizer-row select,
+.customizer-row textarea {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.85rem;
+}
+
+.customizer-row input:focus,
+.customizer-row select:focus,
+.customizer-row textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Background pattern presets */
+.pattern-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.pattern-swatch {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    background-size: 20px 20px;
+}
+
+.pattern-swatch:hover,
+.pattern-swatch.active {
+    border-color: var(--primary);
+}
+
+.pattern-swatch.none { background: var(--bg); }
+.pattern-swatch.dots { background-image: radial-gradient(circle, var(--text-muted) 1px, transparent 1px); }
+.pattern-swatch.grid { background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); }
+.pattern-swatch.diagonal { background-image: repeating-linear-gradient(45deg, var(--border) 0, var(--border) 1px, transparent 0, transparent 50%); }
+.pattern-swatch.crosses { background-image: 
+    linear-gradient(var(--border) 2px, transparent 2px),
+    linear-gradient(90deg, var(--border) 2px, transparent 2px),
+    linear-gradient(var(--bg-alt) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-alt) 1px, transparent 1px);
+    background-size: 20px 20px, 20px 20px, 10px 10px, 10px 10px;
+}
+
+/* Music player widget for profiles */
+.profile-music-player {
+    background: var(--bg-alt);
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.profile-music-player .album-art {
+    width: 60px;
+    height: 60px;
+    background: var(--surface);
+}
+
+.profile-music-player .track-info {
+    flex: 1;
+}
+
+.profile-music-player .track-title {
+    font-weight: bold;
+    color: var(--profile-accent);
+}
+
+.profile-music-player .track-artist {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* Profile widgets */
+.profile-widgets {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.profile-widget {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 15px;
+}
+
+.profile-widget-title {
+    font-size: 0.9rem;
+    color: var(--profile-accent);
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+/* Guestbook (old school!) */
+.guestbook {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.guestbook-entry {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.guestbook-entry:last-child {
+    border-bottom: none;
+}
+
+.guestbook-author {
+    font-weight: bold;
+    color: var(--profile-accent);
+}
+
+.guestbook-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.guestbook-message {
+    margin-top: 5px;
+    font-size: 0.9rem;
+}
+
+.guestbook-form {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+}
+
+.guestbook-form textarea {
+    width: 100%;
+    padding: 10px;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    resize: vertical;
+    min-height: 60px;
+    margin-bottom: 10px;
+}
+
+/* Friends / Following list */
+.friends-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.friend-item {
+    text-align: center;
+}
+
+.friend-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--bg-alt);
+    margin: 0 auto 5px;
+    overflow: hidden;
+}
+
+.friend-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.friend-name {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 768px) {
+    .theme-panel {
+        right: 0;
+        left: auto;
+        min-width: 260px;
+    }
+    
+    .profile-customizer {
+        width: 100%;
+    }
+    
+    .friends-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+    }
+}

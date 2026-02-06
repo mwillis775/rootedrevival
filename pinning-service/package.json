@@ -1,0 +1,13 @@
+{
+  "name": "rooted-revival-pinning-service",
+  "version": "1.0.0",
+  "description": "Self-hosted IPFS pinning service for Rooted Revival",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["ipfs", "pinning", "web3", "decentralized"],
+  "author": "Rooted Revival",
+  "license": "MIT"
+}

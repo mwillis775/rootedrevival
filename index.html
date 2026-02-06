@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rooted Revival — Regenerative Landscaping | Tulsa, OK</title>
+    <meta name="description" content="Regenerative landscaping services in Tulsa, Oklahoma. Native plants, food forests, rain gardens, and ecological restoration. Working with nature, not against it.">
+    <meta name="keywords" content="regenerative landscaping, permaculture, native plants, Tulsa, Oklahoma, food forest, rain garden, ecological restoration">
+    <link rel="canonical" href="https://rootedrevival.us">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --bg-surface: #111;
+            --bg-elevated: #1a1a1a;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --accent: #33ff33;
+            --accent-dim: rgba(51, 255, 51, 0.15);
+            --accent-glow: rgba(51, 255, 51, 0.4);
+            --amber: #ffb000;
+            --border: #333;
+            --radius: 6px;
+            --font-mono: 'Share Tech Mono', monospace;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-shadow: 0 0 10px var(--accent-glow); }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 0;
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-size: 1.3rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            font-size: 1.5rem;
+        }
+
+        .nav { display: flex; gap: 25px; }
+        .nav a {
+            color: var(--text);
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .nav a:hover { color: var(--accent); }
+
+        /* Hero */
+        .hero {
+            padding: 180px 0 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 50% 0%, var(--accent-dim) 0%, transparent 50%),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(51, 255, 51, 0.03) 2px, rgba(51, 255, 51, 0.03) 4px);
+            pointer-events: none;
+        }
+
+        .terminal-prompt {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-size: 1rem;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        .hero h1 {
+            font-family: var(--font-mono);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 400;
+            margin-bottom: 20px;
+            color: var(--accent);
+            text-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .hero-tagline {
+            font-size: 1.3rem;
+            color: var(--text);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        .hero-sub {
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            margin-bottom: 40px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+            border-color: var(--accent);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 0 30px var(--accent-glow);
+            transform: translateY(-2px);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+        .btn-ghost:hover {
+            background: var(--accent-dim);
+        }
+
+        /* Sections */
+        section {
+            padding: 100px 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-label {
+            font-family: var(--font-mono);
+            color: var(--amber);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .section-title {
+            font-family: var(--font-mono);
+            font-size: 2rem;
+            color: var(--accent);
+            font-weight: 400;
+        }
+
+        /* Philosophy */
+        .philosophy {
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .philosophy-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .philosophy-text h3 {
+            color: var(--accent);
+            font-family: var(--font-mono);
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        .philosophy-text p {
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+
+        .philosophy-visual {
+            font-family: var(--font-mono);
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 30px;
+            font-size: 0.85rem;
+        }
+
+        .terminal-line {
+            margin-bottom: 8px;
+        }
+
+        .terminal-line .prompt {
+            color: var(--accent);
+        }
+
+        .terminal-line .command {
+            color: var(--text);
+        }
+
+        .terminal-line .output {
+            color: var(--text-muted);
+            padding-left: 20px;
+        }
+
+        .terminal-line .success {
+            color: var(--accent);
+        }
+
+        /* Services */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .service-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 30px;
+            transition: all 0.3s;
+        }
+
+        .service-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 30px var(--accent-dim);
+            transform: translateY(-5px);
+        }
+
+        .service-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .service-card h3 {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            font-weight: 400;
+        }
+
+        .service-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Process */
+        .process {
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .process-steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+        }
+
+        .process-step {
+            text-align: center;
+            position: relative;
+        }
+
+        .process-step::after {
+            content: "→";
+            position: absolute;
+            right: -20px;
+            top: 30px;
+            color: var(--accent);
+            font-size: 1.5rem;
+        }
+
+        .process-step:last-child::after {
+            display: none;
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: 1.5rem;
+            color: var(--accent);
+            margin: 0 auto 20px;
+        }
+
+        .process-step h4 {
+            font-family: var(--font-mono);
+            color: var(--text);
+            margin-bottom: 10px;
+            font-weight: 400;
+        }
+
+        .process-step p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* About */
+        .about-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 60px;
+            align-items: start;
+        }
+
+        .about-text h3 {
+            color: var(--accent);
+            font-family: var(--font-mono);
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        .about-text p {
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            font-size: 1.05rem;
+        }
+
+        .credentials {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 25px;
+        }
+
+        .credentials h4 {
+            font-family: var(--font-mono);
+            color: var(--amber);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .credentials ul {
+            list-style: none;
+        }
+
+        .credentials li {
+            color: var(--text);
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        .credentials li:last-child {
+            border-bottom: none;
+        }
+
+        .credentials li::before {
+            content: "✓ ";
+            color: var(--accent);
+        }
+
+        /* Contact */
+        .contact {
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+        }
+
+        .contact-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+        }
+
+        .contact-info h3 {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        .contact-info p {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+        }
+
+        .contact-details {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: var(--text);
+        }
+
+        .contact-item .icon {
+            font-size: 1.3rem;
+        }
+
+        .contact-item a {
+            color: var(--text);
+        }
+
+        .contact-item a:hover {
+            color: var(--accent);
+        }
+
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-size: 0.85rem;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            padding: 12px 15px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent-dim);
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .footer-logo {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-copy {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .footer-tagline {
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* Blinking cursor */
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 1.2em;
+            background: var(--accent);
+            animation: blink 1s step-end infinite;
+            vertical-align: text-bottom;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .process-steps {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .process-step::after {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav { display: none; }
+            
+            .philosophy-content,
+            .about-content,
+            .contact-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .process-steps {
+                grid-template-columns: 1fr;
+            }
+            
+            .hero h1 { font-size: 2rem; }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <span class="logo-icon">🌱</span>
+                <span>ROOTED_REVIVAL</span>
+            </div>
+            <nav class="nav">
+                <a href="#services">Services</a>
+                <a href="#philosophy">Philosophy</a>
+                <a href="#about">About</a>
+                <a href="browse.html">📚 Scholar</a>
+                <a href="download.html">⬇️ App</a>
+                <a href="#contact">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <p class="terminal-prompt">$ ./grow --regenerative --native --local</p>
+                <h1>ROOTED REVIVAL<span class="cursor"></span></h1>
+                <p class="hero-tagline">Regenerative landscaping for Tulsa and beyond. Working with nature, not against it.</p>
+                <p class="hero-sub">📍 Tulsa, Oklahoma</p>
+                <div class="cta-buttons">
+                    <a href="#contact" class="btn btn-primary">Get a Quote</a>
+                    <a href="#services" class="btn btn-ghost">View Services</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="philosophy" id="philosophy">
+            <div class="container">
+                <div class="philosophy-content">
+                    <div class="philosophy-text">
+                        <h3>// Regenerative by Design</h3>
+                        <p>Traditional landscaping fights nature with chemicals, constant mowing, and thirsty non-native plants. We take a different approach.</p>
+                        <p>Regenerative landscaping works <em>with</em> ecological systems to create landscapes that improve over time—building soil, supporting pollinators, capturing water, and reducing maintenance.</p>
+                        <p>Your yard becomes part of the solution, not the problem.</p>
+                    </div>
+                    <div class="philosophy-visual">
+                        <div class="terminal-line"><span class="prompt">$</span> <span class="command">analyze soil_health</span></div>
+                        <div class="terminal-line"><span class="output">→ Assessing microbial activity...</span></div>
+                        <div class="terminal-line"><span class="output">→ Mapping drainage patterns...</span></div>
+                        <div class="terminal-line"><span class="output">→ Identifying native species...</span></div>
+                        <div class="terminal-line"><span class="success">✓ Regenerative plan generated</span></div>
+                        <div class="terminal-line"><span class="prompt">$</span> <span class="command">plant --native --perennial</span></div>
+                        <div class="terminal-line"><span class="success">✓ Ecosystem initialized</span></div>
+                        <div class="terminal-line"><span class="prompt">$</span> <span class="command">monitor --years 5</span></div>
+                        <div class="terminal-line"><span class="output">→ Soil carbon: +340%</span></div>
+                        <div class="terminal-line"><span class="output">→ Water retention: +200%</span></div>
+                        <div class="terminal-line"><span class="output">→ Pollinator visits: +850%</span></div>
+                        <div class="terminal-line"><span class="success">✓ Landscape thriving</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="services" id="services">
+            <div class="container">
+                <div class="section-header">
+                    <p class="section-label">// Services</p>
+                    <h2 class="section-title">What We Grow</h2>
+                </div>
+                <div class="services-grid">
+                    <div class="service-card">
+                        <div class="service-icon">🌳</div>
+                        <h3>Food Forests</h3>
+                        <p>Multi-layered edible ecosystems that produce fruit, nuts, berries, and herbs with minimal maintenance once established.</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">🌿</div>
+                        <h3>Native Plant Gardens</h3>
+                        <p>Oklahoma-native plantings that support local pollinators, birds, and wildlife while thriving without irrigation or chemicals.</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">💧</div>
+                        <h3>Rain Gardens & Bioswales</h3>
+                        <p>Capture and infiltrate stormwater on-site, reducing runoff and recharging groundwater with beautiful planted features.</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">🦋</div>
+                        <h3>Pollinator Habitat</h3>
+                        <p>Create certified wildlife habitat with native flowering plants that support bees, butterflies, and other crucial pollinators.</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">🏡</div>
+                        <h3>Lawn Conversion</h3>
+                        <p>Transform water-hungry turf grass into low-maintenance native meadows, groundcovers, or productive food gardens.</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">🪨</div>
+                        <h3>Ecological Restoration</h3>
+                        <p>Restore degraded land to healthy, functioning ecosystems through soil remediation and native species establishment.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="process" id="process">
+            <div class="container">
+                <div class="section-header">
+                    <p class="section-label">// Process</p>
+                    <h2 class="section-title">How It Works</h2>
+                </div>
+                <div class="process-steps">
+                    <div class="process-step">
+                        <div class="step-number">01</div>
+                        <h4>Site Analysis</h4>
+                        <p>We study your land—soil, water, sun, existing plants, and your goals.</p>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">02</div>
+                        <h4>Design</h4>
+                        <p>Custom regenerative design that works with your site's unique conditions.</p>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">03</div>
+                        <h4>Install</h4>
+                        <p>Professional installation with quality native plants and proper soil preparation.</p>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">04</div>
+                        <h4>Establish</h4>
+                        <p>Support during the critical first year as your ecosystem takes root.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="about" id="about">
+            <div class="container">
+                <div class="section-header">
+                    <p class="section-label">// About</p>
+                    <h2 class="section-title">The Grower</h2>
+                </div>
+                <div class="about-content">
+                    <div class="about-text">
+                        <h3>Michael Willis</h3>
+                        <p>I started Rooted Revival because I believe landscapes should give back more than they take. After years of studying botany, permaculture, and ecological restoration, I saw a disconnect between how we treat our yards and what the land actually needs.</p>
+                        <p>Every project is an opportunity to heal a small piece of earth—to build soil instead of depleting it, to support wildlife instead of poisoning it, and to grow food instead of just grass.</p>
+                        <p>Based in Tulsa, I serve the greater Green Country region with design, installation, and consultation services.</p>
+                    </div>
+                    <div class="credentials">
+                        <h4>Background</h4>
+                        <ul>
+                            <li>Botany & Plant Science</li>
+                            <li>Permaculture Design</li>
+                            <li>Native Plant Specialist</li>
+                            <li>Soil Health Focus</li>
+                            <li>Oklahoma Native</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="contact" id="contact">
+            <div class="container">
+                <div class="section-header">
+                    <p class="section-label">// Contact</p>
+                    <h2 class="section-title">Start Growing</h2>
+                </div>
+                <div class="contact-content">
+                    <div class="contact-info">
+                        <h3>Let's Talk About Your Land</h3>
+                        <p>Whether you have a small backyard or acres to transform, I'd love to hear about your vision. Free consultations for projects in the Tulsa metro area.</p>
+                        <div class="contact-details">
+                            <div class="contact-item">
+                                <span class="icon">📧</span>
+                                <a href="mailto:michaelwillisbotany@proton.me">michaelwillisbotany@proton.me</a>
+                            </div>
+                            <div class="contact-item">
+                                <span class="icon">📍</span>
+                                <span>Tulsa, Oklahoma</span>
+                            </div>
+                            <div class="contact-item">
+                                <span class="icon">🌐</span>
+                                <span>Serving Green Country & Beyond</span>
+                            </div>
+                        </div>
+                    </div>
+                    <form class="contact-form" action="https://formspree.io/f/your-form-id" method="POST">
+                        <div class="form-group">
+                            <label for="name">NAME_</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">EMAIL_</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="message">MESSAGE_</label>
+                            <textarea id="message" name="message" placeholder="Tell me about your land and what you'd like to grow..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Message</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <span>🌱</span>
+                    <span>ROOTED_REVIVAL</span>
+                </div>
+                <p class="footer-tagline">// Working with nature, not against it</p>
+                <p class="footer-copy">© 2026 Rooted Revival • Tulsa, OK</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- GrabNet P2P - Pre-initialize for faster connections on other pages -->
+    <script type="module">
+        // Start P2P node in background so it's ready when user navigates to browse/search
+        import { initGrabNet } from './static/js/grabnet-p2p.js';
+        window.grabnet = await initGrabNet({ 
+            showUI: true, 
+            uiOptions: { position: 'bottom-right' } 
+        });
+    </script>
+
+    <script>
+        // Smooth scroll for nav links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Form submission (placeholder - replace with actual form handler)
+        document.querySelector('.contact-form')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Thanks for reaching out! I\'ll get back to you soon.');
+            this.reset();
+        });
+    </script>
+</body>
+</html>

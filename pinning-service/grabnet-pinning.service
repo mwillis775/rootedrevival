@@ -1,0 +1,15 @@
+[Unit]
+Description=GrabNet Pinning Service for Rooted Revival
+After=network.target
+
+[Service]
+Type=simple
+User=michael
+WorkingDirectory=/home/michael/projects/rootedrevival/pinning-service
+ExecStart=/usr/bin/node grabnet-server.js
+Restart=on-failure
+RestartSec=10
+EnvironmentFile=/home/michael/projects/rootedrevival/pinning-service/.env
+
+[Install]
+WantedBy=multi-user.target

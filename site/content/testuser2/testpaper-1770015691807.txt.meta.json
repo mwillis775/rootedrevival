@@ -1,0 +1,14 @@
+{
+  "originalName": "testpaper.txt",
+  "uploadedAt": "2026-02-02T07:01:31.807Z",
+  "size": 96,
+  "uploader": "testuser2",
+  "title": "Test Quantum Paper",
+  "description": "A test paper about quantum computing",
+  "contentType": "paper",
+  "tags": [
+    "quantum",
+    "computing",
+    "drug-discovery"
+  ]
+}

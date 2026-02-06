@@ -1,0 +1,27 @@
+{
+  "name": "opensource-scholar",
+  "version": "1.0.0",
+  "description": "Open access academia club - free research sharing with GrabNet P2P hosting",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "db:init": "node src/db/init.js",
+    "db:seed": "node src/db/seed.js",
+    "test": "node --test src/**/*.test.js"
+  },
+  "keywords": ["academia", "research", "open-access", "grabnet", "p2p", "citations"],
+  "author": "OpenSource Scholar Community",
+  "license": "AGPL-3.0",
+  "dependencies": {
+    "better-sqlite3": "^9.4.0",
+    "bcrypt": "^5.1.1",
+    "busboy": "^1.6.0",
+    "cookie": "^0.6.0",
+    "mime-types": "^2.1.35"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

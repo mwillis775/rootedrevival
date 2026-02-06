@@ -1,0 +1,84 @@
+{
+  "name": "rooted-revival-os",
+  "version": "1.0.0",
+  "description": "Rooted Revival OS - Integrated platform for sustainable technology and open scholarship with built-in IPFS node",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder -mwl",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.rootedrevival.os",
+    "productName": "Rooted Revival OS",
+    "copyright": "Copyright © 2026 Rooted Revival",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "**/*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,spec,specs}/**",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.editorconfig",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}"
+    ],
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": ["AppImage", "deb", "rpm"],
+      "icon": "build/icons",
+      "category": "Science"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  },
+  "keywords": [
+    "rooted-revival",
+    "open-scholar",
+    "ipfs",
+    "decentralized",
+    "sustainability",
+    "agriculture",
+    "academia"
+  ],
+  "author": {
+    "name": "Rooted Revival",
+    "email": "michaelwillisbotany@proton.me"
+  },
+  "license": "AGPL-3.0",
+  "dependencies": {
+    "electron-store": "^8.1.0",
+    "ipfs-core": "^0.18.1",
+    "express": "^4.18.2",
+    "better-sqlite3": "^9.4.0",
+    "bcrypt": "^5.1.1",
+    "busboy": "^1.6.0",
+    "cookie": "^0.6.0",
+    "mime-types": "^2.1.35"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

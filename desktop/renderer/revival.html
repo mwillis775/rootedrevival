@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROOTED_REVIVAL_OS // Loading...</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #33ff33;
+            font-family: 'Share Tech Mono', monospace;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .loading {
+            text-align: center;
+        }
+        .loading h1 {
+            margin-bottom: 20px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #1a1a1a;
+            border-top-color: #33ff33;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        iframe {
+            width: 100%;
+            height: 100vh;
+            border: none;
+            display: none;
+        }
+        iframe.loaded {
+            display: block;
+        }
+        .loading.hidden {
+            display: none;
+        }
+        .back-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #33ff33;
+            color: #33ff33;
+            padding: 8px 16px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        .back-btn:hover {
+            background: #33ff33;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" id="backToLauncher">← Launcher</button>
+    
+    <div class="loading" id="loading">
+        <h1>LOADING ROOTED REVIVAL</h1>
+        <div class="spinner"></div>
+        <p style="margin-top: 20px; color: #666;">Connecting to rootedrevival.us...</p>
+    </div>
+    
+    <iframe id="siteFrame" src="https://rootedrevival.us"></iframe>
+
+    <script>
+        const frame = document.getElementById('siteFrame');
+        const loading = document.getElementById('loading');
+        
+        frame.addEventListener('load', () => {
+            loading.classList.add('hidden');
+            frame.classList.add('loaded');
+        });
+        
+        // Fallback if load takes too long
+        setTimeout(() => {
+            if (!frame.classList.contains('loaded')) {
+                loading.innerHTML = `
+                    <h1>CONNECTION ISSUE</h1>
+                    <p>Could not reach rootedrevival.us</p>
+                    <p style="color: #666; margin-top: 20px;">Check your internet connection or visit the site directly.</p>
+                `;
+            }
+        }, 15000);
+        
+        // Back to launcher
+        document.getElementById('backToLauncher').addEventListener('click', () => {
+            if (window.rootedAPI) {
+                window.rootedAPI.loadLauncher();
+            } else {
+                window.location.href = 'launcher.html';
+            }
+        });
+    </script>
+</body>
+</html>

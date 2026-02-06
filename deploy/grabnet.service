@@ -1,0 +1,52 @@
+[Unit]
+Description=GrabNet P2P Network Node
+Documentation=https://github.com/rootedrevival/grabnet
+After=network.target
+
+[Service]
+Type=simple
+User=grabnet
+Group=grabnet
+
+# Environment
+Environment=RUST_LOG=info
+Environment=GRAB_GATEWAY_PORT=8080
+Environment=GRAB_P2P_PORT=4001
+EnvironmentFile=-/etc/grabnet/grabnet.env
+
+# Paths
+WorkingDirectory=/opt/grabnet
+ExecStart=/usr/local/bin/grab gateway --port ${GRAB_GATEWAY_PORT}
+
+# Restart policy
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+
+# Allow write to data directory
+ReadWritePaths=/var/lib/grabnet
+
+# Resource limits
+MemoryMax=4G
+TasksMax=200
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=grabnet
+
+[Install]
+WantedBy=multi-user.target

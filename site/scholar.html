@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Scholar — Decentralized Knowledge Repository</title>
+    <meta name="description" content="Open Scholar is a decentralized, censorship-resistant knowledge repository. Share and preserve academic research, traditional knowledge, and scientific data on the permanent web.">
+    <meta name="keywords" content="open scholar, decentralized knowledge, academic research, IPFS, Web3, censorship-resistant, open access">
+    <link rel="canonical" href="https://rootedrevival.us/scholar.html">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --bg-surface: #111;
+            --bg-elevated: #1a1a1a;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --accent: #33ff33;
+            --accent-dim: rgba(51, 255, 51, 0.15);
+            --accent-glow: rgba(51, 255, 51, 0.4);
+            --amber: #ffb000;
+            --cyan: #00d4ff;
+            --purple: #b388ff;
+            --border: #333;
+            --radius: 6px;
+            --font-mono: 'Share Tech Mono', monospace;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-shadow: 0 0 10px var(--accent-glow); }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 0;
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-size: 1.3rem;
+            color: var(--cyan);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon { font-size: 1.5rem; }
+
+        .nav { display: flex; gap: 25px; }
+        .nav a {
+            color: var(--text);
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .nav a:hover { color: var(--cyan); }
+
+        /* Hero */
+        .hero {
+            padding: 180px 0 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 50% 0%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 212, 255, 0.03) 2px, rgba(0, 212, 255, 0.03) 4px);
+            pointer-events: none;
+        }
+
+        .terminal-prompt {
+            font-family: var(--font-mono);
+            color: var(--cyan);
+            font-size: 1rem;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        .hero h1 {
+            font-family: var(--font-mono);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 400;
+            margin-bottom: 20px;
+            color: var(--cyan);
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.4);
+        }
+
+        .hero-tagline {
+            font-size: 1.3rem;
+            color: var(--text);
+            max-width: 700px;
+            margin: 0 auto 40px;
+        }
+
+        .hero-sub {
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            margin-bottom: 40px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: var(--amber);
+            color: var(--bg);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            margin-bottom: 30px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: var(--cyan);
+            color: var(--bg);
+            border-color: var(--cyan);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--cyan);
+            border-color: var(--cyan);
+        }
+        .btn-ghost:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        /* Sections */
+        section { padding: 100px 0; }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-label {
+            font-family: var(--font-mono);
+            color: var(--amber);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .section-title {
+            font-family: var(--font-mono);
+            font-size: 2rem;
+            color: var(--cyan);
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 30px;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--cyan);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.1);
+            transform: translateY(-3px);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-family: var(--font-mono);
+            color: var(--cyan);
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Terminal Demo */
+        .terminal-section {
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .terminal-window {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .terminal-header {
+            background: var(--bg-elevated);
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .terminal-dot.red { background: #ff5f56; }
+        .terminal-dot.yellow { background: #ffbd2e; }
+        .terminal-dot.green { background: #27c93f; }
+
+        .terminal-title {
+            flex: 1;
+            text-align: center;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .terminal-body {
+            padding: 20px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.8;
+        }
+
+        .terminal-line {
+            margin-bottom: 5px;
+        }
+
+        .prompt { color: var(--cyan); }
+        .command { color: var(--text); }
+        .output { color: var(--text-muted); }
+        .success { color: var(--accent); }
+        .highlight { color: var(--amber); }
+
+        /* Use Cases */
+        .use-cases {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .use-case {
+            padding: 30px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+
+        .use-case h3 {
+            font-family: var(--font-mono);
+            color: var(--purple);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .use-case ul {
+            list-style: none;
+            color: var(--text-muted);
+        }
+
+        .use-case li {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .use-case li:last-child {
+            border-bottom: none;
+        }
+
+        .use-case li::before {
+            content: "→ ";
+            color: var(--cyan);
+        }
+
+        /* Roadmap */
+        .roadmap {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .roadmap-item {
+            display: flex;
+            gap: 20px;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .roadmap-phase {
+            font-family: var(--font-mono);
+            color: var(--amber);
+            min-width: 80px;
+            font-size: 0.9rem;
+        }
+
+        .roadmap-content h4 {
+            font-family: var(--font-mono);
+            color: var(--cyan);
+            margin-bottom: 8px;
+        }
+
+        .roadmap-content p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .roadmap-status {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            padding: 3px 10px;
+            border-radius: 10px;
+            margin-left: 10px;
+        }
+
+        .status-complete { background: var(--accent); color: var(--bg); }
+        .status-active { background: var(--amber); color: var(--bg); }
+        .status-upcoming { background: var(--border); color: var(--text); }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+        }
+
+        .cta-section h2 {
+            font-family: var(--font-mono);
+            font-size: 2rem;
+            color: var(--cyan);
+            margin-bottom: 20px;
+        }
+
+        .cta-section p {
+            color: var(--text-muted);
+            max-width: 500px;
+            margin: 0 auto 30px;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .footer-links a:hover {
+            color: var(--cyan);
+        }
+
+        .footer-note {
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .footer-note .highlight {
+            color: var(--cyan);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav { display: none; }
+            .hero { padding: 140px 0 80px; }
+            section { padding: 60px 0; }
+            .roadmap-item { flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <a href="scholar.html" class="logo">
+                <span class="logo-icon">📚</span>
+                <span>open_scholar</span>
+            </a>
+            <nav class="nav">
+                <a href="#features">Features</a>
+                <a href="#use-cases">Use Cases</a>
+                <a href="#roadmap">Roadmap</a>
+                <a href="grab.html" style="color: var(--purple);">GrabNet</a>
+                <a href="index.html" style="color: var(--accent);">Rooted Revival</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <div class="terminal-prompt">$ scholar --init knowledge_network</div>
+            <h1>Open Scholar</h1>
+            <p class="hero-tagline">
+                A decentralized, censorship-resistant repository for academic research, 
+                traditional knowledge, and scientific data.
+            </p>
+            <div class="status-badge">🚧 In Development</div>
+            <p class="hero-sub">Powered by GrabNet • Permanent • Uncensorable • Open</p>
+            <div class="cta-buttons">
+                <a href="#features" class="btn btn-primary">Learn More</a>
+                <a href="https://github.com/mwillis775/open-scholar" class="btn btn-ghost">View on GitHub</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="features">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-label">// Core Features</div>
+                <h2 class="section-title">Knowledge Without Gatekeepers</h2>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔐</div>
+                    <h3>Censorship Resistant</h3>
+                    <p>Content is distributed across a decentralized network. No single entity can remove or suppress knowledge once published.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">♾️</div>
+                    <h3>Permanent Storage</h3>
+                    <p>Published works are preserved indefinitely through content-addressed storage and network replication.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔓</div>
+                    <h3>Open Access</h3>
+                    <p>No paywalls, no subscriptions. Knowledge should be freely accessible to everyone, everywhere.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">✍️</div>
+                    <h3>Author Attribution</h3>
+                    <p>Cryptographic signatures ensure proper attribution. Your work remains yours with verifiable provenance.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3>Global Distribution</h3>
+                    <p>Content is served from the nearest available peer, ensuring fast access regardless of geography.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Rich Metadata</h3>
+                    <p>Full support for citations, DOIs, ORCID IDs, and academic metadata standards.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="terminal-section">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-label">// How It Works</div>
+                <h2 class="section-title">Publish in Seconds</h2>
+            </div>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <div class="terminal-dot red"></div>
+                    <div class="terminal-dot yellow"></div>
+                    <div class="terminal-dot green"></div>
+                    <div class="terminal-title">scholar-cli</div>
+                </div>
+                <div class="terminal-body">
+                    <div class="terminal-line">
+                        <span class="prompt">$</span>
+                        <span class="command"> scholar publish paper.pdf --title "Mycorrhizal Networks in Oak Ecosystems"</span>
+                    </div>
+                    <div class="terminal-line output">
+                        Bundling paper.pdf (2.4 MB)...
+                    </div>
+                    <div class="terminal-line output">
+                        Signing with key: michael@rootedrevival
+                    </div>
+                    <div class="terminal-line output">
+                        Uploading to GrabNet...
+                    </div>
+                    <div class="terminal-line success">
+                        ✓ Published successfully!
+                    </div>
+                    <div class="terminal-line output">&nbsp;</div>
+                    <div class="terminal-line">
+                        <span class="highlight">Paper ID:</span>
+                        <span class="output"> scholar://Qm7xK9pL2nM...</span>
+                    </div>
+                    <div class="terminal-line">
+                        <span class="highlight">Web URL:</span>
+                        <span class="output"> https://scholar.rootedrevival.us/Qm7xK9pL2nM...</span>
+                    </div>
+                    <div class="terminal-line">
+                        <span class="highlight">DOI:</span>
+                        <span class="output"> 10.55555/scholar.2026.mycorrhizal</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="use-cases">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-label">// Use Cases</div>
+                <h2 class="section-title">Built for Researchers</h2>
+            </div>
+            <div class="use-cases">
+                <div class="use-case">
+                    <h3>🎓 Academic Research</h3>
+                    <ul>
+                        <li>Preprints and working papers</li>
+                        <li>Supplementary data and code</li>
+                        <li>Negative results (finally publishable!)</li>
+                        <li>Replication studies</li>
+                        <li>Open peer review</li>
+                    </ul>
+                </div>
+                <div class="use-case">
+                    <h3>🌿 Traditional Knowledge</h3>
+                    <ul>
+                        <li>Ethnobotanical documentation</li>
+                        <li>Indigenous agricultural practices</li>
+                        <li>Traditional medicine records</li>
+                        <li>Oral history preservation</li>
+                        <li>Community-controlled access</li>
+                    </ul>
+                </div>
+                <div class="use-case">
+                    <h3>🔬 Scientific Data</h3>
+                    <ul>
+                        <li>Raw datasets and observations</li>
+                        <li>Climate and environmental records</li>
+                        <li>Biodiversity surveys</li>
+                        <li>Genomic sequences</li>
+                        <li>Long-term monitoring data</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="roadmap">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-label">// Development</div>
+                <h2 class="section-title">Roadmap</h2>
+            </div>
+            <div class="roadmap">
+                <div class="roadmap-item">
+                    <div class="roadmap-phase">Phase 1</div>
+                    <div class="roadmap-content">
+                        <h4>Foundation <span class="roadmap-status status-complete">Complete</span></h4>
+                        <p>GrabNet protocol, basic publishing, content-addressed storage</p>
+                    </div>
+                </div>
+                <div class="roadmap-item">
+                    <div class="roadmap-phase">Phase 2</div>
+                    <div class="roadmap-content">
+                        <h4>Scholar CLI <span class="roadmap-status status-active">In Progress</span></h4>
+                        <p>Metadata schemas, PDF extraction, citation parsing</p>
+                    </div>
+                </div>
+                <div class="roadmap-item">
+                    <div class="roadmap-phase">Phase 3</div>
+                    <div class="roadmap-content">
+                        <h4>Web Interface <span class="roadmap-status status-upcoming">Upcoming</span></h4>
+                        <p>Search, browse, collections, user profiles</p>
+                    </div>
+                </div>
+                <div class="roadmap-item">
+                    <div class="roadmap-phase">Phase 4</div>
+                    <div class="roadmap-content">
+                        <h4>Federation <span class="roadmap-status status-upcoming">Upcoming</span></h4>
+                        <p>Inter-repository sync, global discovery, DOI integration</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="technology" style="background: var(--bg-elevated);">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-label">// Technology</div>
+                <h2 class="section-title">Powered by GrabNet</h2>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;">
+                <div>
+                    <p style="margin-bottom: 20px; color: var(--text-muted); line-height: 1.8;">
+                        Open Scholar is built on <a href="grab.html" style="color: var(--purple);">GrabNet</a>, 
+                        a decentralized web hosting protocol developed by Rooted Revival. GrabNet provides:
+                    </p>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                            <span style="position: absolute; left: 0; color: var(--purple);">◆</span>
+                            <strong style="color: var(--cyan);">Stable Addresses</strong> — Paper IDs never change, even after revisions
+                        </li>
+                        <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                            <span style="position: absolute; left: 0; color: var(--purple);">◆</span>
+                            <strong style="color: var(--cyan);">P2P Distribution</strong> — Content hosted across global network of peers
+                        </li>
+                        <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                            <span style="position: absolute; left: 0; color: var(--purple);">◆</span>
+                            <strong style="color: var(--cyan);">Cryptographic Signing</strong> — Ed25519 signatures prove authorship
+                        </li>
+                        <li style="margin-bottom: 12px; padding-left: 25px; position: relative;">
+                            <span style="position: absolute; left: 0; color: var(--purple);">◆</span>
+                            <strong style="color: var(--cyan);">Auto-Replication</strong> — Nodes automatically sync and preserve content
+                        </li>
+                    </ul>
+                    <div style="margin-top: 30px;">
+                        <a href="grab.html" class="btn btn-ghost" style="border-color: var(--purple); color: var(--purple);">Learn about GrabNet →</a>
+                    </div>
+                </div>
+                <div class="terminal" style="margin: 0;">
+                    <div class="terminal-header">
+                        <div class="terminal-dot red"></div>
+                        <div class="terminal-dot yellow"></div>
+                        <div class="terminal-dot green"></div>
+                        <div class="terminal-title">grabnet</div>
+                    </div>
+                    <div class="terminal-body">
+                        <div class="terminal-line">
+                            <span class="prompt">$</span>
+                            <span class="command"> grab node start --bootstrap</span>
+                        </div>
+                        <div class="terminal-line success">
+                            🌐 GrabNet node started
+                        </div>
+                        <div class="terminal-line output">
+                            Peer ID: 12D3KooWMrzk1N4k...
+                        </div>
+                        <div class="terminal-line output">
+                            Listening: /ip4/0.0.0.0/tcp/4001
+                        </div>
+                        <div class="terminal-line output">&nbsp;</div>
+                        <div class="terminal-line success">
+                            ✓ Connected to 5 peers
+                        </div>
+                        <div class="terminal-line success">
+                            ✓ Hosting 47 papers
+                        </div>
+                        <div class="terminal-line success">
+                            ✓ Replicating to network...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <div class="container">
+            <h2>Join the Open Knowledge Movement</h2>
+            <p>Open Scholar is being built in public. Contribute code, ideas, or just follow along as we work to democratize access to knowledge.</p>
+            <div class="cta-buttons">
+                <a href="https://github.com/mwillis775/open-scholar" class="btn btn-primary">GitHub Repository</a>
+                <a href="mailto:michaelwillisbotany@proton.me" class="btn btn-ghost">Get in Touch</a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-links">
+                <a href="index.html">Rooted Revival</a>
+                <a href="https://github.com/mwillis775">GitHub</a>
+                <a href="mailto:michaelwillisbotany@proton.me">Contact</a>
+            </div>
+            <p class="footer-note">
+                <span class="highlight">open_scholar</span> • A project by <a href="index.html">Rooted Revival</a> • Built with <a href="https://github.com/mwillis775/grab">GrabNet</a>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

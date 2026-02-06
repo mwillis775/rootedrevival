@@ -1,0 +1,52 @@
+[Unit]
+Description=Open Scholar - Decentralized Academic Publishing
+Documentation=https://github.com/rootedrevival/scholar
+After=network.target
+Wants=grabnet.service
+
+[Service]
+Type=simple
+User=scholar
+Group=scholar
+
+# Environment
+Environment=RUST_LOG=info
+Environment=SCHOLAR_PORT=8889
+EnvironmentFile=-/etc/scholar/scholar.env
+
+# Paths
+WorkingDirectory=/opt/scholar
+ExecStart=/usr/local/bin/scholar --port ${SCHOLAR_PORT}
+
+# Restart policy
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+
+# Allow write to data directory
+ReadWritePaths=/var/lib/scholar
+
+# Resource limits
+MemoryMax=2G
+TasksMax=100
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scholar
+
+[Install]
+WantedBy=multi-user.target
