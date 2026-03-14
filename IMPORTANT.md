@@ -1,6 +1,6 @@
 # 🌱 Rooted Revival - Complete Architecture & Implementation Plan
 
-> **Last Updated:** June 3, 2025  
+> **Last Updated:** February 6, 2026  
 > **Status:** ✅ Feature Complete (All Phases Implemented)
 
 ---
@@ -36,7 +36,7 @@
 | Component | Technology | Port | Purpose |
 |-----------|------------|------|---------|
 | **Open Scholar** | Rust (Axum) | 8889 | Main web application for uploads, accounts, reviews |
-| **GrabNet (Grab)** | Rust | 4001 (P2P), 8080 (Gateway) | P2P network, content addressing, file distribution |
+| **GrabNet (Grab)** | Rust | 4001 (P2P), 8888 (Gateway) | P2P network, content addressing, file distribution |
 | **GrabNet GUI** | Electron | N/A | Desktop app (`/grabnet-gui`) for publishing/managing websites |
 | **Desktop Launcher** | Electron | N/A | Combined launcher (`/desktop`) for Revival + Open Scholar |
 | **Tor Integration** | Tor | Hidden Service | Anonymous access via Tor (`/tor`) |
@@ -82,7 +82,7 @@
                                                ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                           GRABNET (Rust)                                 │
-│                    P2P Port: 4001 | Gateway: 8080                        │
+│                    P2P Port: 4001 | Gateway: 8888                        │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
 │   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    │
@@ -681,16 +681,16 @@ cargo build --release
 
 ```bash
 # Terminal 1: GrabNet
-cd grab && cargo run -- node
+cd grab && cargo run -- gateway --port 8888 --default-site rootedrevival
 
 # Terminal 2: Scholar
-cd scholar && cargo run
+cd scholar && cargo run -- --port 8889
 
 # Access:
 # Scholar: http://localhost:8889
-# GrabNet Gateway: http://localhost:8080
-# GrabNet Peer Viewer: http://localhost:8080/peers
-# GrabNet API: http://localhost:8080/api/network
+# GrabNet Gateway: http://localhost:8888
+# GrabNet Peer Viewer: http://localhost:8888/peers
+# GrabNet API: http://localhost:8888/api/network
 ```
 
 ### GrabNet CLI Commands

@@ -13,6 +13,7 @@ const { createApp, cors, auth, rateLimit } = require('./http');
 const { registerRoutes } = require('./routes');
 const { registerAdminRoutes } = require('./admin-routes');
 const { registerGrabRoutes } = require('./grab-routes');
+const { registerCmsRoutes } = require('./cms-routes');
 const { closeDb } = require('./db');
 const users = require('./db/users');
 const grab = require('./grab');
@@ -85,6 +86,7 @@ app.get(/^\/(?:css|js|assets)\/(.+)$/, async (req, res) => {
 registerRoutes(app);
 registerAdminRoutes(app);
 registerGrabRoutes(app);
+registerCmsRoutes(app);
 
 // Cleanup expired sessions periodically
 setInterval(() => {

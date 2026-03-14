@@ -107,6 +107,7 @@ function registerRoutes(app) {
         }
         
         res.clearCookie('session');
+        res.clearCookie('u2f_verified');
         res.json({ success: true });
     });
     
@@ -115,7 +116,7 @@ function registerRoutes(app) {
             return res.json({ user: null });
         }
         
-        res.json({ user: req.user });
+        res.json({ user: req.user, u2fVerified: req.u2fVerified });
     });
     
     // ========================================

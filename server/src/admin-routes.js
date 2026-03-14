@@ -30,6 +30,30 @@ function requireAdmin(req, res, next) {
     return next();
 }
 
+function requireElevatedAdmin(req, res, next) {
+    if (!req.user || !req.user.isAdmin) {
+        return res.error('Forbidden', 403);
+    }
+
+    if (!req.u2fVerified) {
+        return res.error('Hardware key verification required', 403);
+    }
+
+    return next();
+}
+
+function requireProtectedAdminAction(req, res, next) {
+    if (!req.user || (!req.user.isAdmin && !req.user.isModerator)) {
+        return res.error('Forbidden', 403);
+    }
+
+    if (req.user.isAdmin && !req.u2fVerified) {
+        return res.error('Hardware key verification required', 403);
+    }
+
+    return next();
+}
+
 /**
  * Register admin routes
  */
@@ -68,7 +92,7 @@ function registerAdminRoutes(app) {
     
     app.post('/api/admin/users/:id/ban', async (req, res) => {
         await auth({ required: true })(req, res, async () => {
-            await requireMod(req, res, async () => {
+            await requireProtectedAdminAction(req, res, async () => {
                 const { reason } = req.body || {};
                 moderation.banUser(parseInt(req.params.id), req.user.id, reason);
                 res.json({ success: true });
@@ -78,7 +102,7 @@ function registerAdminRoutes(app) {
     
     app.post('/api/admin/users/:id/unban', async (req, res) => {
         await auth({ required: true })(req, res, async () => {
-            await requireMod(req, res, async () => {
+            await requireProtectedAdminAction(req, res, async () => {
                 const { reason } = req.body || {};
                 moderation.unbanUser(parseInt(req.params.id), req.user.id, reason);
                 res.json({ success: true });
@@ -88,7 +112,7 @@ function registerAdminRoutes(app) {
     
     app.post('/api/admin/users/:id/moderator', async (req, res) => {
         await auth({ required: true })(req, res, async () => {
-            await requireAdmin(req, res, async () => {
+            await requireElevatedAdmin(req, res, async () => {
                 moderation.makeModerator(parseInt(req.params.id), req.user.id);
                 res.json({ success: true });
             });
@@ -97,7 +121,7 @@ function registerAdminRoutes(app) {
     
     app.delete('/api/admin/users/:id/moderator', async (req, res) => {
         await auth({ required: true })(req, res, async () => {
-            await requireAdmin(req, res, async () => {
+            await requireElevatedAdmin(req, res, async () => {
                 moderation.removeModerator(parseInt(req.params.id), req.user.id);
                 res.json({ success: true });
             });
@@ -119,7 +143,7 @@ function registerAdminRoutes(app) {
     
     app.post('/api/admin/papers/:id/approve', async (req, res) => {
         await auth({ required: true })(req, res, async () => {
-            await requireMod(req, res, async () => {
+            await requireProtectedAdminAction(req, res, async () => {
                 moderation.approvePaper(parseInt(req.params.id), req.user.id);
                 res.json({ success: true });
             });
@@ -128,7 +152,7 @@ function registerAdminRoutes(app) {
     
     app.post('/api/admin/papers/:id/reject', async (req, res) => {
         await auth({ required: true })(req, res, async () => {
-            await requireMod(req, res, async () => {
+            await requireProtectedAdminAction(req, res, async () => {
                 const { reason } = req.body || {};
                 moderation.rejectPaper(parseInt(req.params.id), req.user.id, reason);
                 res.json({ success: true });
@@ -138,7 +162,7 @@ function registerAdminRoutes(app) {
     
     app.post('/api/admin/papers/:id/archive', async (req, res) => {
         await auth({ required: true })(req, res, async () => {
-            await requireMod(req, res, async () => {
+            await requireProtectedAdminAction(req, res, async () => {
                 const { reason } = req.body || {};
                 moderation.archivePaper(parseInt(req.params.id), req.user.id, reason);
                 res.json({ success: true });
@@ -148,7 +172,7 @@ function registerAdminRoutes(app) {
     
     app.post('/api/admin/papers/:id/restore', async (req, res) => {
         await auth({ required: true })(req, res, async () => {
-            await requireMod(req, res, async () => {
+            await requireProtectedAdminAction(req, res, async () => {
                 const { reason } = req.body || {};
                 moderation.restorePaper(parseInt(req.params.id), req.user.id, reason);
                 res.json({ success: true });

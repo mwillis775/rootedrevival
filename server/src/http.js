@@ -10,6 +10,38 @@ const { URL } = require('url');
 const cookie = require('cookie');
 const config = require('./config');
 
+function resolveCorsOrigin(requestOrigin, configuredOrigin) {
+    if (!requestOrigin) {
+        return configuredOrigin === '*' ? '*' : configuredOrigin;
+    }
+
+    try {
+        const originUrl = new URL(requestOrigin);
+        const host = originUrl.hostname;
+        const explicitOrigins = new Set([
+            new URL(config.baseUrl).origin,
+            'https://rootedrevival.us',
+            'https://scholar.rootedrevival.us',
+            'http://localhost:3000',
+            'http://localhost:8080',
+            'http://127.0.0.1:3000',
+            'http://127.0.0.1:8080'
+        ]);
+
+        if (explicitOrigins.has(originUrl.origin)) {
+            return originUrl.origin;
+        }
+
+        if (host === 'rootedrevival.us' || host.endsWith('.rootedrevival.us')) {
+            return originUrl.origin;
+        }
+    } catch (error) {
+        return configuredOrigin === '*' ? '*' : configuredOrigin;
+    }
+
+    return configuredOrigin === '*' ? new URL(config.baseUrl).origin : configuredOrigin;
+}
+
 /**
  * Simple router class
  */
@@ -86,6 +118,7 @@ function enhanceRequest(req) {
     req.params = {};
     req.body = null;
     req.user = null;
+    req.u2fVerified = false;
     
     return req;
 }
@@ -248,9 +281,12 @@ function cors(options = {}) {
     const opts = { ...defaults, ...options };
     
     return async (req, res, next) => {
-        res.setHeader('Access-Control-Allow-Origin', opts.origin);
+        const allowOrigin = resolveCorsOrigin(req.headers.origin, opts.origin);
+
+        res.setHeader('Access-Control-Allow-Origin', allowOrigin);
         res.setHeader('Access-Control-Allow-Methods', opts.methods);
         res.setHeader('Access-Control-Allow-Headers', opts.headers);
+        res.setHeader('Vary', 'Origin');
         
         if (opts.credentials) {
             res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -282,6 +318,7 @@ function auth(options = { required: true }) {
             if (session) {
                 req.user = session.user;
                 req.sessionId = session.sessionId;
+                req.u2fVerified = req.cookies.u2f_verified === 'true';
             }
         }
         
