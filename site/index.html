@@ -597,11 +597,12 @@
             <nav class="nav">
                 <a href="#services">Services</a>
                 <a href="#philosophy">Philosophy</a>
-                <a href="#process">Process</a>
                 <a href="#about">About</a>
                 <a href="#contact">Contact</a>
                 <a href="grab.html" style="color: var(--purple);">GrabNet</a>
-                <a href="scholar.html" style="color: var(--amber);">Open Scholar</a>
+                <a href="scholar.html" style="color: var(--amber);">Scholar</a>
+                <a href="browse.html">Browse</a>
+                <a href="login.html" id="authLink">Log In</a>
             </nav>
         </div>
     </header>
@@ -822,6 +823,20 @@
             alert('Thanks for reaching out! I\'ll get back to you soon.');
             this.reset();
         });
+
+        // Auth-aware navigation
+        (function() {
+            try {
+                const user = JSON.parse(localStorage.getItem('user'));
+                if (user && user.username) {
+                    const link = document.getElementById('authLink');
+                    if (link) {
+                        link.textContent = user.username;
+                        link.href = 'profile.html';
+                    }
+                }
+            } catch(e) {}
+        })();
     </script>
 </body>
 </html>

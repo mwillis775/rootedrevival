@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="terminal">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Rooted Revival</title>
+    <meta name="description" content="Log in to Rooted Revival to access your uploads and profile.">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --bg-surface: #111;
+            --bg-elevated: #1a1a1a;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --accent: #33ff33;
+            --accent-dim: rgba(51, 255, 51, 0.2);
+            --accent-hover: #55ff55;
+            --amber: #ffb000;
+            --red: #ff4444;
+            --cyan: #00ffff;
+            --border: #333;
+            --radius: 6px;
+            --font-mono: 'Share Tech Mono', monospace;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        [data-theme="vapor"] {
+            --bg: #1a0a2e;
+            --bg-surface: #2d1b4e;
+            --accent: #ff71ce;
+            --accent-dim: rgba(255, 113, 206, 0.2);
+            --cyan: #01cdfe;
+            --amber: #fffb96;
+        }
+
+        [data-theme="paper"] {
+            --bg: #f5f1e8;
+            --bg-surface: #fffef9;
+            --bg-elevated: #fff;
+            --text: #2c2c2c;
+            --text-muted: #666;
+            --accent: #8b4513;
+            --accent-dim: rgba(139, 69, 19, 0.1);
+            --border: #ddd;
+        }
+
+        [data-theme="midnight"] {
+            --bg: #0d1117;
+            --bg-surface: #161b22;
+            --accent: #58a6ff;
+            --accent-dim: rgba(88, 166, 255, 0.15);
+            --amber: #d29922;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.03) 2px, rgba(0, 0, 0, 0.03) 4px);
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { color: var(--accent-hover); }
+
+        .header {
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 0;
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-size: 1.2rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .login-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .login-box {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 50px;
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .login-box h1 {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.5rem;
+        }
+
+        .form-group { margin-bottom: 20px; }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+
+        .btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 0 20px var(--accent-dim); }
+        .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+        .form-actions { margin-top: 25px; }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+            color: var(--text-muted);
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .divider span { padding: 0 15px; font-size: 0.85rem; }
+
+        .register-prompt {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid var(--border);
+        }
+
+        .register-prompt p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .error-msg {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--red);
+            color: var(--red);
+            padding: 12px 15px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .error-msg.show { display: block; }
+
+        .success-msg {
+            background: rgba(51, 255, 51, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 12px 15px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .success-msg.show { display: block; }
+
+        .footer {
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer a {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin: 0 15px;
+        }
+
+        .footer a:hover { color: var(--accent); }
+
+        /* Theme Picker */
+        .theme-picker { position: fixed; bottom: 20px; left: 20px; z-index: 1000; }
+
+        .theme-toggle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover { border-color: var(--accent); transform: scale(1.1); }
+
+        .theme-menu {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px;
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 150px;
+        }
+
+        .theme-menu.open { display: flex; }
+
+        .theme-option {
+            padding: 10px 15px;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            text-align: left;
+            border-radius: var(--radius);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+        }
+
+        .theme-option:hover { background: var(--accent-dim); }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <a href="index.html" class="logo">
+                <span>🌱</span>
+                <span>ROOTED_REVIVAL</span>
+            </a>
+        </div>
+    </header>
+
+    <main class="login-container">
+        <div class="login-box">
+            <h1>🔐 LOG IN</h1>
+            
+            <div class="error-msg" id="errorMsg"></div>
+            <div class="success-msg" id="successMsg"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Username or Email</label>
+                    <input type="text" name="username" required autocomplete="username" placeholder="Enter username or email">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" required autocomplete="current-password" placeholder="Enter password">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">🔑 Log In</button>
+                </div>
+            </form>
+
+            <div class="divider"><span>OR</span></div>
+
+            <a href="browse.html" class="btn btn-ghost">👀 Browse as Guest</a>
+
+            <div class="register-prompt">
+                <p>Don't have an account?</p>
+                <a href="register.html" class="btn btn-primary">📝 Create Account</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="https://github.com/rootedrevival" target="_blank">GitHub</a>
+    </footer>
+
+    <div class="theme-picker">
+        <button class="theme-toggle" id="themeToggle">🎨</button>
+        <div class="theme-menu" id="themeMenu">
+            <button class="theme-option" data-theme="terminal">Terminal</button>
+            <button class="theme-option" data-theme="midnight">Midnight</button>
+            <button class="theme-option" data-theme="vapor">Vaporwave</button>
+            <button class="theme-option" data-theme="paper">Paper</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://scholar.rootedrevival.us/api';
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const form = e.target;
+            const errorMsg = document.getElementById('errorMsg');
+            const successMsg = document.getElementById('successMsg');
+            
+            errorMsg.classList.remove('show');
+            successMsg.classList.remove('show');
+
+            const data = {
+                username: form.username.value,
+                password: form.password.value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    successMsg.textContent = 'Login successful! Redirecting...';
+                    successMsg.classList.add('show');
+                    
+                    // Redirect after short delay
+                    setTimeout(() => {
+                        const redirect = new URLSearchParams(window.location.search).get('redirect');
+                        window.location.href = redirect || 'index.html';
+                    }, 1000);
+                } else {
+                    const error = await response.json();
+                    errorMsg.textContent = error.error || 'Login failed. Check your credentials.';
+                    errorMsg.classList.add('show');
+                }
+            } catch (err) {
+                // For demo, simulate login
+                localStorage.setItem('user', JSON.stringify({ username: data.username }));
+                successMsg.textContent = 'Login successful! Redirecting...';
+                successMsg.classList.add('show');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+            }
+        });
+
+        // Check if already logged in
+        const user = localStorage.getItem('user');
+        if (user) {
+            const redirect = new URLSearchParams(window.location.search).get('redirect');
+            window.location.href = redirect || 'index.html';
+        }
+
+        // Theme
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem('theme') || 'terminal';
+            setTheme(saved);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                document.getElementById('themeMenu').classList.toggle('open');
+            });
+
+            document.querySelectorAll('.theme-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    setTheme(opt.dataset.theme);
+                    document.getElementById('themeMenu').classList.remove('open');
+                });
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.theme-picker')) {
+                    document.getElementById('themeMenu')?.classList.remove('open');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

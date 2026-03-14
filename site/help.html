@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="terminal">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help & FAQ — Rooted Revival</title>
+    <meta name="description" content="Get help with Rooted Revival. Frequently asked questions about the desktop app and distributed network.">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --bg-surface: #111;
+            --bg-elevated: #1a1a1a;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --accent: #33ff33;
+            --accent-dim: rgba(51, 255, 51, 0.2);
+            --accent-hover: #55ff55;
+            --amber: #ffb000;
+            --red: #ff4444;
+            --cyan: #00ffff;
+            --purple: #9966ff;
+            --border: #333;
+            --radius: 6px;
+            --font-mono: 'Share Tech Mono', monospace;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        [data-theme="vapor"] {
+            --bg: #1a0a2e;
+            --bg-surface: #2d1b4e;
+            --accent: #ff71ce;
+            --accent-dim: rgba(255, 113, 206, 0.2);
+            --cyan: #01cdfe;
+            --amber: #fffb96;
+        }
+
+        [data-theme="paper"] {
+            --bg: #f5f1e8;
+            --bg-surface: #fffef9;
+            --bg-elevated: #fff;
+            --text: #2c2c2c;
+            --text-muted: #666;
+            --accent: #8b4513;
+            --accent-dim: rgba(139, 69, 19, 0.1);
+            --border: #ddd;
+        }
+
+        [data-theme="midnight"] {
+            --bg: #0d1117;
+            --bg-surface: #161b22;
+            --accent: #58a6ff;
+            --accent-dim: rgba(88, 166, 255, 0.15);
+            --amber: #d29922;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.03) 2px, rgba(0, 0, 0, 0.03) 4px);
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { color: var(--accent-hover); }
+
+        .container { max-width: 900px; margin: 0 auto; padding: 0 20px; }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 0;
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-size: 1.2rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav { display: flex; gap: 8px; }
+
+        .nav a {
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            color: var(--text);
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .nav a:hover { background: var(--accent-dim); color: var(--accent); }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+
+        .btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 0 20px var(--accent-dim); }
+        .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* Hero */
+        .hero {
+            padding: 60px 0;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .hero h1 {
+            font-family: var(--font-mono);
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-bottom: 15px;
+        }
+
+        .hero p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Search */
+        .search-section {
+            padding: 30px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 12px 20px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* Categories */
+        .categories {
+            padding: 40px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .categories h2 {
+            font-family: var(--font-mono);
+            color: var(--amber);
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .category-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .category-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .category-card .icon { font-size: 2rem; margin-bottom: 10px; }
+        .category-card h3 { font-size: 1rem; margin-bottom: 5px; }
+        .category-card p { color: var(--text-muted); font-size: 0.85rem; }
+
+        /* FAQ Section */
+        .faq-section {
+            padding: 40px 0;
+        }
+
+        .faq-section h2 {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+        }
+
+        .faq-item {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 18px 20px;
+            background: var(--bg-surface);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .faq-question:hover { background: var(--bg-elevated); }
+
+        .faq-question h3 {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .faq-question .toggle {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            transition: transform 0.2s;
+        }
+
+        .faq-item.open .faq-question .toggle { transform: rotate(45deg); }
+
+        .faq-answer {
+            padding: 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .faq-item.open .faq-answer {
+            padding: 20px;
+            max-height: 500px;
+        }
+
+        .faq-answer p {
+            color: var(--text-muted);
+            line-height: 1.8;
+        }
+
+        .faq-answer ul {
+            margin-left: 20px;
+            color: var(--text-muted);
+        }
+
+        .faq-answer li { margin-bottom: 8px; }
+
+        /* Contact */
+        .contact-section {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .contact-section h2 {
+            font-family: var(--font-mono);
+            color: var(--amber);
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .contact-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 25px;
+            text-align: center;
+        }
+
+        .contact-card .icon { font-size: 2rem; margin-bottom: 15px; }
+        .contact-card h3 { margin-bottom: 10px; }
+        .contact-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px; }
+
+        /* Footer */
+        .footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a { color: var(--text-muted); font-size: 0.9rem; }
+        .footer-links a:hover { color: var(--accent); }
+        .footer-copy { color: var(--text-muted); font-size: 0.85rem; }
+
+        /* Theme Picker */
+        .theme-picker { position: fixed; bottom: 20px; left: 20px; z-index: 1000; }
+
+        .theme-toggle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover { border-color: var(--accent); transform: scale(1.1); }
+
+        .theme-menu {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px;
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 150px;
+        }
+
+        .theme-menu.open { display: flex; }
+
+        .theme-option {
+            padding: 10px 15px;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            text-align: left;
+            border-radius: var(--radius);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+        }
+
+        .theme-option:hover { background: var(--accent-dim); }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .search-bar { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <a href="index.html" class="logo">
+                <span>🌱</span>
+                <span>ROOTED_REVIVAL</span>
+            </a>
+            <nav class="nav">
+                <a href="index.html">Home</a>
+                <a href="browse.html">Browse</a>
+                <a href="download.html">Download</a>
+                <a href="about.html">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>❓ HELP CENTER</h1>
+                <p>Find answers to common questions and get support for Rooted Revival</p>
+            </div>
+        </section>
+
+        <section class="search-section">
+            <div class="container">
+                <div class="search-bar">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search help articles...">
+                </div>
+            </div>
+        </section>
+
+        <section class="categories">
+            <div class="container">
+                <h2>📚 HELP CATEGORIES</h2>
+                <div class="category-grid">
+                    <div class="category-card" data-category="getting-started">
+                        <div class="icon">🚀</div>
+                        <h3>Getting Started</h3>
+                        <p>Installation and setup</p>
+                    </div>
+                    <div class="category-card" data-category="uploading">
+                        <div class="icon">📤</div>
+                        <h3>Uploading</h3>
+                        <p>How to share content</p>
+                    </div>
+                    <div class="category-card" data-category="ipfs">
+                        <div class="icon">🔗</div>
+                        <h3>IPFS & Network</h3>
+                        <p>Understanding the tech</p>
+                    </div>
+                    <div class="category-card" data-category="troubleshooting">
+                        <div class="icon">🔧</div>
+                        <h3>Troubleshooting</h3>
+                        <p>Common issues & fixes</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="faq-section">
+            <div class="container">
+                <h2>🚀 Getting Started</h2>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>What is Rooted Revival?</h3>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Rooted Revival is an open-source, ad-free knowledge repository that runs on a distributed network. When you download our desktop app, you become part of the network by running a hidden IPFS node that helps store and share content. We're separate from the bot-infected mainnet, operating our own clean network for academic and creative content.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>How do I install the app?</h3>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Installing is simple:</p>
+                        <ul>
+                            <li><strong>Windows:</strong> Download the .exe installer and run it. Follow the prompts to install.</li>
+                            <li><strong>macOS:</strong> Download the .dmg file, open it, and drag Rooted Revival to your Applications folder.</li>
+                            <li><strong>Linux:</strong> Download the .AppImage, make it executable (<code>chmod +x</code>), and run it.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Do I need to create an account?</h3>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>You can browse and download content without an account. However, to upload content and contribute to the network, you'll need to create an account. This helps us maintain quality and prevent spam.</p>
+                    </div>
+                </div>
+
+                <h2 style="margin-top: 40px;">📤 Uploading Content</h2>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>What can I upload?</h3>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>We accept four main types of content:</p>
+                        <ul>
+                            <li><strong>Papers:</strong> Academic papers, research, essays (PDF, DOC, TXT)</li>
+                            <li><strong>Videos:</strong> Educational videos, lectures, documentaries (MP4, WebM, MOV)</li>
+                            <li><strong>Art:</strong> Creative works, photography, illustrations (JPG, PNG, GIF, SVG)</li>
+                            <li><strong>Music:</strong> Audio recordings, podcasts, compositions (MP3, WAV, FLAC, OGG)</li>
+                        </ul>
+                        <p>Please respect copyright. Only upload content you have the right to share.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>How long does uploading take?</h3>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Upload time depends on file size and your internet connection. Once uploaded, your content is automatically distributed across the network. Small files (under 10MB) typically complete in seconds. Larger files may take a few minutes.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Can I delete content I've uploaded?</h3>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>You can remove content from your profile and our index. However, because we use a distributed network, copies that have been downloaded or pinned by other nodes may persist. Think carefully before uploading.</p>
+                    </div>
+                </div>
+
+                <h2 style="margin-top: 40px;">🔗 IPFS & Network</h2>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>What is IPFS?</h3>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>IPFS (InterPlanetary File System) is a distributed storage protocol. Instead of storing files on a single server, content is spread across many nodes. Each file gets a unique content ID (CID) based on its contents. This means content can't be tampered with and remains available as long as at least one node has it.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>How does my computer help the network?</h3>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>When you run the desktop app, a hidden IPFS node runs in the background. It stores and shares content you've accessed and helps others download files. You can control how much space and bandwidth to allocate in Settings. The default is 2GB storage and moderate bandwidth usage.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Is my data private?</h3>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Content on the network is public - anyone can view and download it. Your uploads are associated with your username. We don't collect personal data beyond what's needed for your account. The app doesn't track your browsing or share data with third parties.</p>
+                    </div>
+                </div>
+
+                <h2 style="margin-top: 40px;">🔧 Troubleshooting</h2>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>The app won't start / crashes</h3>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Try these steps:</p>
+                        <ul>
+                            <li>Restart your computer and try again</li>
+                            <li>Make sure you have the latest version</li>
+                            <li>Check if your antivirus is blocking the app</li>
+                            <li>Delete the app data folder and reinstall</li>
+                        </ul>
+                        <p>If issues persist, please report on our Discord or GitHub.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Downloads are slow</h3>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Download speed depends on how many nodes have the content. Newly uploaded or rarely accessed content may be slower. The more people who download and pin content, the faster it becomes. You can also try restarting the app to refresh peer connections.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>I can't connect to the network</h3>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Check the following:</p>
+                        <ul>
+                            <li>Ensure you have an internet connection</li>
+                            <li>Check if a firewall is blocking ports 4001 and 5001</li>
+                            <li>Try disabling VPN temporarily</li>
+                            <li>Restart the app and wait 30 seconds for bootstrap</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="contact-section">
+            <div class="container">
+                <h2>📫 STILL NEED HELP?</h2>
+                <div class="contact-grid">
+                    <div class="contact-card">
+                        <div class="icon">💬</div>
+                        <h3>Discord Community</h3>
+                        <p>Get help from the community and team</p>
+                        <a href="https://discord.gg/rootedrevival" class="btn btn-primary" target="_blank">Join Discord</a>
+                    </div>
+                    <div class="contact-card">
+                        <div class="icon">📧</div>
+                        <h3>Email Support</h3>
+                        <p>For technical issues and account problems</p>
+                        <a href="mailto:michaelwillisbotany@proton.me" class="btn btn-ghost">Send Email</a>
+                    </div>
+                    <div class="contact-card">
+                        <div class="icon">🐛</div>
+                        <h3>Report a Bug</h3>
+                        <p>Found an issue? Let us know on GitHub</p>
+                        <a href="https://github.com/rootedrevival/app/issues" class="btn btn-ghost" target="_blank">Open Issue</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-links">
+                <a href="browse.html">📚 Browse</a>
+                <a href="upload.html">📤 Upload</a>
+                <a href="about.html">ℹ️ About</a>
+                <a href="download.html">⬇️ Download</a>
+                <a href="https://github.com/rootedrevival" target="_blank">💻 GitHub</a>
+            </div>
+            <p class="footer-copy">© 2026 Rooted Revival • Tulsa, OK</p>
+        </div>
+    </footer>
+
+    <div class="theme-picker">
+        <button class="theme-toggle" id="themeToggle">🎨</button>
+        <div class="theme-menu" id="themeMenu">
+            <button class="theme-option" data-theme="terminal">Terminal</button>
+            <button class="theme-option" data-theme="midnight">Midnight</button>
+            <button class="theme-option" data-theme="vapor">Vaporwave</button>
+            <button class="theme-option" data-theme="paper">Paper</button>
+        </div>
+    </div>
+
+    <script>
+        // FAQ Toggle
+        document.querySelectorAll('.faq-question').forEach(q => {
+            q.addEventListener('click', () => {
+                const item = q.parentElement;
+                item.classList.toggle('open');
+            });
+        });
+
+        // Search filter
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.faq-item').forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(query) ? 'block' : 'none';
+            });
+        });
+
+        // Category filter
+        document.querySelectorAll('.category-card').forEach(card => {
+            card.addEventListener('click', () => {
+                // For now, just scroll to FAQ section
+                document.querySelector('.faq-section').scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+
+        // Theme
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem('theme') || 'terminal';
+            setTheme(saved);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                document.getElementById('themeMenu').classList.toggle('open');
+            });
+
+            document.querySelectorAll('.theme-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    setTheme(opt.dataset.theme);
+                    document.getElementById('themeMenu').classList.remove('open');
+                });
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.theme-picker')) {
+                    document.getElementById('themeMenu')?.classList.remove('open');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
