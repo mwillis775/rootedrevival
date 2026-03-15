@@ -1,20 +1,19 @@
 //! Website bundling and publishing
 
+use anyhow::{Context, Result};
+use flate2::read::GzEncoder;
+use flate2::Compression as GzCompression;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::io::Read;
-use anyhow::{Result, Context};
 use walkdir::WalkDir;
-use flate2::read::GzEncoder;
-use flate2::Compression as GzCompression;
 
+use crate::crypto::{encode_base58, hash, sign_bundle, MerkleTree, SiteIdExt};
+use crate::storage::{BundleStore, ChunkStore, KeyStore};
 use crate::types::{
-    WebBundle, SiteManifest, FileEntry, PublishedSite,
-    RouteConfig, Compression, SiteId, ChunkId,
+    ChunkId, Compression, FileEntry, PublishedSite, RouteConfig, SiteId, SiteManifest, WebBundle,
 };
-use crate::storage::{ChunkStore, BundleStore, KeyStore};
-use crate::crypto::{hash, sign_bundle, SiteIdExt, MerkleTree, encode_base58};
 
 /// Options for publishing a website
 #[derive(Debug, Clone, Default)]
@@ -79,7 +78,8 @@ impl Publisher {
 
     /// Publish a website directory
     pub async fn publish(&self, path: &str, options: PublishOptions) -> Result<PublishResult> {
-        let root_path = PathBuf::from(path).canonicalize()
+        let root_path = PathBuf::from(path)
+            .canonicalize()
             .context("Failed to resolve path")?;
 
         if !root_path.is_dir() {
@@ -87,8 +87,14 @@ impl Publisher {
         }
 
         // Determine site name
-        let name = options.name.clone()
-            .or_else(|| root_path.file_name().map(|n| n.to_string_lossy().to_string()))
+        let name = options
+            .name
+            .clone()
+            .or_else(|| {
+                root_path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+            })
             .unwrap_or_else(|| "unnamed".to_string());
 
         // Get or create signing key
@@ -99,7 +105,8 @@ impl Publisher {
         let site_id = SiteId::generate(&public_key, &name);
 
         // Check for existing revision
-        let previous_revision = self.bundle_store
+        let previous_revision = self
+            .bundle_store
             .get_published_site(&site_id.to_base58())?
             .map(|s| s.revision)
             .unwrap_or(0);
@@ -110,10 +117,14 @@ impl Publisher {
         let chunk_size = options.chunk_size.unwrap_or(256 * 1024);
         let compress = options.compress;
 
-        let (files, stats) = self.bundle_directory(&root_path, chunk_size, compress).await?;
+        let (files, stats) = self
+            .bundle_directory(&root_path, chunk_size, compress)
+            .await?;
 
         // Determine entry point
-        let entry = options.entry.clone()
+        let entry = options
+            .entry
+            .clone()
             .or_else(|| {
                 // Auto-detect
                 for candidate in ["index.html", "index.htm", "main.html"] {
@@ -214,12 +225,13 @@ impl Publisher {
             }
 
             let path = entry.path();
-            let relative_path = path.strip_prefix(root)?
+            let relative_path = path
+                .strip_prefix(root)?
                 .to_string_lossy()
                 .replace('\\', "/");
 
             // Skip hidden files and common ignores
-            if relative_path.starts_with('.') 
+            if relative_path.starts_with('.')
                 || relative_path.contains("/.")
                 || relative_path.starts_with("node_modules/")
                 || relative_path.starts_with("target/")
@@ -244,7 +256,7 @@ impl Publisher {
                 let mut encoder = GzEncoder::new(&content[..], GzCompression::default());
                 let mut compressed = Vec::new();
                 encoder.read_to_end(&mut compressed)?;
-                
+
                 // Only use if smaller
                 if compressed.len() < content.len() {
                     (compressed, Some(Compression::Gzip))
@@ -261,12 +273,12 @@ impl Publisher {
             let mut chunks = Vec::new();
             for chunk_data in data.chunks(chunk_size) {
                 let chunk_id = self.chunk_store.put(chunk_data)?;
-                
+
                 // Track if this is a new chunk
                 if chunks.iter().all(|id| id != &chunk_id) {
                     stats.new_chunks += 1;
                 }
-                
+
                 chunks.push(chunk_id);
                 stats.chunk_count += 1;
             }
@@ -312,8 +324,8 @@ fn is_compressible(mime: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use std::fs;
+    use tempfile::tempdir;
 
     #[tokio::test]
     async fn test_publish() -> Result<()> {
@@ -330,13 +342,15 @@ mod tests {
 
         let publisher = Publisher::new(chunk_store, bundle_store, key_store);
 
-        let result = publisher.publish(
-            site_dir.path().to_str().unwrap(),
-            PublishOptions {
-                compress: true,
-                ..Default::default()
-            },
-        ).await?;
+        let result = publisher
+            .publish(
+                site_dir.path().to_str().unwrap(),
+                PublishOptions {
+                    compress: true,
+                    ..Default::default()
+                },
+            )
+            .await?;
 
         assert_eq!(result.file_count, 2);
         assert_eq!(result.bundle.revision, 1);

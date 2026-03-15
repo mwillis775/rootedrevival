@@ -8,14 +8,14 @@
 //! - SMTP_FROM: From email address
 //! - EMAIL_ENABLED: Set to "true" to enable email sending
 
-use std::sync::Arc;
 use lettre::{
     message::{header::ContentType, Mailbox},
     transport::smtp::authentication::Credentials,
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 use parking_lot::RwLock;
-use tracing::{info, warn, error};
+use std::sync::Arc;
+use tracing::{error, info, warn};
 
 /// Email configuration
 #[derive(Clone, Debug)]
@@ -39,8 +39,10 @@ impl Default for EmailConfig {
                 .unwrap_or(587),
             smtp_user: std::env::var("SMTP_USER").unwrap_or_default(),
             smtp_pass: std::env::var("SMTP_PASS").unwrap_or_default(),
-            from_email: std::env::var("SMTP_FROM").unwrap_or_else(|_| "noreply@scholar.local".to_string()),
-            from_name: std::env::var("SMTP_FROM_NAME").unwrap_or_else(|_| "Open Scholar".to_string()),
+            from_email: std::env::var("SMTP_FROM")
+                .unwrap_or_else(|_| "noreply@scholar.local".to_string()),
+            from_name: std::env::var("SMTP_FROM_NAME")
+                .unwrap_or_else(|_| "Open Scholar".to_string()),
             enabled: std::env::var("EMAIL_ENABLED")
                 .map(|v| v.to_lowercase() == "true")
                 .unwrap_or(false),
@@ -69,13 +71,10 @@ impl EmailService {
     pub fn new(config: EmailConfig) -> Self {
         let mailer = if config.enabled {
             let creds = Credentials::new(config.smtp_user.clone(), config.smtp_pass.clone());
-            
+
             match AsyncSmtpTransport::<Tokio1Executor>::relay(&config.smtp_host) {
                 Ok(transport) => {
-                    let mailer = transport
-                        .port(config.smtp_port)
-                        .credentials(creds)
-                        .build();
+                    let mailer = transport.port(config.smtp_port).credentials(creds).build();
                     info!("Email service initialized with SMTP: {}", config.smtp_host);
                     Some(mailer)
                 }
@@ -95,7 +94,7 @@ impl EmailService {
             pending_queue: Arc::new(RwLock::new(Vec::new())),
         }
     }
-    
+
     /// Create email service from environment variables
     pub fn from_env() -> Self {
         Self::new(EmailConfig::default())
@@ -121,7 +120,10 @@ impl EmailService {
 
         match &self.mailer {
             Some(mailer) => {
-                mailer.send(message).await.map_err(|e| EmailError::SendError(e.to_string()))?;
+                mailer
+                    .send(message)
+                    .await
+                    .map_err(|e| EmailError::SendError(e.to_string()))?;
                 info!("Email sent to {}: {}", to, subject);
                 Ok(())
             }
@@ -141,11 +143,18 @@ impl EmailService {
     }
 
     /// Send verification email
-    pub async fn send_verification(&self, to: &str, username: &str, token: &str, base_url: &str) -> Result<(), EmailError> {
+    pub async fn send_verification(
+        &self,
+        to: &str,
+        username: &str,
+        token: &str,
+        base_url: &str,
+    ) -> Result<(), EmailError> {
         let verify_url = format!("{}/verify?token={}", base_url, token);
-        
+
         let subject = "Verify your Open Scholar account";
-        let body = format!(r#"
+        let body = format!(
+            r#"
 <!DOCTYPE html>
 <html>
 <head>
@@ -182,17 +191,27 @@ impl EmailService {
     </div>
 </body>
 </html>
-"#, username = username, verify_url = verify_url);
+"#,
+            username = username,
+            verify_url = verify_url
+        );
 
         self.send(to, subject, &body).await
     }
 
     /// Send password reset email
-    pub async fn send_password_reset(&self, to: &str, username: &str, token: &str, base_url: &str) -> Result<(), EmailError> {
+    pub async fn send_password_reset(
+        &self,
+        to: &str,
+        username: &str,
+        token: &str,
+        base_url: &str,
+    ) -> Result<(), EmailError> {
         let reset_url = format!("{}/reset-password?token={}", base_url, token);
-        
+
         let subject = "Reset your Open Scholar password";
-        let body = format!(r#"
+        let body = format!(
+            r#"
 <!DOCTYPE html>
 <html>
 <head>
@@ -232,7 +251,10 @@ impl EmailService {
     </div>
 </body>
 </html>
-"#, username = username, reset_url = reset_url);
+"#,
+            username = username,
+            reset_url = reset_url
+        );
 
         self.send(to, subject, &body).await
     }
@@ -240,7 +262,8 @@ impl EmailService {
     /// Send welcome email after verification
     pub async fn send_welcome(&self, to: &str, username: &str) -> Result<(), EmailError> {
         let subject = "Welcome to Open Scholar!";
-        let body = format!(r#"
+        let body = format!(
+            r#"
 <!DOCTYPE html>
 <html>
 <head>
@@ -291,7 +314,9 @@ impl EmailService {
     </div>
 </body>
 </html>
-"#, username = username);
+"#,
+            username = username
+        );
 
         self.send(to, subject, &body).await
     }
@@ -317,10 +342,10 @@ impl EmailService {
 pub enum EmailError {
     #[error("Invalid email address: {0}")]
     InvalidAddress(String),
-    
+
     #[error("Failed to build email: {0}")]
     BuildError(String),
-    
+
     #[error("Failed to send email: {0}")]
     SendError(String),
 }
@@ -342,12 +367,14 @@ mod tests {
             enabled: false,
             ..Default::default()
         };
-        
+
         let service = EmailService::new(config);
-        
-        let result = service.send("test@example.com", "Test Subject", "Test Body").await;
+
+        let result = service
+            .send("test@example.com", "Test Subject", "Test Body")
+            .await;
         assert!(result.is_ok());
-        
+
         let pending = service.get_pending_emails();
         assert_eq!(pending.len(), 1);
         assert_eq!(pending[0].to, "test@example.com");

@@ -1,11 +1,11 @@
 //! GrabNet CLI
 
-use std::path::PathBuf;
-use std::time::Duration;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use grabnet::{Grab, PublishOptions, SiteIdExt};
 use notify_debouncer_mini::{new_debouncer, notify::RecursiveMode};
+use std::path::PathBuf;
+use std::time::Duration;
 use tracing_subscriber::{fmt, EnvFilter};
 
 #[derive(Parser)]
@@ -97,7 +97,7 @@ enum Commands {
     Pin {
         /// Site ID to pin
         site_id: String,
-        
+
         /// Peer address to connect to
         #[arg(short, long)]
         peer: Option<String>,
@@ -147,7 +147,7 @@ enum NodeAction {
         /// Run in light mode (no hosting)
         #[arg(long)]
         light: bool,
-        
+
         /// Bootstrap peers to connect to
         #[arg(short, long)]
         bootstrap: Vec<String>,
@@ -205,7 +205,7 @@ enum BootstrapAction {
     Add {
         /// Node name
         name: String,
-        
+
         /// Multiaddress (e.g., /ip4/1.2.3.4/tcp/4001)
         address: String,
     },
@@ -276,30 +276,39 @@ async fn main() -> Result<()> {
             let result = grab.publish(&path, options.clone()).await?;
 
             println!();
-            println!("✓ Bundled {} files ({} bytes)", result.file_count, result.total_size);
+            println!(
+                "✓ Bundled {} files ({} bytes)",
+                result.file_count, result.total_size
+            );
             if result.compressed_size < result.total_size {
                 let savings = 100 - (result.compressed_size * 100 / result.total_size);
-                println!("✓ Compressed to {} bytes ({}% smaller)", result.compressed_size, savings);
+                println!(
+                    "✓ Compressed to {} bytes ({}% smaller)",
+                    result.compressed_size, savings
+                );
             }
-            println!("✓ {} chunks ({} new)", result.chunk_count, result.new_chunks);
+            println!(
+                "✓ {} chunks ({} new)",
+                result.chunk_count, result.new_chunks
+            );
             println!();
             println!("🌐 Site ID:  grab://{}", result.bundle.site_id.to_base58());
             println!("📝 Name:     {}", result.bundle.name);
             println!("🔄 Revision: {}", result.bundle.revision);
-            
+
             // Run post-deploy hook if specified
             if let Some(ref hook) = post_hook {
                 println!();
                 println!("🔧 Running post-deploy hook...");
                 run_hook(hook, &path)?;
             }
-            
+
             println!();
-            
+
             if watch {
                 println!("👀 Watching for changes... (Ctrl+C to stop)");
                 println!();
-                
+
                 run_watch_mode(&grab, &path, options).await?;
             } else {
                 println!("Start gateway to serve: grab gateway");
@@ -313,7 +322,10 @@ async fn main() -> Result<()> {
                 Some(result) => {
                     println!();
                     println!("✓ Updated to revision {}", result.bundle.revision);
-                    println!("✓ {} files, {} chunks", result.file_count, result.chunk_count);
+                    println!(
+                        "✓ {} files, {} chunks",
+                        result.file_count, result.chunk_count
+                    );
                 }
                 None => {
                     println!("❌ Site not found: {}", site);
@@ -379,17 +391,21 @@ async fn main() -> Result<()> {
 
         Commands::Node { action } => {
             match action {
-                NodeAction::Start { port: _, light: _, bootstrap } => {
+                NodeAction::Start {
+                    port: _,
+                    light: _,
+                    bootstrap,
+                } => {
                     println!("🌐 Starting GrabNet node...");
                     grab.start_network().await?;
-                    
+
                     let status = grab.network_status();
                     println!();
                     println!("✓ Node started");
                     if let Some(peer_id) = &status.peer_id {
                         println!("  Peer ID: {}", peer_id);
                     }
-                    
+
                     // Connect to additional bootstrap peers
                     if !bootstrap.is_empty() {
                         for addr in bootstrap {
@@ -404,7 +420,7 @@ async fn main() -> Result<()> {
                     println!();
                     println!("Press Ctrl+C to stop");
                     println!();
-                    
+
                     // Subscribe to events
                     if let Some(mut rx) = grab.subscribe_network() {
                         loop {
@@ -467,7 +483,7 @@ async fn main() -> Result<()> {
 
                     println!("🔗 Connected Peers: {}", status.peers);
                     println!();
-                    
+
                     // Get detailed peer list
                     if let Some(guard) = grab.network() {
                         if let Some(network) = guard.as_ref() {
@@ -488,7 +504,7 @@ async fn main() -> Result<()> {
                 NodeAction::Connect { address } => {
                     // Start network if not running
                     grab.start_network().await?;
-                    
+
                     println!("Connecting to {}...", address);
                     grab.dial_peer(&address).await?;
                     println!("✓ Connection initiated");
@@ -523,7 +539,7 @@ async fn main() -> Result<()> {
             // Start network
             println!("  Starting P2P network...");
             grab.start_network().await?;
-            
+
             // Give it a moment to initialize
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
@@ -537,7 +553,7 @@ async fn main() -> Result<()> {
             // Try to fetch and host
             if grab.host(&id).await? {
                 println!("✓ Site pinned successfully!");
-                
+
                 // Show info
                 if let Ok(Some(bundle)) = grab.bundle_store().get_bundle(&id) {
                     println!("  Name:     {}", bundle.name);
@@ -546,7 +562,10 @@ async fn main() -> Result<()> {
                 }
             } else {
                 println!("❌ Failed to find site on network");
-                println!("  Try providing a peer address: grab pin {} --peer /ip4/x.x.x.x/tcp/4001", site_id);
+                println!(
+                    "  Try providing a peer address: grab pin {} --peer /ip4/x.x.x.x/tcp/4001",
+                    site_id
+                );
             }
         }
 
@@ -596,12 +615,16 @@ async fn main() -> Result<()> {
 
         Commands::Gateway { port, default_site } => {
             println!("🌐 Starting HTTP gateway on port {}...", port);
-            
+
             // Resolve default site if provided
             let default_site_id = if let Some(site_ref) = default_site {
                 // Try to find by name first
                 if let Some(published) = grab.bundle_store().get_published_site(&site_ref)? {
-                    println!("  Default site: {} ({})", published.name, published.site_id.to_base58());
+                    println!(
+                        "  Default site: {} ({})",
+                        published.name,
+                        published.site_id.to_base58()
+                    );
                     Some(published.site_id)
                 } else if let Some(id) = grabnet::SiteId::from_base58(&site_ref) {
                     println!("  Default site: {}", site_ref);
@@ -629,28 +652,33 @@ async fn main() -> Result<()> {
             println!("Access sites at: http://127.0.0.1:{}/site/<site-id>/", port);
             println!();
             println!("Press Ctrl+C to stop");
-            
+
             tokio::signal::ctrl_c().await?;
             grab.stop_gateway().await?;
         }
 
         Commands::Bootstrap { action } => {
             let mut config = grabnet::network::BootstrapConfig::load_or_default(&data_dir)?;
-            
+
             match action {
                 BootstrapAction::List => {
                     println!("🌐 Bootstrap Nodes:");
                     println!();
-                    
+
                     println!("Official:");
                     for node in &config.official {
                         let status = if node.enabled { "✓" } else { "✗" };
-                        println!("  {} {} [{}]", status, node.name, node.region.as_deref().unwrap_or("unknown"));
+                        println!(
+                            "  {} {} [{}]",
+                            status,
+                            node.name,
+                            node.region.as_deref().unwrap_or("unknown")
+                        );
                         for addr in &node.addresses {
                             println!("      {}", addr);
                         }
                     }
-                    
+
                     if !config.community.is_empty() {
                         println!();
                         println!("Community:");
@@ -662,7 +690,7 @@ async fn main() -> Result<()> {
                             }
                         }
                     }
-                    
+
                     if !config.custom.is_empty() {
                         println!();
                         println!("Custom:");
@@ -674,19 +702,26 @@ async fn main() -> Result<()> {
                             }
                         }
                     }
-                    
+
                     println!();
-                    println!("mDNS: {}", if config.mdns_enabled { "enabled" } else { "disabled" });
+                    println!(
+                        "mDNS: {}",
+                        if config.mdns_enabled {
+                            "enabled"
+                        } else {
+                            "disabled"
+                        }
+                    );
                     println!("Minimum peers: {}", config.min_peers);
                 }
-                
+
                 BootstrapAction::Add { name, address } => {
                     config.add_custom(name.clone(), vec![address.clone()]);
                     config.save(&data_dir)?;
                     println!("✓ Added bootstrap node: {}", name);
                     println!("  Address: {}", address);
                 }
-                
+
                 BootstrapAction::Remove { name } => {
                     if config.remove_custom(&name) {
                         config.save(&data_dir)?;
@@ -696,11 +731,11 @@ async fn main() -> Result<()> {
                         println!("   Note: Only custom nodes can be removed");
                     }
                 }
-                
+
                 BootstrapAction::Test => {
                     println!("🔍 Testing bootstrap node connectivity...");
                     println!();
-                    
+
                     let addresses = config.get_enabled_addresses();
                     for addr in addresses {
                         print!("  {} ... ", addr);
@@ -731,18 +766,17 @@ async fn main() -> Result<()> {
 /// Run watch mode - monitor directory for changes and auto-republish
 async fn run_watch_mode(grab: &Grab, path: &str, options: PublishOptions) -> Result<()> {
     use std::sync::mpsc::channel;
-    
+
     let (tx, rx) = channel();
-    
+
     // Create debounced watcher (500ms debounce)
     let mut debouncer = new_debouncer(Duration::from_millis(500), tx)?;
-    
+
     // Watch the directory recursively
-    debouncer.watcher().watch(
-        std::path::Path::new(path),
-        RecursiveMode::Recursive,
-    )?;
-    
+    debouncer
+        .watcher()
+        .watch(std::path::Path::new(path), RecursiveMode::Recursive)?;
+
     // Get the site name for updates
     let site_name = options.name.clone().unwrap_or_else(|| {
         std::path::Path::new(path)
@@ -750,43 +784,48 @@ async fn run_watch_mode(grab: &Grab, path: &str, options: PublishOptions) -> Res
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_else(|| "site".to_string())
     });
-    
+
     loop {
         match rx.recv() {
             Ok(Ok(events)) => {
                 // Filter out hidden files and build artifacts
-                let relevant_events: Vec<_> = events.iter()
+                let relevant_events: Vec<_> = events
+                    .iter()
                     .filter(|e| {
                         let path_str = e.path.to_string_lossy();
-                        !path_str.contains("/.") &&
-                        !path_str.contains("/node_modules/") &&
-                        !path_str.contains("/target/") &&
-                        !path_str.contains("/.git/")
+                        !path_str.contains("/.")
+                            && !path_str.contains("/node_modules/")
+                            && !path_str.contains("/target/")
+                            && !path_str.contains("/.git/")
                     })
                     .collect();
-                
+
                 if relevant_events.is_empty() {
                     continue;
                 }
-                
+
                 // Show which files changed
                 for event in &relevant_events {
                     println!("  📝 Changed: {}", event.path.display());
                 }
-                
+
                 // Republish
                 println!("🔄 Republishing...");
                 match grab.update(&site_name).await {
                     Ok(Some(result)) => {
-                        println!("✓ Updated to revision {} ({} files)", 
-                            result.bundle.revision, result.file_count);
+                        println!(
+                            "✓ Updated to revision {} ({} files)",
+                            result.bundle.revision, result.file_count
+                        );
                     }
                     Ok(None) => {
                         // Site not found, do full publish
                         match grab.publish(path, options.clone()).await {
                             Ok(result) => {
-                                println!("✓ Published revision {} ({} files)", 
-                                    result.bundle.revision, result.file_count);
+                                println!(
+                                    "✓ Published revision {} ({} files)",
+                                    result.bundle.revision, result.file_count
+                                );
                             }
                             Err(e) => {
                                 println!("❌ Publish failed: {}", e);
@@ -808,27 +847,27 @@ async fn run_watch_mode(grab: &Grab, path: &str, options: PublishOptions) -> Res
             }
         }
     }
-    
+
     Ok(())
 }
 
 /// Run a deploy hook command
 fn run_hook(command: &str, working_dir: &str) -> Result<()> {
     use std::process::Command;
-    
+
     let output = Command::new("sh")
         .arg("-c")
         .arg(command)
         .current_dir(working_dir)
         .output()?;
-    
+
     if !output.stdout.is_empty() {
         print!("{}", String::from_utf8_lossy(&output.stdout));
     }
     if !output.stderr.is_empty() {
         eprint!("{}", String::from_utf8_lossy(&output.stderr));
     }
-    
+
     if output.status.success() {
         println!("✓ Hook completed successfully");
         Ok(())

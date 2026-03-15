@@ -219,10 +219,10 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
         END;
         "#,
     )?;
-    
+
     // Extended schema for Open Scholar principles
     init_extended_schema(conn)?;
-    
+
     Ok(())
 }
 
@@ -458,6 +458,6 @@ fn init_extended_schema(conn: &Connection) -> anyhow::Result<()> {
             (5, 'no_minor_content', 'No content involving minors. Child exploitation results in permanent ban, content forfeiture, and law enforcement reporting.', 'Permanent ban, forfeit works, report to authorities');
         "#,
     )?;
-    
+
     Ok(())
 }

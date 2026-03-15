@@ -1,6 +1,5 @@
 //! Static file serving and site publishing
 
-use std::sync::Arc;
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -10,6 +9,7 @@ use axum::{
     Router,
 };
 use serde_json::json;
+use std::sync::Arc;
 use tokio::fs;
 
 use crate::AppState;
@@ -31,7 +31,7 @@ fn extract_token(headers: &HeaderMap) -> Option<String> {
             }
         }
     }
-    
+
     if let Some(cookie) = headers.get(header::COOKIE) {
         if let Ok(value) = cookie.to_str() {
             for part in value.split(';') {
@@ -42,19 +42,20 @@ fn extract_token(headers: &HeaderMap) -> Option<String> {
             }
         }
     }
-    
+
     None
 }
 
 /// Serve the main index.html
 pub async fn index(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let index_path = state.static_dir.join("index.html");
-    
+
     match fs::read_to_string(&index_path).await {
         Ok(content) => Html(content).into_response(),
         Err(_) => {
             // Fallback to embedded minimal HTML
-            Html(r#"<!DOCTYPE html>
+            Html(
+                r#"<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -93,29 +94,25 @@ pub async fn index(State(state): State<Arc<AppState>>) -> impl IntoResponse {
         </div>
     </div>
 </body>
-</html>"#).into_response()
+</html>"#,
+            )
+            .into_response()
         }
     }
 }
 
 /// Serve static files (CSS, JS, images)
-pub async fn static_file(
-    State(state): State<Arc<AppState>>,
-    Path(path): Path<String>,
-) -> Response {
+pub async fn static_file(State(state): State<Arc<AppState>>, Path(path): Path<String>) -> Response {
     // Sanitize path to prevent directory traversal
-    let clean_path = path
-        .replace("..", "")
-        .trim_start_matches('/')
-        .to_string();
-    
+    let clean_path = path.replace("..", "").trim_start_matches('/').to_string();
+
     let file_path = state.static_dir.join(&clean_path);
-    
+
     // Check if file exists and is within static_dir
     if !file_path.starts_with(&state.static_dir) {
         return (StatusCode::FORBIDDEN, "Access denied").into_response();
     }
-    
+
     match fs::read(&file_path).await {
         Ok(content) => {
             // Determine content type
@@ -135,7 +132,7 @@ pub async fn static_file(
                 Some("eot") => "application/vnd.ms-fontobject",
                 _ => "application/octet-stream",
             };
-            
+
             Response::builder()
                 .status(StatusCode::OK)
                 .header(header::CONTENT_TYPE, content_type)
@@ -157,14 +154,14 @@ pub async fn content_file(
         .replace("..", "")
         .trim_start_matches('/')
         .to_string();
-    
+
     let file_path = state.content_dir.join(&clean_filename);
-    
+
     // Check bounds
     if !file_path.starts_with(&state.content_dir) {
         return (StatusCode::FORBIDDEN, "Access denied").into_response();
     }
-    
+
     match fs::read(&file_path).await {
         Ok(content) => {
             // Try to determine content type from extension
@@ -190,7 +187,7 @@ pub async fn content_file(
                 Some("csv") => "text/csv",
                 _ => "application/octet-stream",
             };
-            
+
             Response::builder()
                 .status(StatusCode::OK)
                 .header(header::CONTENT_TYPE, content_type)
@@ -217,7 +214,7 @@ pub async fn publish_site(
             );
         }
     };
-    
+
     // Validate session
     match state.db.validate_session(&token) {
         Ok(Some(_)) => {}
@@ -228,12 +225,12 @@ pub async fn publish_site(
             );
         }
     }
-    
+
     // Publish to GrabNet
     match state.grabnet.publish_site(&state.static_dir).await {
         Ok(result) => {
             let site_url = state.grabnet.get_site_url(&result.site_id);
-            
+
             (
                 StatusCode::OK,
                 Json(json!({
@@ -254,7 +251,7 @@ pub async fn publish_site(
 /// Get site status
 pub async fn site_status(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let grabnet_available = state.grabnet.is_available();
-    
+
     (
         StatusCode::OK,
         Json(json!({

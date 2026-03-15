@@ -264,7 +264,7 @@ impl Config {
     /// Load config from data directory or create default
     pub fn load_or_default(data_dir: &std::path::Path) -> anyhow::Result<Self> {
         let config_path = data_dir.join("config.json");
-        
+
         if config_path.exists() {
             let contents = std::fs::read_to_string(&config_path)?;
             Ok(serde_json::from_str(&contents)?)
@@ -275,7 +275,7 @@ impl Config {
             Ok(config)
         }
     }
-    
+
     /// Save config to data directory
     pub fn save(&self, data_dir: &std::path::Path) -> anyhow::Result<()> {
         let config_path = data_dir.join("config.json");

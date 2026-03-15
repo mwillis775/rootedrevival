@@ -1,28 +1,27 @@
 //! HTTP Gateway server using axum
 
-use std::sync::Arc;
-use std::net::SocketAddr;
-use std::time::Instant;
 use anyhow::Result;
 use axum::{
-    Router,
-    routing::get,
-    extract::{Path, State, Query},
-    response::{IntoResponse, Response, Html},
-    http::{StatusCode, header, HeaderMap, HeaderValue},
     body::Body,
-    Json,
+    extract::{Path, Query, State},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
+    response::{Html, IntoResponse, Response},
+    routing::get,
+    Json, Router,
 };
-use tower_http::cors::{CorsLayer, Any};
-use serde::{Deserialize, Serialize};
-use tokio::sync::oneshot;
 use parking_lot::RwLock;
+use serde::{Deserialize, Serialize};
+use std::net::SocketAddr;
+use std::sync::Arc;
+use std::time::Instant;
+use tokio::sync::oneshot;
+use tower_http::cors::{Any, CorsLayer};
 
-use crate::types::{Config, SiteId, FileEntry, Compression};
-use crate::storage::{ChunkStore, BundleStore};
 use crate::content::UserContentManager;
 use crate::crypto::SiteIdExt;
 use crate::network::GrabNetwork;
+use crate::storage::{BundleStore, ChunkStore};
+use crate::types::{Compression, Config, FileEntry, SiteId};
 
 /// HTTP Gateway for serving GrabNet sites
 pub struct Gateway {
@@ -95,8 +94,8 @@ impl Gateway {
 
     /// Start the gateway
     pub async fn start(&self) -> Result<()> {
-        let addr: SocketAddr = format!("{}:{}", self.config.gateway.host, self.config.gateway.port)
-            .parse()?;
+        let addr: SocketAddr =
+            format!("{}:{}", self.config.gateway.host, self.config.gateway.port).parse()?;
 
         let state = AppState {
             chunk_store: self.chunk_store.clone(),
@@ -121,7 +120,10 @@ impl Gateway {
             .route("/api/sites/:site_id", get(get_site_handler))
             .route("/api/sites/:site_id/manifest", get(get_manifest_handler))
             // Upload routes
-            .route("/api/sites/:site_id/uploads", get(list_uploads_handler).post(upload_handler))
+            .route(
+                "/api/sites/:site_id/uploads",
+                get(list_uploads_handler).post(upload_handler),
+            )
             .route("/uploads/:upload_id", get(serve_upload_handler))
             // Site content
             .route("/site/:site_id", get(redirect_to_index))
@@ -138,10 +140,12 @@ impl Gateway {
 
         let app = app
             // CORS
-            .layer(CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods(Any)
-                .allow_headers(Any))
+            .layer(
+                CorsLayer::new()
+                    .allow_origin(Any)
+                    .allow_methods(Any)
+                    .allow_headers(Any),
+            )
             .with_state(state);
 
         tracing::info!("Gateway listening on http://{}", addr);
@@ -193,7 +197,9 @@ struct SiteInfo {
 }
 
 async fn list_sites_handler(State(state): State<AppState>) -> impl IntoResponse {
-    let published = state.bundle_store.get_all_published_sites()
+    let published = state
+        .bundle_store
+        .get_all_published_sites()
         .unwrap_or_default()
         .into_iter()
         .map(|s| SiteInfo {
@@ -203,7 +209,9 @@ async fn list_sites_handler(State(state): State<AppState>) -> impl IntoResponse 
         })
         .collect();
 
-    let hosted = state.bundle_store.get_all_hosted_sites()
+    let hosted = state
+        .bundle_store
+        .get_all_hosted_sites()
         .unwrap_or_default()
         .into_iter()
         .map(|s| SiteInfo {
@@ -232,7 +240,8 @@ async fn get_site_handler(
             "revision": bundle.revision,
             "files": bundle.manifest.files.len(),
             "entry": bundle.manifest.entry,
-        })).into_response(),
+        }))
+        .into_response(),
         Ok(None) => (StatusCode::NOT_FOUND, "Site not found").into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
@@ -279,10 +288,7 @@ async fn serve_site_handler(
 // Default Site Handlers (serve at root when configured)
 // ============================================================================
 
-async fn serve_default_index(
-    headers: HeaderMap,
-    State(state): State<AppState>,
-) -> Response {
+async fn serve_default_index(headers: HeaderMap, State(state): State<AppState>) -> Response {
     let site_id = match &state.default_site {
         Some(id) => id.to_base58(),
         None => return (StatusCode::NOT_FOUND, "No default site configured").into_response(),
@@ -296,11 +302,14 @@ async fn serve_default_handler(
     State(state): State<AppState>,
 ) -> Response {
     // Skip API and site routes
-    if path.starts_with("api/") || path.starts_with("site/") || 
-       path.starts_with("uploads/") || path == "health" {
+    if path.starts_with("api/")
+        || path.starts_with("site/")
+        || path.starts_with("uploads/")
+        || path == "health"
+    {
         return (StatusCode::NOT_FOUND, "Not found").into_response();
     }
-    
+
     let site_id = match &state.default_site {
         Some(id) => id.to_base58(),
         None => return (StatusCode::NOT_FOUND, "No default site configured").into_response(),
@@ -315,7 +324,7 @@ async fn serve_site_path(
     state: AppState,
 ) -> Response {
     tracing::debug!("serve_site_path: site_id={}, path={}", site_id, path);
-    
+
     let site_id = match SiteId::from_base58(&site_id) {
         Some(id) => id,
         None => return (StatusCode::BAD_REQUEST, "Invalid site ID").into_response(),
@@ -355,7 +364,11 @@ async fn serve_site_path(
     serve_file(file, &state.chunk_store, &headers, StatusCode::OK).await
 }
 
-fn find_file<'a>(files: &'a [FileEntry], path: &str, routes: Option<&crate::types::RouteConfig>) -> Option<&'a FileEntry> {
+fn find_file<'a>(
+    files: &'a [FileEntry],
+    path: &str,
+    routes: Option<&crate::types::RouteConfig>,
+) -> Option<&'a FileEntry> {
     // Exact match
     if let Some(f) = files.iter().find(|f| f.path == path) {
         return Some(f);
@@ -417,9 +430,7 @@ async fn serve_file(
         .unwrap_or("");
 
     let (body, content_encoding) = match file.compression {
-        Some(Compression::Gzip) if accept_encoding.contains("gzip") => {
-            (content, Some("gzip"))
-        }
+        Some(Compression::Gzip) if accept_encoding.contains("gzip") => (content, Some("gzip")),
         Some(Compression::Gzip) => {
             // Decompress for client
             use flate2::read::GzDecoder;
@@ -499,12 +510,11 @@ async fn upload_handler(
         .to_string();
 
     match manager.upload(&site_id, &filename, &mime_type, &body, None) {
-        Ok(Some(upload)) => {
-            Json(serde_json::json!({
-                "upload": upload,
-                "url": format!("/uploads/{}", upload.id),
-            })).into_response()
-        }
+        Ok(Some(upload)) => Json(serde_json::json!({
+            "upload": upload,
+            "url": format!("/uploads/{}", upload.id),
+        }))
+        .into_response(),
         Ok(None) => (StatusCode::BAD_REQUEST, "Upload failed").into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
     }
@@ -579,7 +589,7 @@ struct NetworkStatsResponse {
 
 async fn network_status_handler(State(state): State<AppState>) -> impl IntoResponse {
     let uptime = state.start_time.elapsed().as_secs();
-    
+
     let (running, peer_id, peers, addresses) = if let Some(net_lock) = &state.network {
         let guard = net_lock.read();
         if let Some(network) = guard.as_ref() {
@@ -596,8 +606,16 @@ async fn network_status_handler(State(state): State<AppState>) -> impl IntoRespo
         (false, None, 0, vec![])
     };
 
-    let published = state.bundle_store.get_all_published_sites().unwrap_or_default().len();
-    let hosted = state.bundle_store.get_all_hosted_sites().unwrap_or_default().len();
+    let published = state
+        .bundle_store
+        .get_all_published_sites()
+        .unwrap_or_default()
+        .len();
+    let hosted = state
+        .bundle_store
+        .get_all_hosted_sites()
+        .unwrap_or_default()
+        .len();
 
     Json(NetworkStatusResponse {
         running,
@@ -614,7 +632,8 @@ async fn peers_handler(State(state): State<AppState>) -> impl IntoResponse {
     let peers: Vec<PeerInfo> = if let Some(net_lock) = &state.network {
         let guard = net_lock.read();
         if let Some(network) = guard.as_ref() {
-            network.connected_peer_ids()
+            network
+                .connected_peer_ids()
                 .into_iter()
                 .map(|pid| PeerInfo {
                     peer_id: pid.to_string(),
@@ -637,7 +656,7 @@ async fn peers_handler(State(state): State<AppState>) -> impl IntoResponse {
 
 async fn network_stats_handler(State(state): State<AppState>) -> impl IntoResponse {
     let uptime = state.start_time.elapsed().as_secs();
-    
+
     let peers = if let Some(net_lock) = &state.network {
         let guard = net_lock.read();
         guard.as_ref().map(|n| n.connected_peers()).unwrap_or(0)
@@ -648,8 +667,16 @@ async fn network_stats_handler(State(state): State<AppState>) -> impl IntoRespon
     Json(NetworkStatsResponse {
         total_chunks: state.chunk_store.count(),
         total_storage_bytes: state.chunk_store.total_size(),
-        published_sites: state.bundle_store.get_all_published_sites().unwrap_or_default().len(),
-        hosted_sites: state.bundle_store.get_all_hosted_sites().unwrap_or_default().len(),
+        published_sites: state
+            .bundle_store
+            .get_all_published_sites()
+            .unwrap_or_default()
+            .len(),
+        hosted_sites: state
+            .bundle_store
+            .get_all_hosted_sites()
+            .unwrap_or_default()
+            .len(),
         connected_peers: peers,
         uptime_seconds: uptime,
     })
@@ -657,7 +684,7 @@ async fn network_stats_handler(State(state): State<AppState>) -> impl IntoRespon
 
 async fn peer_viewer_handler(State(state): State<AppState>) -> impl IntoResponse {
     let uptime = state.start_time.elapsed().as_secs();
-    
+
     let (running, peer_id, peers, addresses) = if let Some(net_lock) = &state.network {
         let guard = net_lock.read();
         if let Some(network) = guard.as_ref() {
@@ -674,12 +701,19 @@ async fn peer_viewer_handler(State(state): State<AppState>) -> impl IntoResponse
         (false, String::new(), vec![], vec![])
     };
 
-    let published = state.bundle_store.get_all_published_sites().unwrap_or_default();
-    let hosted = state.bundle_store.get_all_hosted_sites().unwrap_or_default();
+    let published = state
+        .bundle_store
+        .get_all_published_sites()
+        .unwrap_or_default();
+    let hosted = state
+        .bundle_store
+        .get_all_hosted_sites()
+        .unwrap_or_default();
     let chunks = state.chunk_store.count();
     let storage = state.chunk_store.total_size();
 
-    Html(format!(r#"<!DOCTYPE html>
+    Html(format!(
+        r#"<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -912,13 +946,26 @@ async fn peer_viewer_handler(State(state): State<AppState>) -> impl IntoResponse
         if addresses.is_empty() {
             "<div class='empty-state'>No listen addresses</div>".to_string()
         } else {
-            addresses.iter().map(|a| format!("<div class='address-item'>{}</div>", a)).collect::<Vec<_>>().join("")
+            addresses
+                .iter()
+                .map(|a| format!("<div class='address-item'>{}</div>", a))
+                .collect::<Vec<_>>()
+                .join("")
         },
         peers.len(),
         if peers.is_empty() {
             "<div class='empty-state'>No peers connected</div>".to_string()
         } else {
-            peers.iter().map(|p| format!("<div class='peer-item'><span class='peer-dot'></span>{}</div>", p)).collect::<Vec<_>>().join("")
+            peers
+                .iter()
+                .map(|p| {
+                    format!(
+                        "<div class='peer-item'><span class='peer-dot'></span>{}</div>",
+                        p
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("")
         },
         if published.is_empty() {
             "<div class='empty-state'>No published sites</div>".to_string()
@@ -943,7 +990,7 @@ fn format_bytes(bytes: u64) -> String {
     const KB: u64 = 1024;
     const MB: u64 = KB * 1024;
     const GB: u64 = MB * 1024;
-    
+
     if bytes >= GB {
         format!("{:.1} GB", bytes as f64 / GB as f64)
     } else if bytes >= MB {

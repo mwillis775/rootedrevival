@@ -1,6 +1,5 @@
 //! Review handlers - peer review system
 
-use std::sync::Arc;
 use axum::{
     extract::{Path, Query, State},
     http::{header, HeaderMap, StatusCode},
@@ -9,6 +8,7 @@ use axum::{
 };
 use serde::Deserialize;
 use serde_json::json;
+use std::sync::Arc;
 
 use crate::models::{NewReview, ReviewRequest};
 use crate::AppState;
@@ -35,7 +35,7 @@ fn extract_token(headers: &HeaderMap) -> Option<String> {
             }
         }
     }
-    
+
     if let Some(cookie) = headers.get(header::COOKIE) {
         if let Ok(value) = cookie.to_str() {
             for part in value.split(';') {
@@ -46,7 +46,7 @@ fn extract_token(headers: &HeaderMap) -> Option<String> {
             }
         }
     }
-    
+
     None
 }
 
@@ -72,15 +72,15 @@ pub async fn get_reviews(
             );
         }
     };
-    
+
     let limit = query.limit.unwrap_or(20);
     let offset = query.offset.unwrap_or(0);
-    
+
     match state.db.get_reviews_for_file(file.id, limit, offset) {
         Ok(reviews) => {
             // Get stats
             let stats = state.db.get_review_stats(file.id).ok();
-            
+
             (
                 StatusCode::OK,
                 Json(json!({
@@ -114,7 +114,7 @@ pub async fn create_review(
             );
         }
     };
-    
+
     let (_, user) = match state.db.validate_session(&token) {
         Ok(Some(data)) => data,
         _ => {
@@ -124,7 +124,7 @@ pub async fn create_review(
             );
         }
     };
-    
+
     // Get the file
     let file = match state.db.get_file_by_uuid(&file_uuid) {
         Ok(Some(f)) => f,
@@ -141,7 +141,7 @@ pub async fn create_review(
             );
         }
     };
-    
+
     // Check if user already reviewed this file
     match state.db.has_user_reviewed(file.id, user.id) {
         Ok(true) => {
@@ -158,7 +158,7 @@ pub async fn create_review(
         }
         _ => {}
     }
-    
+
     // Cannot review own file
     if file.user_id == user.id {
         return (
@@ -166,7 +166,7 @@ pub async fn create_review(
             Json(json!({ "error": "You cannot review your own file" })),
         );
     }
-    
+
     // Validate rating
     if req.rating < 1 || req.rating > 5 {
         return (
@@ -174,7 +174,7 @@ pub async fn create_review(
             Json(json!({ "error": "Rating must be between 1 and 5" })),
         );
     }
-    
+
     // Create review
     let new_review = NewReview {
         file_id: file.id,
@@ -187,7 +187,7 @@ pub async fn create_review(
         significance_score: req.significance_score,
         criteria_scores: req.criteria_scores.clone(),
     };
-    
+
     match state.db.create_review(new_review) {
         Ok(review) => (
             StatusCode::CREATED,
@@ -220,7 +220,7 @@ pub async fn vote_review(
             );
         }
     };
-    
+
     let (_, user) = match state.db.validate_session(&token) {
         Ok(Some(data)) => data,
         _ => {
@@ -230,7 +230,7 @@ pub async fn vote_review(
             );
         }
     };
-    
+
     // Verify the file exists
     match state.db.get_file_by_uuid(&file_uuid) {
         Ok(None) => {
@@ -247,7 +247,7 @@ pub async fn vote_review(
         }
         _ => {}
     }
-    
+
     // Vote
     match state.db.vote_on_review(review_id, user.id, req.helpful) {
         Ok(_) => (StatusCode::OK, Json(json!({ "success": true }))),
@@ -274,7 +274,7 @@ pub async fn recent_reviews(
     Query(query): Query<ReviewQuery>,
 ) -> impl IntoResponse {
     let limit = query.limit.unwrap_or(20);
-    
+
     match state.db.get_recent_reviews(limit) {
         Ok(reviews) => (StatusCode::OK, Json(json!({ "reviews": reviews }))),
         Err(e) => (

@@ -3,13 +3,13 @@
 use rusqlite::params;
 
 use crate::db::Database;
-use crate::models::{Review, NewReview, ReviewStats};
+use crate::models::{NewReview, Review, ReviewStats};
 
 impl Database {
     /// Create a new review
     pub fn create_review(&self, new_review: NewReview) -> anyhow::Result<Review> {
         let conn = self.conn();
-        
+
         conn.execute(
             r#"
             INSERT INTO reviews (
@@ -28,23 +28,23 @@ impl Database {
                 new_review.significance_score,
             ],
         )?;
-        
+
         let review_id = conn.last_insert_rowid();
-        
+
         // Update reviewer stats
         conn.execute(
             "UPDATE users SET total_reviews = total_reviews + 1 WHERE id = ?1",
             params![new_review.reviewer_id],
         )?;
-        
+
         drop(conn);
         self.get_review_by_id(review_id)
     }
-    
+
     /// Get review by ID
     pub fn get_review_by_id(&self, id: i64) -> anyhow::Result<Review> {
         let conn = self.conn();
-        
+
         let review = conn.query_row(
             r#"
             SELECT r.*, u.username as reviewer_username, u.display_name as reviewer_name
@@ -55,14 +55,19 @@ impl Database {
             params![id],
             |row| Review::from_row(row),
         )?;
-        
+
         Ok(review)
     }
-    
+
     /// Get reviews for a file
-    pub fn get_reviews_for_file(&self, file_id: i64, limit: u32, offset: u32) -> anyhow::Result<Vec<Review>> {
+    pub fn get_reviews_for_file(
+        &self,
+        file_id: i64,
+        limit: u32,
+        offset: u32,
+    ) -> anyhow::Result<Vec<Review>> {
         let conn = self.conn();
-        
+
         let mut stmt = conn.prepare(
             r#"
             SELECT r.*, u.username as reviewer_username, u.display_name as reviewer_name
@@ -73,38 +78,43 @@ impl Database {
             LIMIT ?2 OFFSET ?3
             "#,
         )?;
-        
+
         let reviews: Vec<Review> = stmt
             .query_map(params![file_id, limit, offset], |row| Review::from_row(row))?
             .filter_map(|r| r.ok())
             .collect();
-        
+
         Ok(reviews)
     }
-    
+
     /// Check if user has already reviewed a file
     pub fn has_user_reviewed(&self, file_id: i64, user_id: i64) -> anyhow::Result<bool> {
         let conn = self.conn();
-        
+
         let count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM reviews WHERE file_id = ?1 AND reviewer_id = ?2",
             params![file_id, user_id],
             |row| row.get(0),
         )?;
-        
+
         Ok(count > 0)
     }
-    
+
     /// Vote on a review
-    pub fn vote_on_review(&self, review_id: i64, user_id: i64, helpful: bool) -> anyhow::Result<()> {
+    pub fn vote_on_review(
+        &self,
+        review_id: i64,
+        user_id: i64,
+        helpful: bool,
+    ) -> anyhow::Result<()> {
         let conn = self.conn();
-        
+
         // Insert vote
         conn.execute(
             "INSERT INTO review_votes (review_id, user_id, helpful) VALUES (?1, ?2, ?3)",
             params![review_id, user_id, helpful as i64],
         )?;
-        
+
         // Update review counts
         if helpful {
             conn.execute(
@@ -117,14 +127,14 @@ impl Database {
                 params![review_id],
             )?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Get review statistics for a file
     pub fn get_review_stats(&self, file_id: i64) -> anyhow::Result<ReviewStats> {
         let conn = self.conn();
-        
+
         let stats = conn.query_row(
             r#"
             SELECT 
@@ -149,14 +159,14 @@ impl Database {
                 })
             },
         )?;
-        
+
         Ok(stats)
     }
-    
+
     /// Get recent reviews across all files
     pub fn get_recent_reviews(&self, limit: u32) -> anyhow::Result<Vec<Review>> {
         let conn = self.conn();
-        
+
         let mut stmt = conn.prepare(
             r#"
             SELECT r.*, u.username as reviewer_username, u.display_name as reviewer_name
@@ -168,24 +178,24 @@ impl Database {
             LIMIT ?1
             "#,
         )?;
-        
+
         let reviews: Vec<Review> = stmt
             .query_map(params![limit], |row| Review::from_row(row))?
             .filter_map(|r| r.ok())
             .collect();
-        
+
         Ok(reviews)
     }
-    
+
     /// Delete a review
     pub fn delete_review(&self, id: i64, user_id: i64) -> anyhow::Result<bool> {
         let conn = self.conn();
-        
+
         let rows = conn.execute(
             "DELETE FROM reviews WHERE id = ?1 AND reviewer_id = ?2",
             params![id, user_id],
         )?;
-        
+
         Ok(rows > 0)
     }
 }

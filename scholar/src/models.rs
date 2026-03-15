@@ -18,19 +18,19 @@ pub enum WorkType {
     /// Empirical work: Based on observation, experiment, or data collection
     /// Review focuses on: methodology, reproducibility, data quality, statistical validity
     Empirical,
-    
+
     /// Theoretical work: Conceptual frameworks, proofs, formal arguments
     /// Review focuses on: logical consistency, novelty, explanatory power, elegance
     Theoretical,
-    
+
     /// Methodological work: New methods, tools, techniques, protocols
     /// Review focuses on: applicability, improvement over existing methods, documentation
     Methodological,
-    
+
     /// Artistic work: Creative expression, design, aesthetic exploration
     /// Review focuses on: craft, expression, cultural context, innovation
     Artistic,
-    
+
     /// Speculative work: Hypotheses, future scenarios, exploratory ideas
     /// Review focuses on: imagination, plausibility, inspiration, clarity of speculation
     Speculative,
@@ -47,68 +47,160 @@ impl WorkType {
             WorkType::Speculative,
         ]
     }
-    
+
     /// Get the review criteria applicable to this work type
     pub fn review_criteria(&self) -> ReviewCriteria {
         match self {
             WorkType::Empirical => ReviewCriteria {
                 primary: vec![
-                    CriterionDef::new("methodology", "Methodology", "Rigor and appropriateness of research methods"),
-                    CriterionDef::new("reproducibility", "Reproducibility", "Can the work be independently replicated?"),
-                    CriterionDef::new("data_quality", "Data Quality", "Accuracy, completeness, and reliability of data"),
+                    CriterionDef::new(
+                        "methodology",
+                        "Methodology",
+                        "Rigor and appropriateness of research methods",
+                    ),
+                    CriterionDef::new(
+                        "reproducibility",
+                        "Reproducibility",
+                        "Can the work be independently replicated?",
+                    ),
+                    CriterionDef::new(
+                        "data_quality",
+                        "Data Quality",
+                        "Accuracy, completeness, and reliability of data",
+                    ),
                 ],
                 secondary: vec![
-                    CriterionDef::new("statistical_validity", "Statistical Validity", "Appropriate use of statistical methods"),
-                    CriterionDef::new("clarity", "Clarity", "Clear presentation of methods and results"),
+                    CriterionDef::new(
+                        "statistical_validity",
+                        "Statistical Validity",
+                        "Appropriate use of statistical methods",
+                    ),
+                    CriterionDef::new(
+                        "clarity",
+                        "Clarity",
+                        "Clear presentation of methods and results",
+                    ),
                 ],
             },
             WorkType::Theoretical => ReviewCriteria {
                 primary: vec![
-                    CriterionDef::new("logical_consistency", "Logical Consistency", "Internal coherence of arguments"),
-                    CriterionDef::new("novelty", "Novelty", "Originality of theoretical contribution"),
-                    CriterionDef::new("explanatory_power", "Explanatory Power", "How well does it explain phenomena?"),
+                    CriterionDef::new(
+                        "logical_consistency",
+                        "Logical Consistency",
+                        "Internal coherence of arguments",
+                    ),
+                    CriterionDef::new(
+                        "novelty",
+                        "Novelty",
+                        "Originality of theoretical contribution",
+                    ),
+                    CriterionDef::new(
+                        "explanatory_power",
+                        "Explanatory Power",
+                        "How well does it explain phenomena?",
+                    ),
                 ],
                 secondary: vec![
-                    CriterionDef::new("elegance", "Elegance", "Simplicity and beauty of formulation"),
-                    CriterionDef::new("generalizability", "Generalizability", "Breadth of applicability"),
+                    CriterionDef::new(
+                        "elegance",
+                        "Elegance",
+                        "Simplicity and beauty of formulation",
+                    ),
+                    CriterionDef::new(
+                        "generalizability",
+                        "Generalizability",
+                        "Breadth of applicability",
+                    ),
                 ],
             },
             WorkType::Methodological => ReviewCriteria {
                 primary: vec![
-                    CriterionDef::new("applicability", "Applicability", "Practical usefulness in real contexts"),
-                    CriterionDef::new("improvement", "Improvement", "Advancement over existing methods"),
-                    CriterionDef::new("documentation", "Documentation", "Quality of instructions and examples"),
+                    CriterionDef::new(
+                        "applicability",
+                        "Applicability",
+                        "Practical usefulness in real contexts",
+                    ),
+                    CriterionDef::new(
+                        "improvement",
+                        "Improvement",
+                        "Advancement over existing methods",
+                    ),
+                    CriterionDef::new(
+                        "documentation",
+                        "Documentation",
+                        "Quality of instructions and examples",
+                    ),
                 ],
                 secondary: vec![
-                    CriterionDef::new("accessibility", "Accessibility", "Ease of adoption by others"),
-                    CriterionDef::new("robustness", "Robustness", "Performance across different conditions"),
+                    CriterionDef::new(
+                        "accessibility",
+                        "Accessibility",
+                        "Ease of adoption by others",
+                    ),
+                    CriterionDef::new(
+                        "robustness",
+                        "Robustness",
+                        "Performance across different conditions",
+                    ),
                 ],
             },
             WorkType::Artistic => ReviewCriteria {
                 primary: vec![
                     CriterionDef::new("craft", "Craft", "Technical skill and execution"),
-                    CriterionDef::new("expression", "Expression", "Effectiveness of artistic communication"),
-                    CriterionDef::new("innovation", "Innovation", "Creative novelty and originality"),
+                    CriterionDef::new(
+                        "expression",
+                        "Expression",
+                        "Effectiveness of artistic communication",
+                    ),
+                    CriterionDef::new(
+                        "innovation",
+                        "Innovation",
+                        "Creative novelty and originality",
+                    ),
                 ],
                 secondary: vec![
-                    CriterionDef::new("cultural_context", "Cultural Context", "Engagement with cultural discourse"),
-                    CriterionDef::new("emotional_impact", "Emotional Impact", "Affective resonance with audience"),
+                    CriterionDef::new(
+                        "cultural_context",
+                        "Cultural Context",
+                        "Engagement with cultural discourse",
+                    ),
+                    CriterionDef::new(
+                        "emotional_impact",
+                        "Emotional Impact",
+                        "Affective resonance with audience",
+                    ),
                 ],
             },
             WorkType::Speculative => ReviewCriteria {
                 primary: vec![
-                    CriterionDef::new("imagination", "Imagination", "Boldness and creativity of ideas"),
-                    CriterionDef::new("plausibility", "Plausibility", "Internal consistency and feasibility"),
-                    CriterionDef::new("inspiration", "Inspiration", "Potential to spark further inquiry"),
+                    CriterionDef::new(
+                        "imagination",
+                        "Imagination",
+                        "Boldness and creativity of ideas",
+                    ),
+                    CriterionDef::new(
+                        "plausibility",
+                        "Plausibility",
+                        "Internal consistency and feasibility",
+                    ),
+                    CriterionDef::new(
+                        "inspiration",
+                        "Inspiration",
+                        "Potential to spark further inquiry",
+                    ),
                 ],
                 secondary: vec![
-                    CriterionDef::new("clarity_of_speculation", "Clarity of Speculation", "Clear distinction between known and speculated"),
+                    CriterionDef::new(
+                        "clarity_of_speculation",
+                        "Clarity of Speculation",
+                        "Clear distinction between known and speculated",
+                    ),
                     CriterionDef::new("grounding", "Grounding", "Connection to existing knowledge"),
                 ],
             },
         }
     }
-    
+
     /// Human-readable description
     pub fn description(&self) -> &'static str {
         match self {
@@ -119,7 +211,7 @@ impl WorkType {
             WorkType::Speculative => "Hypotheses, future scenarios, or exploratory ideas",
         }
     }
-    
+
     /// Parse from string
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
@@ -131,7 +223,7 @@ impl WorkType {
             _ => None,
         }
     }
-    
+
     /// Convert to database string
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -232,7 +324,7 @@ impl User {
     pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
         let is_admin = row.get::<_, i64>("is_admin").unwrap_or(0) == 1;
         let is_moderator = row.get::<_, i64>("is_moderator").unwrap_or(0) == 1;
-        
+
         let role = if is_admin {
             "admin".to_string()
         } else if is_moderator {
@@ -240,7 +332,7 @@ impl User {
         } else {
             "user".to_string()
         };
-        
+
         Ok(Self {
             id: row.get("id")?,
             username: row.get("username")?,
@@ -262,7 +354,7 @@ impl User {
             role,
         })
     }
-    
+
     /// Get a safe public view of the user (no email)
     pub fn public_view(&self) -> PublicUser {
         PublicUser {
@@ -324,27 +416,27 @@ pub struct File {
     pub user_id: i64,
     pub username: String,
     pub uploader_name: Option<String>,
-    
+
     pub filename: String,
     pub original_filename: String,
     pub content_type: String,
     pub size: i64,
     pub hash: String,
-    
+
     pub grabnet_cid: Option<String>,
-    
+
     pub title: Option<String>,
     pub description: Option<String>,
     pub is_public: bool,
-    
+
     /// The type of scholarly work - determines review criteria
     pub work_type: WorkType,
-    
+
     pub view_count: i64,
     pub download_count: i64,
-    
+
     pub tags: Vec<String>,
-    
+
     pub created_at: String,
     pub updated_at: String,
 }
@@ -352,40 +444,42 @@ pub struct File {
 impl File {
     pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
         // Parse work_type from database string, default to Empirical for legacy data
-        let work_type_str: String = row.get("work_type").unwrap_or_else(|_| "empirical".to_string());
+        let work_type_str: String = row
+            .get("work_type")
+            .unwrap_or_else(|_| "empirical".to_string());
         let work_type = WorkType::from_str(&work_type_str).unwrap_or(WorkType::Empirical);
-        
+
         Ok(Self {
             id: row.get("id")?,
             uuid: row.get("uuid")?,
             user_id: row.get("user_id")?,
             username: row.get("username").unwrap_or_else(|_| String::new()),
             uploader_name: row.get("uploader_name").ok(),
-            
+
             filename: row.get("filename")?,
             original_filename: row.get("original_filename")?,
             content_type: row.get("content_type")?,
             size: row.get("size")?,
             hash: row.get("hash")?,
-            
+
             grabnet_cid: row.get("grabnet_cid").ok(),
-            
+
             title: row.get("title").ok(),
             description: row.get("description").ok(),
             is_public: row.get::<_, i64>("is_public").unwrap_or(1) == 1,
-            
+
             work_type,
-            
+
             view_count: row.get("view_count").unwrap_or(0),
             download_count: row.get("download_count").unwrap_or(0),
-            
+
             tags: Vec::new(), // Filled in separately
-            
+
             created_at: row.get("created_at")?,
             updated_at: row.get("updated_at")?,
         })
     }
-    
+
     /// Get the review criteria for this file's work type
     pub fn review_criteria(&self) -> ReviewCriteria {
         self.work_type.review_criteria()
@@ -419,22 +513,22 @@ pub struct Review {
     pub reviewer_id: i64,
     pub reviewer_username: String,
     pub reviewer_name: Option<String>,
-    
+
     pub rating: i32,
     pub content: Option<String>,
-    
+
     /// Dynamic criteria scores (keys match work type criteria)
     pub criteria_scores: std::collections::HashMap<String, i32>,
-    
+
     // Legacy fields for backward compatibility
     pub methodology_score: Option<i32>,
     pub clarity_score: Option<i32>,
     pub reproducibility_score: Option<i32>,
     pub significance_score: Option<i32>,
-    
+
     pub helpful_count: i64,
     pub unhelpful_count: i64,
-    
+
     pub created_at: String,
     pub updated_at: String,
 }
@@ -442,30 +536,34 @@ pub struct Review {
 impl Review {
     pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
         // Parse criteria_scores from JSON string
-        let criteria_json: String = row.get("criteria_scores").unwrap_or_else(|_| "{}".to_string());
-        let criteria_scores: std::collections::HashMap<String, i32> = 
+        let criteria_json: String = row
+            .get("criteria_scores")
+            .unwrap_or_else(|_| "{}".to_string());
+        let criteria_scores: std::collections::HashMap<String, i32> =
             serde_json::from_str(&criteria_json).unwrap_or_default();
-        
+
         Ok(Self {
             id: row.get("id")?,
             file_id: row.get("file_id")?,
             reviewer_id: row.get("reviewer_id")?,
-            reviewer_username: row.get("reviewer_username").unwrap_or_else(|_| String::new()),
+            reviewer_username: row
+                .get("reviewer_username")
+                .unwrap_or_else(|_| String::new()),
             reviewer_name: row.get("reviewer_name").ok(),
-            
+
             rating: row.get("rating")?,
             content: row.get("content").ok(),
-            
+
             criteria_scores,
-            
+
             methodology_score: row.get("methodology_score").ok(),
             clarity_score: row.get("clarity_score").ok(),
             reproducibility_score: row.get("reproducibility_score").ok(),
             significance_score: row.get("significance_score").ok(),
-            
+
             helpful_count: row.get("helpful_count").unwrap_or(0),
             unhelpful_count: row.get("unhelpful_count").unwrap_or(0),
-            
+
             created_at: row.get("created_at")?,
             updated_at: row.get("updated_at")?,
         })
@@ -628,7 +726,7 @@ impl ResultType {
             ResultType::Exploratory => "exploratory",
         }
     }
-    
+
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "positive" => Some(ResultType::Positive),
@@ -640,14 +738,22 @@ impl ResultType {
             _ => None,
         }
     }
-    
+
     pub fn description(&self) -> &'static str {
         match self {
             ResultType::Positive => "Confirms hypothesis or achieves stated goal",
-            ResultType::Null => "No significant result found - valuable for knowing what to explore next",
-            ResultType::Negative => "Disproves hypothesis or reveals unexpected failure - teaches what doesn't work",
-            ResultType::Inconclusive => "Insufficient evidence either way - honest about limitations",
-            ResultType::Unresolved => "Intentionally leaves questions open (common in artistic/speculative work)",
+            ResultType::Null => {
+                "No significant result found - valuable for knowing what to explore next"
+            }
+            ResultType::Negative => {
+                "Disproves hypothesis or reveals unexpected failure - teaches what doesn't work"
+            }
+            ResultType::Inconclusive => {
+                "Insufficient evidence either way - honest about limitations"
+            }
+            ResultType::Unresolved => {
+                "Intentionally leaves questions open (common in artistic/speculative work)"
+            }
             ResultType::Exploratory => "Process-focused work not seeking specific result",
         }
     }
@@ -693,7 +799,7 @@ impl VersionStatus {
             VersionStatus::Abandoned => "abandoned",
         }
     }
-    
+
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "draft" => Some(VersionStatus::Draft),

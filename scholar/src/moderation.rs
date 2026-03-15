@@ -155,12 +155,12 @@ pub fn create_report(
         ReportTarget::Review(id) => ("review", id.to_string()),
         ReportTarget::Comment(id) => ("comment", id.to_string()),
     };
-    
+
     conn.execute(
         "INSERT INTO reports (reporter_id, target_type, target_id, reason, description) VALUES (?1, ?2, ?3, ?4, ?5)",
         params![reporter_id, target_type, target_id, reason.as_str(), description],
     )?;
-    
+
     Ok(conn.last_insert_rowid())
 }
 
@@ -170,7 +170,7 @@ pub fn get_pending_reports(conn: &Connection, limit: i64) -> anyhow::Result<Vec<
         "SELECT id, reporter_id, target_type, target_id, reason, description, status, reviewed_by, notes, created_at 
          FROM reports WHERE status = 'pending' ORDER BY created_at DESC LIMIT ?1"
     )?;
-    
+
     let reports = stmt.query_map(params![limit], |row| {
         Ok(Report {
             id: row.get(0)?,
@@ -185,7 +185,7 @@ pub fn get_pending_reports(conn: &Connection, limit: i64) -> anyhow::Result<Vec<
             created_at: row.get(9)?,
         })
     })?;
-    
+
     reports.collect::<Result<Vec<_>, _>>().map_err(Into::into)
 }
 
@@ -201,12 +201,19 @@ pub fn update_report_status(
         "UPDATE reports SET status = ?1, reviewed_by = ?2, notes = ?3, reviewed_at = datetime('now') WHERE id = ?4",
         params![status.as_str(), reviewed_by, notes, report_id],
     )?;
-    
+
     // Log the action
     if let Some(mod_id) = reviewed_by {
-        log_moderation_action(conn, mod_id, &format!("report_{}", status.as_str()), "report", &report_id.to_string(), notes)?;
+        log_moderation_action(
+            conn,
+            mod_id,
+            &format!("report_{}", status.as_str()),
+            "report",
+            &report_id.to_string(),
+            notes,
+        )?;
     }
-    
+
     Ok(())
 }
 
@@ -223,9 +230,16 @@ pub fn ban_user(
         "INSERT INTO user_bans (user_id, ban_type, reason, banned_by, expires_at) VALUES (?1, ?2, ?3, ?4, ?5)",
         params![user_id, ban_type.as_str(), reason, banned_by, expires_at],
     )?;
-    
-    log_moderation_action(conn, banned_by, "ban_user", "user", &user_id.to_string(), Some(reason))?;
-    
+
+    log_moderation_action(
+        conn,
+        banned_by,
+        "ban_user",
+        "user",
+        &user_id.to_string(),
+        Some(reason),
+    )?;
+
     Ok(conn.last_insert_rowid())
 }
 
@@ -236,16 +250,13 @@ pub fn is_user_banned(conn: &Connection, user_id: i64) -> anyhow::Result<bool> {
         params![user_id],
         |row| row.get(0),
     )?;
-    
+
     Ok(count > 0)
 }
 
 /// Unban a user
 pub fn unban_user(conn: &Connection, user_id: i64) -> anyhow::Result<()> {
-    conn.execute(
-        "DELETE FROM user_bans WHERE user_id = ?1",
-        params![user_id],
-    )?;
+    conn.execute("DELETE FROM user_bans WHERE user_id = ?1", params![user_id])?;
     Ok(())
 }
 
@@ -255,7 +266,7 @@ pub fn get_active_bans(conn: &Connection) -> anyhow::Result<Vec<UserBan>> {
         "SELECT id, user_id, ban_type, reason, banned_by, expires_at, created_at 
          FROM user_bans WHERE expires_at IS NULL OR expires_at > datetime('now') ORDER BY created_at DESC"
     )?;
-    
+
     let bans = stmt.query_map([], |row| {
         Ok(UserBan {
             id: row.get(0)?,
@@ -267,7 +278,7 @@ pub fn get_active_bans(conn: &Connection) -> anyhow::Result<Vec<UserBan>> {
             created_at: row.get(6)?,
         })
     })?;
-    
+
     bans.collect::<Result<Vec<_>, _>>().map_err(Into::into)
 }
 
@@ -283,9 +294,9 @@ pub fn flag_content(
         "INSERT OR REPLACE INTO content_flags (file_uuid, flag_type, flagged_by, note) VALUES (?1, ?2, ?3, ?4)",
         params![file_uuid, flag_type, flagged_by, note],
     )?;
-    
+
     log_moderation_action(conn, flagged_by, "flag_content", "file", file_uuid, note)?;
-    
+
     Ok(conn.last_insert_rowid())
 }
 
@@ -303,7 +314,7 @@ pub fn get_flagged_content(conn: &Connection) -> anyhow::Result<Vec<ContentFlag>
     let mut stmt = conn.prepare(
         "SELECT id, file_uuid, flag_type, flagged_by, note, created_at FROM content_flags ORDER BY created_at DESC"
     )?;
-    
+
     let flags = stmt.query_map([], |row| {
         Ok(ContentFlag {
             id: row.get(0)?,
@@ -314,7 +325,7 @@ pub fn get_flagged_content(conn: &Connection) -> anyhow::Result<Vec<ContentFlag>
             created_at: row.get(5)?,
         })
     })?;
-    
+
     flags.collect::<Result<Vec<_>, _>>().map_err(Into::into)
 }
 
@@ -331,7 +342,7 @@ pub fn log_moderation_action(
         "INSERT INTO moderation_log (moderator_id, action, target_type, target_id, details) VALUES (?1, ?2, ?3, ?4, ?5)",
         params![moderator_id, action, target_type, target_id, details],
     )?;
-    
+
     Ok(conn.last_insert_rowid())
 }
 
@@ -339,9 +350,9 @@ pub fn log_moderation_action(
 pub fn get_moderation_log(conn: &Connection, limit: i64) -> anyhow::Result<Vec<ModerationAction>> {
     let mut stmt = conn.prepare(
         "SELECT id, moderator_id, action, target_type, target_id, details, created_at 
-         FROM moderation_log ORDER BY created_at DESC LIMIT ?1"
+         FROM moderation_log ORDER BY created_at DESC LIMIT ?1",
     )?;
-    
+
     let actions = stmt.query_map(params![limit], |row| {
         Ok(ModerationAction {
             id: row.get(0)?,
@@ -353,6 +364,6 @@ pub fn get_moderation_log(conn: &Connection, limit: i64) -> anyhow::Result<Vec<M
             created_at: row.get(6)?,
         })
     })?;
-    
+
     actions.collect::<Result<Vec<_>, _>>().map_err(Into::into)
 }

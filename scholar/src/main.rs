@@ -1,8 +1,8 @@
 //! Open Scholar - Decentralized Knowledge Sharing
-//! 
+//!
 //! A Rust-based application for uploading, pinning, and serving
 //! any type of file on the GrabNet P2P network.
-//! 
+//!
 //! This is the primary interface for users to:
 //! - Create accounts and manage their GrabNet identity
 //! - Upload and organize files (papers, datasets, media, etc.)
@@ -12,11 +12,11 @@
 mod app;
 mod db;
 mod email;
+mod grabnet_client;
 mod handlers;
+mod middleware;
 mod models;
 mod moderation;
-mod grabnet_client;
-mod middleware;
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -49,7 +49,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Parse command line args
     let args: Vec<String> = std::env::args().collect();
-    
+
     let port = args
         .iter()
         .position(|a| a == "--port" || a == "-p")
@@ -77,7 +77,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Start server
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    
+
     println!();
     println!("📚 Open Scholar");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -110,7 +110,10 @@ fn create_router(state: Arc<AppState>) -> Router {
         .merge(handlers::static_routes())
         // Security middleware (applied in order: bottom to top)
         .layer(axum_mw::from_fn(middleware::security_headers))
-        .layer(axum_mw::from_fn_with_state(rate_state, middleware::rate_limit))
+        .layer(axum_mw::from_fn_with_state(
+            rate_state,
+            middleware::rate_limit,
+        ))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state)

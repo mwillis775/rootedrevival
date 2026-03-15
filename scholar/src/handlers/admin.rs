@@ -1,6 +1,5 @@
 //! Admin handlers for moderation and system management
 
-use std::sync::Arc;
 use axum::{
     extract::{Path, State},
     http::{header, StatusCode},
@@ -9,9 +8,10 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::sync::Arc;
 
-use crate::AppState;
 use crate::models::User;
+use crate::AppState;
 
 /// Admin dashboard statistics
 #[derive(Debug, Serialize)]
@@ -60,7 +60,7 @@ pub async fn require_admin(
             StatusCode::FORBIDDEN,
             Json(json!({
                 "error": "Admin access required"
-            }))
+            })),
         ));
     }
     Ok(user)
@@ -75,16 +75,17 @@ pub async fn get_stats(
     if !user.is_admin {
         return Err((
             StatusCode::FORBIDDEN,
-            Json(json!({ "error": "Admin access required" }))
+            Json(json!({ "error": "Admin access required" })),
         ));
     }
-    
-    let stats = state.db.get_admin_stats()
-        .map_err(|e| (
+
+    let stats = state.db.get_admin_stats().map_err(|e| {
+        (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e.to_string() }))
-        ))?;
-    
+            Json(json!({ "error": e.to_string() })),
+        )
+    })?;
+
     Ok(Json(json!(stats)))
 }
 
@@ -104,20 +105,24 @@ pub async fn list_users(
     if !user.is_admin && !user.is_moderator {
         return Err((
             StatusCode::FORBIDDEN,
-            Json(json!({ "error": "Admin or moderator access required" }))
+            Json(json!({ "error": "Admin or moderator access required" })),
         ));
     }
-    
+
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
     let offset = (page - 1) * limit;
-    
-    let (users, total) = state.db.list_users_admin(offset, limit, query.search.as_deref())
-        .map_err(|e| (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e.to_string() }))
-        ))?;
-    
+
+    let (users, total) = state
+        .db
+        .list_users_admin(offset, limit, query.search.as_deref())
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            )
+        })?;
+
     Ok(Json(json!({
         "users": users,
         "total": total,
@@ -144,24 +149,28 @@ pub async fn update_user_role(
     if !admin.is_admin {
         return Err((
             StatusCode::FORBIDDEN,
-            Json(json!({ "error": "Admin access required" }))
+            Json(json!({ "error": "Admin access required" })),
         ));
     }
-    
+
     // Prevent self-demotion
     if user_id == admin.id && body.is_admin == Some(false) {
         return Err((
             StatusCode::BAD_REQUEST,
-            Json(json!({ "error": "Cannot remove your own admin status" }))
+            Json(json!({ "error": "Cannot remove your own admin status" })),
         ));
     }
-    
-    state.db.update_user_role(user_id, body.is_admin, body.is_moderator, body.is_verified)
-        .map_err(|e| (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e.to_string() }))
-        ))?;
-    
+
+    state
+        .db
+        .update_user_role(user_id, body.is_admin, body.is_moderator, body.is_verified)
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            )
+        })?;
+
     Ok(Json(json!({
         "success": true,
         "message": "User role updated"
@@ -177,24 +186,25 @@ pub async fn delete_user(
     if !admin.is_admin {
         return Err((
             StatusCode::FORBIDDEN,
-            Json(json!({ "error": "Admin access required" }))
+            Json(json!({ "error": "Admin access required" })),
         ));
     }
-    
+
     // Prevent self-deletion
     if user_id == admin.id {
         return Err((
             StatusCode::BAD_REQUEST,
-            Json(json!({ "error": "Cannot delete yourself" }))
+            Json(json!({ "error": "Cannot delete yourself" })),
         ));
     }
-    
-    state.db.delete_user(user_id)
-        .map_err(|e| (
+
+    state.db.delete_user(user_id).map_err(|e| {
+        (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e.to_string() }))
-        ))?;
-    
+            Json(json!({ "error": e.to_string() })),
+        )
+    })?;
+
     Ok(Json(json!({
         "success": true,
         "message": "User deleted"
@@ -210,20 +220,24 @@ pub async fn list_files(
     if !user.is_admin && !user.is_moderator {
         return Err((
             StatusCode::FORBIDDEN,
-            Json(json!({ "error": "Admin or moderator access required" }))
+            Json(json!({ "error": "Admin or moderator access required" })),
         ));
     }
-    
+
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
     let offset = (page - 1) * limit;
-    
-    let (files, total) = state.db.list_files_admin(offset, limit, query.search.as_deref())
-        .map_err(|e| (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e.to_string() }))
-        ))?;
-    
+
+    let (files, total) = state
+        .db
+        .list_files_admin(offset, limit, query.search.as_deref())
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            )
+        })?;
+
     Ok(Json(json!({
         "files": files,
         "total": total,
@@ -242,39 +256,46 @@ pub async fn admin_delete_file(
     if !user.is_admin && !user.is_moderator {
         return Err((
             StatusCode::FORBIDDEN,
-            Json(json!({ "error": "Admin or moderator access required" }))
+            Json(json!({ "error": "Admin or moderator access required" })),
         ));
     }
-    
+
     // Get file info first
-    let file = state.db.get_file_by_uuid(&file_uuid)
-        .map_err(|e| (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e.to_string() }))
-        ))?
-        .ok_or_else(|| (
-            StatusCode::NOT_FOUND,
-            Json(json!({ "error": "File not found" }))
-        ))?;
-    
+    let file = state
+        .db
+        .get_file_by_uuid(&file_uuid)
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            )
+        })?
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "error": "File not found" })),
+            )
+        })?;
+
     // Delete file from disk
     let file_path = state.content_dir.join(&file.filename);
     if file_path.exists() {
         let _ = std::fs::remove_file(&file_path);
     }
-    
+
     // Delete from GrabNet if it has a CID
     if let Some(cid) = &file.grabnet_cid {
         let _ = state.grabnet.delete_file(cid).await;
     }
-    
+
     // Delete from database
-    state.db.delete_file_by_uuid(&file_uuid)
-        .map_err(|e| (
+    state.db.delete_file_by_uuid(&file_uuid).map_err(|e| {
+        (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e.to_string() }))
-        ))?;
-    
+            Json(json!({ "error": e.to_string() })),
+        )
+    })?;
+
     Ok(Json(json!({
         "success": true,
         "message": "File deleted"
@@ -289,16 +310,16 @@ pub async fn system_status(
     if !user.is_admin {
         return Err((
             StatusCode::FORBIDDEN,
-            Json(json!({ "error": "Admin access required" }))
+            Json(json!({ "error": "Admin access required" })),
         ));
     }
-    
+
     let grabnet_available = state.grabnet.is_available();
-    
+
     // Get disk usage
     let content_size = dir_size(&state.content_dir).unwrap_or(0);
     let data_size = dir_size(&state.data_dir).unwrap_or(0);
-    
+
     Ok(Json(json!({
         "grabnet": {
             "available": grabnet_available,
@@ -340,7 +361,7 @@ fn format_bytes(bytes: u64) -> String {
     const KB: u64 = 1024;
     const MB: u64 = KB * 1024;
     const GB: u64 = MB * 1024;
-    
+
     if bytes >= GB {
         format!("{:.2} GB", bytes as f64 / GB as f64)
     } else if bytes >= MB {
