@@ -1,5 +1,5 @@
 # Build stage for Scholar
-FROM rust:1.75-bookworm AS scholar-builder
+FROM rust:1-bookworm AS scholar-builder
 
 WORKDIR /build
 
@@ -14,7 +14,7 @@ WORKDIR /build/scholar
 RUN cargo build --release
 
 # Build stage for GrabNet
-FROM rust:1.75-bookworm AS grabnet-builder
+FROM rust:1-bookworm AS grabnet-builder
 
 WORKDIR /build
 COPY grab/ ./grab/
