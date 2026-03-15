@@ -14,7 +14,7 @@
 //! ## Quick Start
 //!
 //! ```rust,no_run
-//! use grabnet::{Grab, PublishOptions};
+//! use grabnet::{Grab, PublishOptions, encode_base58};
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
@@ -23,7 +23,7 @@
 //!
 //!     // Publish a website
 //!     let result = grab.publish("./my-website", PublishOptions::default()).await?;
-//!     println!("Published to: grab://{}", result.site_id);
+//!     println!("Published to: grab://{}", encode_base58(&result.bundle.site_id));
 //!
 //!     // Start the HTTP gateway
 //!     grab.start_gateway().await?;
