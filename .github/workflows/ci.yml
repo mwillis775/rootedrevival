@@ -258,13 +258,26 @@ jobs:
           script: |
             cd /opt/revival
             git pull origin main
-            ./deploy/install.sh
-            systemctl restart scholar grabnet
+
+            # Rebuild binaries if Rust source changed
+            cd scholar && cargo build --release && sudo cp target/release/scholar /usr/local/bin/ && cd ..
+            cd grab && cargo build --release && sudo cp target/release/grab /usr/local/bin/ && cd ..
+
+            # Restart API server
+            sudo systemctl restart scholar
+
+            # Publish updated site content to GrabNet gateway
+            # Stop gateway to release DB lock, update site, restart gateway
+            sudo systemctl stop grabnet || true
+            sleep 1
+            grab update rootedrevival || grab publish site --name rootedrevival
+            sudo systemctl start grabnet
 
       - name: Health check
         run: |
-          sleep 10
+          sleep 15
           curl -f https://scholar.rootedrevival.us/api/health
+          curl -sf https://rootedrevival.us/ -o /dev/null
 
       - name: Notify success
         if: success()
