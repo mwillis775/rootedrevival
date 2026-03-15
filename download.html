@@ -478,8 +478,8 @@
                             <span id="mainDownloadText">Download</span>
                         </a>
                         <div class="download-meta">
-                            <span id="downloadVersion">v1.0.0</span>
-                            <span id="downloadSize">~85 MB</span>
+                            <span id="downloadVersion">v0.1.0</span>
+                            <span id="downloadSize">~5 MB</span>
                             <span>Free & Open Source</span>
                         </div>
                     </div>
@@ -496,13 +496,13 @@
                         <h3>Windows</h3>
                         <p>Windows 10 or later (64-bit)</p>
                         <div class="download-options">
-                            <a href="https://github.com/rootedrevival/releases/latest/download/RootedRevival-win.exe" class="download-link">
+                            <a href="https://github.com/mwillis775/rootedrevival/releases/latest/download/Rooted%20Revival_0.1.0_x64-setup.exe" class="download-link">
                                 <span>Installer (.exe)</span>
-                                <span class="size">~85 MB</span>
+                                <span class="size">~5 MB</span>
                             </a>
-                            <a href="https://github.com/rootedrevival/releases/latest/download/RootedRevival-win-portable.zip" class="download-link">
-                                <span>Portable (.zip)</span>
-                                <span class="size">~90 MB</span>
+                            <a href="https://github.com/mwillis775/rootedrevival/releases/latest/download/Rooted%20Revival_0.1.0_x64_en-US.msi" class="download-link">
+                                <span>MSI Package (.msi)</span>
+                                <span class="size">~5 MB</span>
                             </a>
                         </div>
                     </div>
@@ -511,13 +511,13 @@
                         <h3>macOS</h3>
                         <p>macOS 11 (Big Sur) or later</p>
                         <div class="download-options">
-                            <a href="https://github.com/rootedrevival/releases/latest/download/RootedRevival-mac-arm64.dmg" class="download-link">
+                            <a href="https://github.com/mwillis775/rootedrevival/releases/latest/download/Rooted%20Revival_0.1.0_aarch64.dmg" class="download-link">
                                 <span>Apple Silicon (.dmg)</span>
-                                <span class="size">~80 MB</span>
+                                <span class="size">~5 MB</span>
                             </a>
-                            <a href="https://github.com/rootedrevival/releases/latest/download/RootedRevival-mac-x64.dmg" class="download-link">
+                            <a href="https://github.com/mwillis775/rootedrevival/releases/latest/download/Rooted%20Revival_0.1.0_x64.dmg" class="download-link">
                                 <span>Intel (.dmg)</span>
-                                <span class="size">~85 MB</span>
+                                <span class="size">~5 MB</span>
                             </a>
                         </div>
                     </div>
@@ -526,17 +526,17 @@
                         <h3>Linux</h3>
                         <p>Ubuntu 20.04+, Fedora 35+, or equivalent</p>
                         <div class="download-options">
-                            <a href="https://github.com/rootedrevival/releases/latest/download/RootedRevival-linux.AppImage" class="download-link">
+                            <a href="https://github.com/mwillis775/rootedrevival/releases/latest/download/Rooted%20Revival_0.1.0_amd64.AppImage" class="download-link">
                                 <span>AppImage (Universal)</span>
-                                <span class="size">~90 MB</span>
+                                <span class="size">~79 MB</span>
                             </a>
-                            <a href="https://github.com/rootedrevival/releases/latest/download/RootedRevival-linux.deb" class="download-link">
+                            <a href="https://github.com/mwillis775/rootedrevival/releases/latest/download/Rooted%20Revival_0.1.0_amd64.deb" class="download-link">
                                 <span>Debian/Ubuntu (.deb)</span>
-                                <span class="size">~85 MB</span>
+                                <span class="size">~5 MB</span>
                             </a>
-                            <a href="https://github.com/rootedrevival/releases/latest/download/RootedRevival-linux.rpm" class="download-link">
+                            <a href="https://github.com/mwillis775/rootedrevival/releases/latest/download/Rooted%20Revival-0.1.0-1.x86_64.rpm" class="download-link">
                                 <span>Fedora/RHEL (.rpm)</span>
-                                <span class="size">~85 MB</span>
+                                <span class="size">~5 MB</span>
                             </a>
                         </div>
                     </div>
@@ -559,7 +559,7 @@
                         <div class="step-num">2</div>
                         <div class="step-content">
                             <h3>Your Node Starts</h3>
-                            <p>The app runs a lightweight IPFS node in the background. This connects you to the Rooted Revival network—a private swarm separate from the public IPFS mainnet.</p>
+                            <p>The app runs a lightweight GrabNet node in the background. This connects you to the Rooted Revival distributed network using libp2p with Kademlia DHT and GossipSub.</p>
                         </div>
                     </div>
                     <div class="step">
@@ -605,8 +605,8 @@
                     <div class="req-card">
                         <h3>NETWORK</h3>
                         <ul class="req-list">
-                            <li>Port 4001 (IPFS swarm)</li>
-                            <li>UPnP enabled (optional)</li>
+                            <li>Port 8080 (GrabNet gateway)</li>
+                            <li>Port 9090 (libp2p swarm)</li>
                             <li>No VPN required</li>
                             <li>Works behind NAT</li>
                         </ul>
@@ -624,16 +624,16 @@
                         <p>Yes. The app is open source—you can inspect every line of code. We don't collect data, don't have accounts on our servers, and don't track you.</p>
                     </div>
                     <div class="faq-item">
-                        <h3>What's an IPFS node?</h3>
-                        <p>IPFS is a peer-to-peer protocol for sharing files. Your node stores and shares content with other nodes, creating a distributed archive.</p>
+                        <h3>What's a GrabNet node?</h3>
+                        <p>GrabNet is our peer-to-peer protocol built on libp2p. Your node stores and shares content-addressed data with other nodes using BLAKE3 hashes and Merkle trees, creating a distributed archive.</p>
                     </div>
                     <div class="faq-item">
                         <h3>Will it slow my computer?</h3>
                         <p>The node is lightweight and runs in the background. You can limit bandwidth and storage usage in settings. Most users don't notice it.</p>
                     </div>
                     <div class="faq-item">
-                        <h3>Why separate from mainnet?</h3>
-                        <p>The public IPFS network is full of spam and malicious content. Our private swarm is curated and moderated by humans.</p>
+                        <h3>Why GrabNet instead of IPFS?</h3>
+                        <p>GrabNet is purpose-built for academic knowledge. It uses BLAKE3 hashing, Ed25519 signing, and a curated peer network—no spam, no malicious content, just verified scholarship.</p>
                     </div>
                     <div class="faq-item">
                         <h3>Can I run it headless?</h3>
@@ -691,21 +691,21 @@
                     label: '// DETECTED: WINDOWS',
                     icon: '⊞',
                     text: 'Download for Windows',
-                    url: 'https://github.com/rootedrevival/releases/latest/download/RootedRevival-win.exe'
+                    url: 'https://github.com/mwillis775/rootedrevival/releases/latest/download/Rooted%20Revival_0.1.0_x64-setup.exe'
                 },
                 macos: {
                     label: '// DETECTED: MACOS',
                     icon: '⌘',
                     text: 'Download for macOS',
                     url: navigator.userAgent.includes('ARM') 
-                        ? 'https://github.com/rootedrevival/releases/latest/download/RootedRevival-mac-arm64.dmg'
-                        : 'https://github.com/rootedrevival/releases/latest/download/RootedRevival-mac-x64.dmg'
+                        ? 'https://github.com/mwillis775/rootedrevival/releases/latest/download/Rooted%20Revival_0.1.0_aarch64.dmg'
+                        : 'https://github.com/mwillis775/rootedrevival/releases/latest/download/Rooted%20Revival_0.1.0_x64.dmg'
                 },
                 linux: {
                     label: '// DETECTED: LINUX',
                     icon: '◆',
                     text: 'Download for Linux',
-                    url: 'https://github.com/rootedrevival/releases/latest/download/RootedRevival-linux.AppImage'
+                    url: 'https://github.com/mwillis775/rootedrevival/releases/latest/download/Rooted%20Revival_0.1.0_amd64.AppImage'
                 },
                 unknown: {
                     label: '// SELECT YOUR PLATFORM BELOW',
