@@ -626,20 +626,30 @@
     </div>
 
     <script>
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://localhost:3000/api'
+            : 'https://scholar.rootedrevival.us/api';
         let user = null;
 
-        function checkAuth() {
-            const saved = localStorage.getItem('user');
-            if (saved) {
-                try {
-                    user = JSON.parse(saved);
-                    document.getElementById('loginRequired').classList.add('hidden');
-                    document.getElementById('profileContent').classList.remove('hidden');
-                    loadProfile();
-                } catch (e) {
-                    localStorage.removeItem('user');
+        async function checkAuth() {
+            try {
+                const resp = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data && data.user) {
+                        user = data.user;
+                        localStorage.setItem('user', JSON.stringify(user));
+                        document.getElementById('loginRequired').classList.add('hidden');
+                        document.getElementById('profileContent').classList.remove('hidden');
+                        loadProfile();
+                        return;
+                    }
                 }
+            } catch (e) {
+                // Server unreachable — fall through
             }
+            // Not authenticated — clear stale data
+            localStorage.removeItem('user');
         }
 
         function loadProfile() {
@@ -685,7 +695,10 @@
         });
 
         // Logout
-        document.getElementById('logoutBtn')?.addEventListener('click', () => {
+        document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+            try {
+                await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+            } catch (e) {}
             localStorage.removeItem('user');
             window.location.href = 'index.html';
         });

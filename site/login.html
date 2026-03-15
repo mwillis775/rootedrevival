@@ -396,13 +396,8 @@
                     errorMsg.classList.add('show');
                 }
             } catch (err) {
-                // For demo, simulate login
-                localStorage.setItem('user', JSON.stringify({ username: data.username }));
-                successMsg.textContent = 'Login successful! Redirecting...';
-                successMsg.classList.add('show');
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1000);
+                errorMsg.textContent = 'Could not reach the server. Please try again later.';
+                errorMsg.classList.add('show');
             }
         });
 
