@@ -170,7 +170,7 @@ function getUserById(id) {
     const db = getDb();
     return db.prepare(`
         SELECT id, username, email, display_name, bio, affiliation, orcid, customization,
-               created_at, is_admin, is_moderator
+               public_key, created_at, is_admin, is_moderator
         FROM users WHERE id = ?
     `).get(id);
 }
@@ -182,7 +182,7 @@ function getUserByUsername(username) {
     const db = getDb();
     return db.prepare(`
         SELECT id, username, email, display_name, bio, affiliation, orcid, customization,
-               created_at, is_admin, is_moderator
+               public_key, created_at, is_admin, is_moderator
         FROM users WHERE username = ?
     `).get(username.toLowerCase());
 }
@@ -271,5 +271,14 @@ module.exports = {
     getUserByUsername,
     updateUserProfile,
     changePassword,
-    cleanupExpiredSessions
+    cleanupExpiredSessions,
+    setPublicKey: function(userId, publicKey) {
+        const db = getDb();
+        db.prepare("UPDATE users SET public_key = ? WHERE id = ?").run(publicKey, userId);
+    },
+    getPublicKey: function(username) {
+        const db = getDb();
+        const row = db.prepare('SELECT public_key FROM users WHERE username = ?').get(username.toLowerCase());
+        return row ? row.public_key : null;
+    }
 };

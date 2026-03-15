@@ -31,14 +31,17 @@ function requireAdmin(req, res, next) {
 
 /**
  * Middleware: require U2F-verified admin session
- * This is the highest security tier — only granted when Flipper Zero is tapped
+ * This is the highest security tier — only granted when Flipper Zero is tapped.
+ * Falls back to regular admin auth if no U2F keys are registered yet,
+ * so the admin can set up the site before configuring hardware keys.
  */
 function requireU2FAdmin(req, res, next) {
     if (!req.user || !req.user.isAdmin) {
         return res.error('Admin access required', 403);
     }
-    // Check if session has U2F elevation
-    if (!req.u2fVerified) {
+    // If admin has registered U2F keys, require verification
+    const credentials = webauthn.getUserCredentials(req.user.id);
+    if (credentials.length > 0 && !req.u2fVerified) {
         return res.error('U2F key verification required. Please tap your security key.', 403);
     }
     return next();
@@ -53,6 +56,270 @@ function registerCmsRoutes(app) {
     } catch (e) {
         console.warn('CMS/WebAuthn table init:', e.message);
     }
+    
+    // ========================================
+    // CONTACT FORM (PUBLIC)
+    // ========================================
+    
+    /**
+     * Submit a contact form message — public, no auth needed.
+     * If logged in, sender_user_id is set and name/email come from the account.
+     */
+    app.post('/api/contact', async (req, res) => {
+        // Try to resolve logged-in user (optional)
+        let senderUser = null;
+        const token = req.cookies.session || req.headers.authorization?.replace('Bearer ', '');
+        if (token) {
+            const session = users.validateSession(token);
+            if (session) senderUser = session.user;
+        }
+
+        let { name, email, message } = req.body || {};
+        
+        if (senderUser) {
+            // Logged-in user: use their account info
+            name = senderUser.displayName || senderUser.display_name || senderUser.username;
+            email = senderUser.email;
+        }
+
+        if (!name || !email || !message) {
+            return res.error('Name, email, and message are required');
+        }
+        if (name.length > 200 || email.length > 200 || message.length > 5000) {
+            return res.error('Message too long');
+        }
+        if (!senderUser && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.error('Invalid email address');
+        }
+        try {
+            cms.createContactMessage({
+                name: name.trim(),
+                email: email.trim(),
+                message: message.trim(),
+                senderUserId: senderUser ? senderUser.id : null,
+                recipientUsername: 'theboss'
+            });
+            // Also create a user_message so it shows in theboss's inbox
+            const theboss = users.getUserByUsername('theboss');
+            if (theboss) {
+                cms.sendUserMessage({
+                    fromUserId: senderUser ? senderUser.id : null,
+                    toUserId: theboss.id,
+                    subject: 'Contact Form',
+                    body: message.trim(),
+                    senderName: senderUser ? null : name.trim(),
+                    senderEmail: senderUser ? null : email.trim()
+                });
+            }
+            res.json({ success: true, message: 'Message sent! We\'ll get back to you soon.' });
+        } catch (e) {
+            res.error('Failed to send message', 500);
+        }
+    });
+    
+    // ========================================
+    // CONTACT MESSAGES (ADMIN)
+    // ========================================
+    
+    app.get('/api/cms/messages', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            await requireAdmin(req, res, async () => {
+                const unreadOnly = req.query.unread === 'true';
+                const messages = cms.getAllContactMessages({ unreadOnly });
+                const unreadCount = cms.getUnreadMessageCount();
+                res.json({ messages, unreadCount });
+            });
+        });
+    });
+    
+    app.post('/api/cms/messages/:id/read', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            await requireAdmin(req, res, async () => {
+                cms.markMessageRead(parseInt(req.params.id));
+                res.json({ success: true });
+            });
+        });
+    });
+    
+    app.post('/api/cms/messages/read-all', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            await requireAdmin(req, res, async () => {
+                cms.markAllMessagesRead();
+                res.json({ success: true });
+            });
+        });
+    });
+    
+    app.delete('/api/cms/messages/:id', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            await requireU2FAdmin(req, res, async () => {
+                const deleted = cms.deleteContactMessage(parseInt(req.params.id));
+                if (!deleted) return res.error('Message not found', 404);
+                res.json({ success: true });
+            });
+        });
+    });
+    
+    /**
+     * Reply to a contact message (admin only)
+     */
+    app.post('/api/cms/messages/:id/reply', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            await requireAdmin(req, res, async () => {
+                const { reply } = req.body || {};
+                if (!reply || !reply.trim()) return res.error('Reply text is required');
+                if (reply.length > 5000) return res.error('Reply too long');
+                const ok = cms.replyToMessage(parseInt(req.params.id), reply.trim(), req.user.id);
+                if (!ok) return res.error('Message not found', 404);
+                res.json({ success: true });
+            });
+        });
+    });
+    
+    /**
+     * Get messages for the currently logged-in user (their sent messages + any replies)
+     */
+    app.get('/api/my/messages', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            const messages = cms.getMessagesForUser(req.user.id);
+            res.json({ messages });
+        });
+    });
+    
+    // ========================================
+    // USER MESSAGING (authenticated users)
+    // ========================================
+    
+    /**
+     * Get inbox messages for the logged-in user
+     */
+    app.get('/api/my/inbox', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            const unreadOnly = req.query.unread === 'true';
+            const messages = cms.getInboxForUser(req.user.id, { unreadOnly });
+            const unreadCount = cms.getUnreadUserMessageCount(req.user.id);
+            res.json({ messages, unreadCount });
+        });
+    });
+    
+    /**
+     * Get sent messages for the logged-in user
+     */
+    app.get('/api/my/sent', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            const messages = cms.getSentMessages(req.user.id);
+            res.json({ messages });
+        });
+    });
+    
+    /**
+     * Send a message to another user
+     */
+    app.post('/api/my/messages/send', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            const { to, subject, body, parentId } = req.body || {};
+            if (!to || !body) return res.error('Recipient and message body are required');
+            if (body.length > 5000) return res.error('Message too long (5000 char max)');
+            if (subject && subject.length > 200) return res.error('Subject too long');
+            
+            // Look up recipient by username
+            const recipient = users.getUserByUsername(to);
+            if (!recipient) return res.error('User not found', 404);
+            if (recipient.id === req.user.id) return res.error('Cannot send messages to yourself');
+            if (recipient.is_banned) return res.error('Cannot message this user');
+            
+            try {
+                const msg = cms.sendUserMessage({
+                    fromUserId: req.user.id,
+                    toUserId: recipient.id,
+                    subject: subject ? subject.trim() : '',
+                    body: body.trim(),
+                    parentId: parentId || null
+                });
+                res.json({ success: true, messageId: msg.id });
+            } catch (e) {
+                res.error('Failed to send message', 500);
+            }
+        });
+    });
+    
+    /**
+     * Mark a user message as read
+     */
+    app.post('/api/my/messages/:id/read', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            cms.markUserMessageRead(parseInt(req.params.id), req.user.id);
+            res.json({ success: true });
+        });
+    });
+    
+    /**
+     * Mark all inbox messages as read
+     */
+    app.post('/api/my/messages/read-all', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            cms.markAllUserMessagesRead(req.user.id);
+            res.json({ success: true });
+        });
+    });
+    
+    /**
+     * Delete a user message
+     */
+    app.delete('/api/my/messages/:id', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            const ok = cms.deleteUserMessage(parseInt(req.params.id), req.user.id);
+            if (!ok) return res.error('Message not found', 404);
+            res.json({ success: true });
+        });
+    });
+    
+    // ========================================
+    // SITE FILES (ADMIN — edit static HTML)
+    // ========================================
+    
+    /**
+     * List all editable site files
+     */
+    app.get('/api/cms/site-files', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            await requireAdmin(req, res, async () => {
+                const files = cms.listSiteFiles();
+                res.json({ files });
+            });
+        });
+    });
+    
+    /**
+     * Read a site file's content
+     */
+    app.get('/api/cms/site-files/:filename', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            await requireAdmin(req, res, async () => {
+                const content = cms.readSiteFile(req.params.filename);
+                if (content === null) return res.error('File not found', 404);
+                res.json({ filename: req.params.filename, content });
+            });
+        });
+    });
+    
+    /**
+     * Update a site file (U2F required — destructive operation)
+     */
+    app.put('/api/cms/site-files/:filename', async (req, res) => {
+        await auth({ required: true })(req, res, async () => {
+            await requireU2FAdmin(req, res, async () => {
+                const { content } = req.body || {};
+                if (content === undefined) return res.error('Content is required');
+                try {
+                    cms.writeSiteFile(req.params.filename, content);
+                    res.json({ success: true });
+                } catch (e) {
+                    res.error(e.message, 400);
+                }
+            });
+        });
+    });
     
     // ========================================
     // WEBAUTHN / U2F KEY MANAGEMENT
@@ -537,7 +804,7 @@ function registerCmsRoutes(app) {
      */
     app.put('/api/cms/navigation/:menu', async (req, res) => {
         await auth({ required: true })(req, res, async () => {
-            await requireU2FAdmin(req, res, async () => {
+            await requireAdmin(req, res, async () => {
                 const { items } = req.body || {};
                 if (!Array.isArray(items)) {
                     return res.error('Items array required');

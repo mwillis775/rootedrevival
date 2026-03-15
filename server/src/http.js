@@ -24,8 +24,10 @@ function resolveCorsOrigin(requestOrigin, configuredOrigin) {
             'https://scholar.rootedrevival.us',
             'http://localhost:3000',
             'http://localhost:8080',
+            'http://localhost:8888',
             'http://127.0.0.1:3000',
-            'http://127.0.0.1:8080'
+            'http://127.0.0.1:8080',
+            'http://127.0.0.1:8888'
         ]);
 
         if (explicitOrigins.has(originUrl.origin)) {
@@ -33,6 +35,11 @@ function resolveCorsOrigin(requestOrigin, configuredOrigin) {
         }
 
         if (host === 'rootedrevival.us' || host.endsWith('.rootedrevival.us')) {
+            return originUrl.origin;
+        }
+        
+        // Allow any localhost port for development
+        if (host === 'localhost' || host === '127.0.0.1') {
             return originUrl.origin;
         }
     } catch (error) {
@@ -126,7 +133,7 @@ function enhanceRequest(req) {
 /**
  * Enhanced response object with helpers
  */
-function enhanceResponse(res) {
+function enhanceResponse(res, req) {
     res.json = (data, status = 200) => {
         res.writeHead(status, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(data));
@@ -148,10 +155,13 @@ function enhanceResponse(res) {
     };
     
     res.setCookie = (name, value, options = {}) => {
+        // Detect HTTPS via Cloudflare/proxy headers or config
+        const isSecure = req.headers['x-forwarded-proto'] === 'https' 
+            || config.baseUrl.startsWith('https');
         const defaults = {
             httpOnly: true,
-            secure: config.baseUrl.startsWith('https'),
-            sameSite: 'Lax',
+            secure: isSecure,
+            sameSite: isSecure ? 'None' : 'Lax',
             path: '/',
             maxAge: config.sessionMaxAge / 1000
         };
@@ -366,7 +376,7 @@ function createApp() {
     
     async function handleRequest(req, res) {
         enhanceRequest(req);
-        enhanceResponse(res);
+        enhanceResponse(res, req);
         
         try {
             // Run middleware

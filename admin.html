@@ -189,6 +189,7 @@ tr:hover{background:var(--el)}
       </div>
       <div class="sb-section">
         <h3>CMS</h3>
+        <div class="sb-link" data-section="sitefiles">📂 Site Files</div>
         <div class="sb-link" data-section="pages">📄 Pages</div>
         <div class="sb-link" data-section="media">🖼️ Media Library</div>
         <div class="sb-link" data-section="navigation">🧭 Navigation</div>
@@ -203,6 +204,10 @@ tr:hover{background:var(--el)}
         <h3>GRABNET</h3>
         <div class="sb-link" data-section="grabnet">🔗 Network Status</div>
         <div class="sb-link" data-section="publish">🚀 Publish Site</div>
+      </div>
+      <div class="sb-section">
+        <h3>MESSAGES</h3>
+        <div class="sb-link" data-section="messages">📬 Contact Messages <span class="badge" id="msgBadge">0</span></div>
       </div>
       <div class="sb-section">
         <h3>MODERATION</h3>
@@ -229,10 +234,13 @@ tr:hover{background:var(--el)}
           <div class="stat"><div class="label">PENDING REVIEW</div><div class="val" id="sPending">—</div></div>
           <div class="stat"><div class="label">CMS PAGES</div><div class="val" id="sPages">—</div></div>
           <div class="stat"><div class="label">MEDIA FILES</div><div class="val" id="sMedia">—</div></div>
+          <div class="stat"><div class="label">MESSAGES</div><div class="val" id="sMessages">—</div></div>
         </div>
         <div class="card"><div class="card-hd"><h3>Quick Actions</h3></div><div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn btn-p" onclick="showSection('pages');openPageEditor()">📄 New Page</button>
+          <button class="btn btn-p" onclick="showSection('sitefiles')">📂 Edit Site Files</button>
           <button class="btn btn-g" onclick="showSection('media')">🖼️ Upload Media</button>
+          <button class="btn btn-g" onclick="showSection('messages')">📬 Messages</button>
           <button class="btn btn-g" onclick="showSection('settings')">⚙️ Settings</button>
           <button class="btn btn-g" onclick="showSection('publish')">🚀 Publish to GrabNet</button>
           <button class="btn btn-g" onclick="exportSite()">📦 Export Site</button>
@@ -240,6 +248,17 @@ tr:hover{background:var(--el)}
         <div class="card"><div class="card-hd"><h3>Recent Activity</h3></div><div class="card-body" id="recentActivity">
           <div class="empty"><div class="icon">📭</div><h3>NO RECENT ACTIVITY</h3><p>Activity will appear here.</p></div>
         </div></div>
+      </section>
+
+      <!-- ===== SITE FILES ===== -->
+      <section id="sec-sitefiles" class="hidden">
+        <div class="page-hd" style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div><h1>📂 SITE FILES</h1><p>Edit existing site pages (index.html, about.html, etc.). Backups saved automatically.</p></div>
+        </div>
+        <div class="card"><div class="card-hd"><h3>Site HTML Files</h3></div>
+          <table><thead><tr><th>FILE</th><th>SIZE</th><th>LAST MODIFIED</th><th>ACTIONS</th></tr></thead>
+          <tbody id="siteFilesTable"><tr><td colspan="4"><div class="empty"><div class="icon">📂</div><h3>Loading...</h3></div></td></tr></tbody></table>
+        </div>
       </section>
 
       <!-- ===== PAGES (CMS) ===== -->
@@ -337,6 +356,18 @@ tr:hover{background:var(--el)}
           <button class="btn btn-p" onclick="publishSite()" style="font-size:1rem;padding:12px 32px">🚀 Publish Now</button>
           <div id="publishResult" style="margin-top:20px;font-family:var(--fm);font-size:.85rem"></div>
         </div></div>
+      </section>
+
+      <!-- ===== CONTACT MESSAGES ===== -->
+      <section id="sec-messages" class="hidden">
+        <div class="page-hd" style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div><h1>📬 CONTACT MESSAGES</h1><p>Messages from the contact form and user messaging system.</p></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-g btn-s" onclick="markAllRead()">✓ Mark All Read</button>
+          </div>
+        </div>
+        <div class="card"><table><thead><tr><th>STATUS</th><th>NAME</th><th>EMAIL</th><th>MESSAGE</th><th>REPLY</th><th>RECEIVED</th><th>ACTIONS</th></tr></thead>
+          <tbody id="messagesTable"></tbody></table></div>
       </section>
 
       <!-- ===== PENDING REVIEW ===== -->
@@ -478,6 +509,31 @@ tr:hover{background:var(--el)}
   </div>
 </div>
 
+<!-- ===== MESSAGE DETAIL MODAL ===== -->
+<div class="modal-overlay" id="msgDetailModal">
+  <div class="modal" style="max-width:650px">
+    <div class="modal-hd"><h2>Message Detail</h2><button class="modal-close" onclick="closeModal('msgDetailModal')">&times;</button></div>
+    <div class="modal-body" id="msgDetailBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-g" onclick="closeModal('msgDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SITE FILE EDITOR MODAL ===== -->
+<div class="modal-overlay" id="siteFileEditorModal">
+  <div class="modal" style="max-width:1000px;max-height:90vh">
+    <div class="modal-hd"><h2 id="siteFileEditorTitle">Edit File</h2><button class="modal-close" onclick="closeModal('siteFileEditorModal')">&times;</button></div>
+    <div class="modal-body">
+      <textarea id="siteFileContent" style="width:100%;min-height:500px;font-family:var(--fm);font-size:.85rem;line-height:1.6;tab-size:2;white-space:pre;overflow-wrap:normal;overflow-x:auto"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-g" onclick="closeModal('siteFileEditorModal')">Cancel</button>
+      <button class="btn btn-p" onclick="saveSiteFile()">💾 Save File</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== KEY REGISTRATION MODAL ===== -->
 <div class="modal-overlay" id="keyRegModal">
   <div class="modal" style="max-width:450px">
@@ -492,6 +548,7 @@ tr:hover{background:var(--el)}
   </div>
 </div>
 
+<script src="static/js/e2e.js"></script>
 <script>
 // ========== CONFIG & STATE ==========
 const API = window.location.hostname === 'localhost' 
@@ -585,7 +642,7 @@ function showSection(name) {
     l.classList.toggle('active', l.dataset.section === name);
   });
   // Lazy load section data
-  const loaders = { dashboard: loadDashboard, pages: loadPages, media: loadMedia, navigation: () => loadNavigation(currentNavMenu), components: loadComponents, themes: loadThemes, settings: loadSettings, grabnet: loadGrabNet, pending: loadPending, users: loadUsers, logs: loadLogs, keys: loadKeys };
+  const loaders = { dashboard: loadDashboard, sitefiles: loadSiteFiles, pages: loadPages, media: loadMedia, navigation: () => loadNavigation(currentNavMenu), components: loadComponents, themes: loadThemes, settings: loadSettings, grabnet: loadGrabNet, pending: loadPending, users: loadUsers, logs: loadLogs, keys: loadKeys, messages: loadMessages };
   if (loaders[name]) loaders[name]();
 }
 
@@ -792,6 +849,11 @@ async function loadDashboard() {
     const { media } = await api('/cms/media');
     document.getElementById('sMedia').textContent = media?.length ?? '0';
   } catch(e) { document.getElementById('sMedia').textContent = '0'; }
+  try {
+    const { unreadCount } = await api('/cms/messages');
+    document.getElementById('sMessages').textContent = unreadCount ?? '0';
+    document.getElementById('msgBadge').textContent = unreadCount ?? '0';
+  } catch(e) { document.getElementById('sMessages').textContent = '0'; }
 }
 
 // ========== PAGES ==========
@@ -1409,7 +1471,7 @@ async function loadUsers() {
       </tr>
     `).join('');
   } catch(e) {
-    document.getElementById('usersTable').innerHTML = `<tr><td colspan="6"><div class="empty"><div class="icon">⚠️</div><h3>${e.message}</h3></div></td></tr>`;
+    document.getElementById('usersTable').innerHTML = `<tr><td colspan="7"><div class="empty"><div class="icon">⚠️</div><h3>${e.message}</h3></div></td></tr>`;
   }
 }
 
@@ -1460,6 +1522,177 @@ async function loadLogs() {
   } catch(e) {
     document.getElementById('logsTable').innerHTML = `<tr><td colspan="5"><div class="empty"><div class="icon">⚠️</div><h3>${e.message}</h3></div></td></tr>`;
   }
+}
+
+// ========== SITE FILES ==========
+let editingSiteFile = null;
+
+async function loadSiteFiles() {
+  try {
+    const { files } = await api('/cms/site-files');
+    const tb = document.getElementById('siteFilesTable');
+    if (!files?.length) {
+      tb.innerHTML = '<tr><td colspan="4"><div class="empty"><div class="icon">📂</div><h3>NO SITE FILES</h3></div></td></tr>';
+      return;
+    }
+    tb.innerHTML = files.map(f => `
+      <tr>
+        <td><strong style="font-family:var(--fm)">${esc(f.name)}</strong></td>
+        <td style="color:var(--tm);font-size:.85rem">${fmtSize(f.size)}</td>
+        <td style="color:var(--tm);font-size:.85rem">${timeAgo(f.modified)}</td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-g btn-s" onclick="editSiteFile('${esc(f.name)}')">✏️ Edit</button>
+            <a href="/${esc(f.name)}" target="_blank" class="btn btn-g btn-s">👁️ View</a>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    document.getElementById('siteFilesTable').innerHTML = `<tr><td colspan="4"><div class="empty"><div class="icon">⚠️</div><h3>${e.message}</h3></div></td></tr>`;
+  }
+}
+
+async function editSiteFile(filename) {
+  try {
+    const { content } = await api(`/cms/site-files/${encodeURIComponent(filename)}`);
+    editingSiteFile = filename;
+    document.getElementById('siteFileEditorTitle').textContent = `Edit: ${filename}`;
+    document.getElementById('siteFileContent').value = content;
+    openModal('siteFileEditorModal');
+  } catch(e) { toast('Failed to load file: ' + e.message, 'err'); }
+}
+
+async function saveSiteFile() {
+  if (!editingSiteFile) return;
+  const content = document.getElementById('siteFileContent').value;
+  try {
+    await api(`/cms/site-files/${encodeURIComponent(editingSiteFile)}`, {
+      method: 'PUT',
+      body: { content }
+    });
+    toast(`${editingSiteFile} saved! Backup created.`, 'ok');
+    closeModal('siteFileEditorModal');
+    loadSiteFiles();
+  } catch(e) { toast('Save failed: ' + e.message, 'err'); }
+}
+
+// ========== CONTACT MESSAGES ==========
+let _messagesCache = [];
+
+async function loadMessages() {
+  try {
+    const { messages, unreadCount } = await api('/cms/messages');
+    document.getElementById('msgBadge').textContent = unreadCount || '0';
+    _messagesCache = messages || [];
+    const tb = document.getElementById('messagesTable');
+    if (!_messagesCache.length) {
+      tb.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="icon">📭</div><h3>NO MESSAGES</h3><p>Contact form submissions will appear here.</p></div></td></tr>';
+      return;
+    }
+    // Decrypt message previews if E2E encrypted
+    for (const m of _messagesCache) {
+      if (typeof E2E !== 'undefined' && E2E.isEncrypted(m.message)) {
+        try { m._decrypted = await E2E.decrypt(m.message); } catch { m._decrypted = '[Encrypted]'; }
+      } else { m._decrypted = m.message; }
+    }
+    tb.innerHTML = _messagesCache.map(m => `
+      <tr style="${!m.is_read ? 'background:var(--ad)' : ''}">
+        <td>${m.is_read ? '<span style="color:var(--tm)">Read</span>' : '<span style="color:var(--ac);font-weight:bold">● New</span>'}</td>
+        <td><strong>${esc(m.name)}</strong>${m.sender_user_id ? ' <span style="color:var(--ac);font-size:.75rem">👤</span>' : ''}</td>
+        <td><a href="mailto:${esc(m.email)}" style="font-size:.85rem">${esc(m.email)}</a></td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.85rem;color:var(--tm)" title="${esc(m._decrypted)}">${esc(m._decrypted)}</td>
+        <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem">${m.reply ? '<span style="color:var(--ac)">✓ Replied</span>' : '<span style="color:var(--tm)">—</span>'}</td>
+        <td style="color:var(--tm);font-size:.85rem">${timeAgo(m.created_at)}</td>
+        <td>
+          <div style="display:flex;gap:4px">
+            ${!m.is_read ? `<button class="btn btn-g btn-s" onclick="markRead(${m.id})">✓</button>` : ''}
+            <button class="btn btn-g btn-s" onclick="viewMessage(${m.id})">👁️</button>
+            <button class="btn btn-d btn-s" onclick="deleteMessage(${m.id})">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    document.getElementById('messagesTable').innerHTML = `<tr><td colspan="7"><div class="empty"><div class="icon">⚠️</div><h3>${e.message}</h3></div></td></tr>`;
+  }
+}
+
+async function markRead(id) {
+  try {
+    await api(`/cms/messages/${id}/read`, { method: 'POST' });
+    loadMessages();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function markAllRead() {
+  try {
+    await api('/cms/messages/read-all', { method: 'POST' });
+    toast('All marked as read', 'ok');
+    loadMessages();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+let _viewingMsgId = null;
+async function viewMessage(id) {
+  const m = _messagesCache.find(x => x.id === id);
+  if (!m) return;
+  _viewingMsgId = id;
+  api(`/cms/messages/${id}/read`, { method: 'POST' }).catch(() => {});
+  // Decrypt message if E2E encrypted
+  let msgText = m.message;
+  let encrypted = false;
+  if (typeof E2E !== 'undefined' && E2E.isEncrypted(m.message)) {
+    encrypted = true;
+    try { msgText = await E2E.decrypt(m.message); } catch { msgText = '[Unable to decrypt — private key missing or invalid]'; }
+  }
+  const body = document.getElementById('msgDetailBody');
+  body.innerHTML = `
+    <div style="margin-bottom:15px;font-size:.9rem">
+      <div><strong>From:</strong> ${esc(m.name)} ${m.sender_user_id ? '<span style="color:var(--ac)">(registered user)</span>' : '<span style="color:var(--tm)">(anonymous)</span>'}</div>
+      <div><strong>Email:</strong> <a href="mailto:${esc(m.email)}">${esc(m.email)}</a></div>
+      <div><strong>Received:</strong> ${timeAgo(m.created_at)}</div>
+      ${encrypted ? '<div style="color:var(--ac);font-size:.8rem">🔒 End-to-end encrypted</div>' : ''}
+    </div>
+    <div style="background:var(--bg);padding:15px;border-radius:6px;white-space:pre-wrap;line-height:1.7;margin-bottom:20px;border:1px solid var(--bd)">${esc(msgText)}</div>
+    ${m.reply ? `
+      <div style="margin-bottom:15px">
+        <strong style="color:var(--ac)">Your Reply:</strong>
+        <div style="background:var(--bg);padding:12px;border-radius:6px;margin-top:6px;white-space:pre-wrap;border-left:3px solid var(--ac)">${esc(m.reply)}</div>
+        <div style="font-size:.8rem;color:var(--tm);margin-top:4px">Replied ${timeAgo(m.replied_at)}</div>
+      </div>
+    ` : `
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:.9rem"><strong>Reply:</strong></label>
+        <textarea id="adminReplyText" style="width:100%;min-height:100px;font-family:var(--fm);padding:10px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;color:var(--fg);resize:vertical" placeholder="Type your reply..."></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px">
+          <button class="btn btn-p" onclick="sendAdminReply()">Reply</button>
+        </div>
+      </div>
+    `}
+  `;
+  openModal('msgDetailModal');
+  loadMessages();
+}
+
+async function sendAdminReply() {
+  const reply = document.getElementById('adminReplyText')?.value.trim();
+  if (!reply) return;
+  try {
+    await api(`/cms/messages/${_viewingMsgId}/reply`, { method: 'POST', body: { reply } });
+    toast('Reply sent!', 'ok');
+    closeModal('msgDetailModal');
+    loadMessages();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function deleteMessage(id) {
+  if (!confirm('Delete this message permanently?')) return;
+  try {
+    await api(`/cms/messages/${id}`, { method: 'DELETE' });
+    toast('Message deleted', 'ok');
+    loadMessages();
+  } catch(e) { toast(e.message, 'err'); }
 }
 
 // ========== HARDWARE KEYS ==========

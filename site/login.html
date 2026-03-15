@@ -350,8 +350,11 @@
         </div>
     </div>
 
+    <script src="static/js/site-nav.js"></script>
     <script>
-        const API_BASE = 'https://scholar.rootedrevival.us/api';
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://localhost:3000/api'
+            : 'https://scholar.rootedrevival.us/api';
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -403,12 +406,22 @@
             }
         });
 
-        // Check if already logged in
-        const user = localStorage.getItem('user');
-        if (user) {
-            const redirect = new URLSearchParams(window.location.search).get('redirect');
-            window.location.href = redirect || 'index.html';
-        }
+        // Check if already logged in — verify with server, not just localStorage
+        (async function() {
+            try {
+                const resp = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data && data.user) {
+                        const redirect = new URLSearchParams(window.location.search).get('redirect');
+                        window.location.href = redirect || 'index.html';
+                        return;
+                    }
+                }
+            } catch(e) {}
+            // Session invalid — clear stale user data
+            localStorage.removeItem('user');
+        })();
 
         // Theme
         function setTheme(theme) {

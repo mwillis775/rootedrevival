@@ -121,12 +121,69 @@ function initCmsTables() {
             is_active INTEGER DEFAULT 0,
             created_at TEXT DEFAULT (datetime('now'))
         );
+
+        -- Contact form messages
+        CREATE TABLE IF NOT EXISTS contact_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            message TEXT NOT NULL,
+            is_read INTEGER DEFAULT 0,
+            sender_user_id INTEGER,
+            recipient_username TEXT DEFAULT 'theboss',
+            reply TEXT,
+            replied_at TEXT,
+            replied_by INTEGER,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (sender_user_id) REFERENCES users(id),
+            FOREIGN KEY (replied_by) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_contact_read ON contact_messages(is_read);
+        CREATE INDEX IF NOT EXISTS idx_contact_recipient ON contact_messages(recipient_username);
+        CREATE INDEX IF NOT EXISTS idx_contact_sender ON contact_messages(sender_user_id);
+
+        -- User-to-user messages (foundation for friend system)
+        CREATE TABLE IF NOT EXISTS user_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            from_user_id INTEGER,
+            to_user_id INTEGER NOT NULL,
+            subject TEXT DEFAULT '',
+            body TEXT NOT NULL,
+            sender_name TEXT,
+            sender_email TEXT,
+            is_read INTEGER DEFAULT 0,
+            parent_id INTEGER REFERENCES user_messages(id) ON DELETE SET NULL,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (from_user_id) REFERENCES users(id),
+            FOREIGN KEY (to_user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_umsg_to ON user_messages(to_user_id, is_read);
+        CREATE INDEX IF NOT EXISTS idx_umsg_from ON user_messages(from_user_id);
+        CREATE INDEX IF NOT EXISTS idx_umsg_parent ON user_messages(parent_id);
     `);
     
     // Seed default settings if empty  
     const count = db.prepare('SELECT COUNT(*) as c FROM cms_settings').get().c;
     if (count === 0) {
         seedDefaultSettings(db);
+    }
+    
+    // Seed default pages if empty
+    const pageCount = db.prepare('SELECT COUNT(*) as c FROM cms_pages').get().c;
+    if (pageCount === 0) {
+        seedDefaultPages(db);
+    }
+    
+    // Seed default navigation if empty
+    const navCount = db.prepare('SELECT COUNT(*) as c FROM cms_nav_items').get().c;
+    if (navCount === 0) {
+        seedDefaultNavigation(db);
+    }
+    
+    // Seed default components if empty
+    const compCount = db.prepare('SELECT COUNT(*) as c FROM cms_components').get().c;
+    if (compCount === 0) {
+        seedDefaultComponents(db);
     }
 }
 
@@ -184,6 +241,168 @@ function seedDefaultSettings(db) {
     for (const s of defaults) {
         insert.run({ ...s, description: s.description || null });
     }
+}
+
+function seedDefaultPages(db) {
+    const insert = db.prepare(`
+        INSERT INTO cms_pages (uuid, slug, title, description, content, template, status, sort_order, show_in_nav, nav_label, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const pages = [
+        {
+            slug: 'home',
+            title: 'Home',
+            description: 'Welcome to Rooted Revival',
+            content: '<h1>Welcome to Rooted Revival</h1>\n<p>Regenerative landscaping services in Tulsa, Oklahoma. Native plants, food forests, rain gardens, and ecological restoration.</p>\n<p>Working with nature, not against it.</p>',
+            template: 'default',
+            status: 'published',
+            sortOrder: 0,
+            navLabel: 'Home'
+        },
+        {
+            slug: 'about',
+            title: 'About',
+            description: 'About Rooted Revival',
+            content: '<h1>About Rooted Revival</h1>\n<p>We believe in regenerative practices that restore ecosystems while creating beautiful, productive landscapes.</p>\n<p>Our mission is to reconnect people with the land through native plantings, food forests, and ecological design.</p>',
+            template: 'default',
+            status: 'published',
+            sortOrder: 1,
+            navLabel: 'About'
+        },
+        {
+            slug: 'services',
+            title: 'Services',
+            description: 'Our landscaping services',
+            content: '<h1>Services</h1>\n<h2>What We Offer</h2>\n<ul>\n<li><strong>Native Plant Gardens</strong> — Designed with species native to Oklahoma</li>\n<li><strong>Food Forests</strong> — Multi-layered edible ecosystems</li>\n<li><strong>Rain Gardens</strong> — Natural stormwater management</li>\n<li><strong>Ecological Restoration</strong> — Reviving degraded landscapes</li>\n<li><strong>Consultation</strong> — Expert guidance for your project</li>\n</ul>',
+            template: 'default',
+            status: 'published',
+            sortOrder: 2,
+            navLabel: 'Services'
+        },
+        {
+            slug: 'browse',
+            title: 'Browse',
+            description: 'Browse the knowledge archive',
+            content: '<h1>Browse Archive</h1>\n<p>Explore our collection of resources on regenerative landscaping, permaculture, and ecological restoration.</p>',
+            template: 'default',
+            status: 'published',
+            sortOrder: 3,
+            navLabel: 'Browse'
+        },
+        {
+            slug: 'help',
+            title: 'Help',
+            description: 'Help and documentation',
+            content: '<h1>Help & Documentation</h1>\n<p>Find answers to common questions and learn how to use the platform.</p>\n<h2>Getting Started</h2>\n<p>Create an account to upload content, join discussions, and contribute to the archive.</p>',
+            template: 'default',
+            status: 'published',
+            sortOrder: 4,
+            navLabel: 'Help'
+        },
+        {
+            slug: 'contact',
+            title: 'Contact',
+            description: 'Get in touch',
+            content: '<h1>Contact Us</h1>\n<p>Have questions about our services or want to start a project? We\'d love to hear from you.</p>',
+            template: 'default',
+            status: 'published',
+            sortOrder: 5,
+            navLabel: 'Contact'
+        }
+    ];
+    
+    for (const p of pages) {
+        insert.run(
+            generateUuid(), p.slug, p.title, p.description, p.content,
+            p.template, p.status, p.sortOrder, 1, p.navLabel, 1
+        );
+    }
+    console.log(`  Seeded ${pages.length} default CMS pages`);
+}
+
+function seedDefaultNavigation(db) {
+    const insert = db.prepare(`
+        INSERT INTO cms_nav_items (menu, label, url, icon, sort_order, is_external, visibility)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const mainNav = [
+        { label: 'Home', url: '/', icon: '🏠' },
+        { label: 'About', url: '/about', icon: '📖' },
+        { label: 'Services', url: '/services', icon: '🌿' },
+        { label: 'Browse', url: '/browse', icon: '📚' },
+        { label: 'Help', url: '/help', icon: '❓' },
+        { label: 'Contact', url: '/contact', icon: '✉️' },
+    ];
+    
+    const footerNav = [
+        { label: 'Privacy Policy', url: '/privacy', icon: '' },
+        { label: 'Terms of Service', url: '/terms', icon: '' },
+        { label: 'About', url: '/about', icon: '' },
+        { label: 'Contact', url: '/contact', icon: '' },
+    ];
+    
+    mainNav.forEach((item, i) => {
+        insert.run('main', item.label, item.url, item.icon, i, 0, 'all');
+    });
+    
+    footerNav.forEach((item, i) => {
+        insert.run('footer', item.label, item.url, item.icon, i, 0, 'all');
+    });
+    
+    console.log(`  Seeded ${mainNav.length} main nav items + ${footerNav.length} footer nav items`);
+}
+
+function seedDefaultComponents(db) {
+    const insert = db.prepare(`
+        INSERT INTO cms_components (name, label, content, component_type, config)
+        VALUES (?, ?, ?, ?, ?)
+    `);
+    
+    const components = [
+        {
+            name: 'header',
+            label: 'Site Header',
+            content: '<header class="site-header">\n  <div class="container">\n    <a href="/" class="logo">🌱 Rooted Revival</a>\n    <nav id="main-nav"></nav>\n  </div>\n</header>',
+            type: 'html',
+            config: null
+        },
+        {
+            name: 'footer',
+            label: 'Site Footer',
+            content: '<footer class="site-footer">\n  <div class="container">\n    <p>&copy; 2024-2026 Rooted Revival. Regenerative landscaping in Tulsa, OK.</p>\n    <nav id="footer-nav"></nav>\n  </div>\n</footer>',
+            type: 'html',
+            config: null
+        },
+        {
+            name: 'sidebar',
+            label: 'Sidebar',
+            content: '<aside class="sidebar">\n  <h3>Quick Links</h3>\n  <ul>\n    <li><a href="/browse">Browse Archive</a></li>\n    <li><a href="/upload">Upload Content</a></li>\n    <li><a href="/search">Search</a></li>\n  </ul>\n</aside>',
+            type: 'html',
+            config: null
+        },
+        {
+            name: 'scripts',
+            label: 'Custom Scripts',
+            content: '<!-- Add custom scripts here -->',
+            type: 'html',
+            config: null
+        },
+        {
+            name: 'announcement',
+            label: 'Announcement Banner',
+            content: '',
+            type: 'html',
+            config: null
+        }
+    ];
+    
+    for (const c of components) {
+        insert.run(c.name, c.label, c.content, c.type, c.config);
+    }
+    
+    console.log(`  Seeded ${components.length} default components`);
 }
 
 // --- Pages ---
@@ -511,6 +730,184 @@ function activateTheme(name) {
     db.prepare('UPDATE cms_theme SET is_active = 1 WHERE name = ?').run(name);
 }
 
+// --- Contact Messages ---
+
+function createContactMessage({ name, email, message, senderUserId = null, recipientUsername = 'theboss' }) {
+    const db = getDb();
+    const result = db.prepare(`
+        INSERT INTO contact_messages (name, email, message, sender_user_id, recipient_username)
+        VALUES (?, ?, ?, ?, ?)
+    `).run(name, email, message, senderUserId, recipientUsername);
+    return { id: result.lastInsertRowid };
+}
+
+function replyToMessage(id, reply, repliedByUserId) {
+    const db = getDb();
+    return db.prepare(`
+        UPDATE contact_messages SET reply = ?, replied_at = datetime('now'), replied_by = ?, is_read = 1
+        WHERE id = ?
+    `).run(reply, repliedByUserId, id).changes > 0;
+}
+
+function getMessagesForUser(userId) {
+    const db = getDb();
+    return db.prepare(`
+        SELECT cm.*, u.username as replied_by_username
+        FROM contact_messages cm
+        LEFT JOIN users u ON cm.replied_by = u.id
+        WHERE cm.sender_user_id = ?
+        ORDER BY cm.created_at DESC
+        LIMIT 50
+    `).all(userId);
+}
+
+function getAllContactMessages({ limit = 50, offset = 0, unreadOnly = false } = {}) {
+    const db = getDb();
+    let sql = 'SELECT * FROM contact_messages';
+    const params = [];
+    if (unreadOnly) {
+        sql += ' WHERE is_read = 0';
+    }
+    sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+    return db.prepare(sql).all(...params);
+}
+
+function getUnreadMessageCount() {
+    const db = getDb();
+    return db.prepare('SELECT COUNT(*) as count FROM contact_messages WHERE is_read = 0').get().count;
+}
+
+function markMessageRead(id) {
+    const db = getDb();
+    return db.prepare('UPDATE contact_messages SET is_read = 1 WHERE id = ?').run(id).changes > 0;
+}
+
+function markAllMessagesRead() {
+    const db = getDb();
+    return db.prepare('UPDATE contact_messages SET is_read = 1 WHERE is_read = 0').run().changes;
+}
+
+function deleteContactMessage(id) {
+    const db = getDb();
+    return db.prepare('DELETE FROM contact_messages WHERE id = ?').run(id).changes > 0;
+}
+
+// --- User Messages (user-to-user) ---
+
+function sendUserMessage({ fromUserId, toUserId, subject, body, parentId, senderName, senderEmail }) {
+    const db = getDb();
+    const result = db.prepare(`
+        INSERT INTO user_messages (from_user_id, to_user_id, subject, body, parent_id, sender_name, sender_email)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(fromUserId || null, toUserId, subject || '', body, parentId || null, senderName || null, senderEmail || null);
+    return { id: result.lastInsertRowid };
+}
+
+function getInboxForUser(userId, { limit = 50, offset = 0, unreadOnly = false } = {}) {
+    const db = getDb();
+    let sql = `
+        SELECT m.*, u.username as from_username, u.display_name as from_display_name
+        FROM user_messages m
+        LEFT JOIN users u ON m.from_user_id = u.id
+        WHERE m.to_user_id = ?
+    `;
+    const params = [userId];
+    if (unreadOnly) sql += ' AND m.is_read = 0';
+    sql += ' ORDER BY m.created_at DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+    return db.prepare(sql).all(...params);
+}
+
+function getSentMessages(userId, { limit = 50, offset = 0 } = {}) {
+    const db = getDb();
+    return db.prepare(`
+        SELECT m.*, u.username as to_username, u.display_name as to_display_name
+        FROM user_messages m
+        JOIN users u ON m.to_user_id = u.id
+        WHERE m.from_user_id = ?
+        ORDER BY m.created_at DESC LIMIT ? OFFSET ?
+    `).all(userId, limit, offset);
+}
+
+function getUserMessage(id) {
+    const db = getDb();
+    return db.prepare(`
+        SELECT m.*,
+               fu.username as from_username, fu.display_name as from_display_name,
+               tu.username as to_username, tu.display_name as to_display_name
+        FROM user_messages m
+        LEFT JOIN users fu ON m.from_user_id = fu.id
+        JOIN users tu ON m.to_user_id = tu.id
+        WHERE m.id = ?
+    `).get(id);
+}
+
+function markUserMessageRead(id, userId) {
+    const db = getDb();
+    return db.prepare('UPDATE user_messages SET is_read = 1 WHERE id = ? AND to_user_id = ?').run(id, userId).changes > 0;
+}
+
+function markAllUserMessagesRead(userId) {
+    const db = getDb();
+    return db.prepare('UPDATE user_messages SET is_read = 1 WHERE to_user_id = ? AND is_read = 0').run(userId).changes;
+}
+
+function deleteUserMessage(id, userId) {
+    const db = getDb();
+    // Users can only delete messages they sent or received
+    return db.prepare('DELETE FROM user_messages WHERE id = ? AND (from_user_id = ? OR to_user_id = ?)').run(id, userId, userId).changes > 0;
+}
+
+function getUnreadUserMessageCount(userId) {
+    const db = getDb();
+    return db.prepare('SELECT COUNT(*) as count FROM user_messages WHERE to_user_id = ? AND is_read = 0').get(userId).count;
+}
+
+// --- Site Files ---
+
+const SITE_DIR = path.resolve(config.rootDir, '..', 'site');
+const ALLOWED_EXTENSIONS = ['.html', '.css', '.js'];
+
+function listSiteFiles() {
+    if (!fs.existsSync(SITE_DIR)) return [];
+    return fs.readdirSync(SITE_DIR)
+        .filter(f => {
+            const ext = path.extname(f).toLowerCase();
+            return ALLOWED_EXTENSIONS.includes(ext) && fs.statSync(path.join(SITE_DIR, f)).isFile();
+        })
+        .map(f => {
+            const stat = fs.statSync(path.join(SITE_DIR, f));
+            return { name: f, size: stat.size, modified: stat.mtime.toISOString() };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function readSiteFile(filename) {
+    // Prevent directory traversal
+    const safe = path.basename(filename);
+    const ext = path.extname(safe).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(ext)) return null;
+    const filepath = path.join(SITE_DIR, safe);
+    if (!fs.existsSync(filepath)) return null;
+    return fs.readFileSync(filepath, 'utf8');
+}
+
+function writeSiteFile(filename, content) {
+    const safe = path.basename(filename);
+    const ext = path.extname(safe).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(ext)) throw new Error('File type not allowed');
+    const filepath = path.join(SITE_DIR, safe);
+    if (!fs.existsSync(filepath)) throw new Error('File does not exist');
+    // Create a backup before writing
+    const backupDir = path.join(SITE_DIR, '.backups');
+    if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    fs.copyFileSync(filepath, path.join(backupDir, `${safe}.${timestamp}.bak`));
+    fs.writeFileSync(filepath, content, 'utf8');
+    return true;
+}
+
 module.exports = {
     initCmsTables,
     // Pages
@@ -542,5 +939,27 @@ module.exports = {
     // Themes
     getActiveTheme,
     saveTheme,
-    activateTheme
+    activateTheme,
+    // Contact Messages
+    createContactMessage,
+    getAllContactMessages,
+    getUnreadMessageCount,
+    markMessageRead,
+    markAllMessagesRead,
+    deleteContactMessage,
+    replyToMessage,
+    getMessagesForUser,
+    // User Messages
+    sendUserMessage,
+    getInboxForUser,
+    getSentMessages,
+    getUserMessage,
+    markUserMessageRead,
+    markAllUserMessagesRead,
+    deleteUserMessage,
+    getUnreadUserMessageCount,
+    // Site Files
+    listSiteFiles,
+    readSiteFile,
+    writeSiteFile
 };

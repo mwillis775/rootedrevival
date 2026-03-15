@@ -175,6 +175,30 @@ function registerRoutes(app) {
     });
     
     // ========================================
+    // PUBLIC KEYS (E2E Encryption)
+    // ========================================
+    
+    /**
+     * Get a user's public key (public endpoint — needed for E2E encryption)
+     */
+    app.get('/api/users/:username/pubkey', async (req, res) => {
+        const pubkey = users.getPublicKey(req.params.username);
+        if (!pubkey) return res.error('Public key not found', 404);
+        res.json({ publicKey: pubkey });
+    });
+    
+    /**
+     * Store/update the logged-in user's public key
+     */
+    app.put('/api/users/me/pubkey', auth({ required: true }), async (req, res) => {
+        const { publicKey } = req.body || {};
+        if (!publicKey) return res.error('publicKey is required');
+        if (publicKey.length > 5000) return res.error('Key too large');
+        users.setPublicKey(req.user.id, publicKey);
+        res.json({ success: true });
+    });
+    
+    // ========================================
     // PAPERS
     // ========================================
     

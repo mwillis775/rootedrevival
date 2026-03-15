@@ -431,10 +431,58 @@
 
         .hidden { display: none !important; }
 
+        /* Messages */
+        .msg-controls { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .msg-controls .btn { padding: 8px 16px; font-size: 0.85rem; }
+        .msg-controls .btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+        .msg-badge { background: var(--red); color: #fff; font-size: 0.7rem; padding: 2px 7px; border-radius: 10px; margin-left: 6px; }
+
+        .msg-list { display: flex; flex-direction: column; gap: 1px; }
+        .msg-item {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 15px;
+            align-items: center;
+        }
+        .msg-item:hover { border-color: var(--accent); }
+        .msg-item.unread { border-left: 3px solid var(--accent); background: var(--accent-dim); }
+        .msg-from { font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
+        .msg-preview { color: var(--text-muted); font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .msg-subject { font-size: 0.9rem; margin-bottom: 2px; }
+        .msg-time { color: var(--text-muted); font-size: 0.8rem; white-space: nowrap; }
+
+        .msg-detail { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 25px; }
+        .msg-detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .msg-detail-body { line-height: 1.8; white-space: pre-wrap; word-break: break-word; margin-bottom: 25px; }
+        .msg-reply-form textarea { width: 100%; min-height: 100px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: inherit; font-size: 0.95rem; resize: vertical; }
+        .msg-reply-form textarea:focus { outline: none; border-color: var(--accent); }
+
+        .compose-form { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 25px; }
+        .compose-form .form-group { margin-bottom: 15px; }
+        .compose-form label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted); }
+        .compose-form input, .compose-form textarea {
+            width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border);
+            border-radius: var(--radius); color: var(--text); font-family: inherit; font-size: 0.95rem;
+        }
+        .compose-form input:focus, .compose-form textarea:focus { outline: none; border-color: var(--accent); }
+        .compose-form textarea { min-height: 150px; resize: vertical; }
+
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 24px; border-radius: var(--radius); font-size: 0.9rem; z-index: 9999; animation: slideIn 0.3s; }
+        .toast.ok { background: var(--accent); color: var(--bg); }
+        .toast.err { background: var(--red); color: #fff; }
+        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
         @media (max-width: 768px) {
             .profile-info { flex-direction: column; align-items: center; text-align: center; }
             .profile-stats { justify-content: center; }
             .form-row { grid-template-columns: 1fr; }
+            .msg-item { grid-template-columns: 1fr; gap: 5px; }
         }
     </style>
 </head>
@@ -499,9 +547,43 @@
 
             <div class="container">
                 <div class="profile-tabs">
+                    <button class="tab-btn" data-tab="messages">💬 Messages <span class="msg-badge hidden" id="inboxBadge">0</span></button>
                     <button class="tab-btn active" data-tab="uploads">📤 My Uploads</button>
                     <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
                     <button class="tab-btn" data-tab="node">🔗 Node Status</button>
+                </div>
+
+                <!-- Messages Tab -->
+                <div class="tab-content" id="tab-messages">
+                    <div class="msg-controls">
+                        <button class="btn btn-ghost active" id="viewInbox" onclick="switchMsgView('inbox')">📥 Inbox</button>
+                        <button class="btn btn-ghost" id="viewSent" onclick="switchMsgView('sent')">📤 Sent</button>
+                        <button class="btn btn-ghost" id="viewCompose" onclick="switchMsgView('compose')">✏️ Compose</button>
+                        <div style="flex:1"></div>
+                        <button class="btn btn-ghost" onclick="markAllInboxRead()" style="font-size:0.8rem;">✓ Mark All Read</button>
+                    </div>
+                    <div id="msgInbox"></div>
+                    <div id="msgSent" class="hidden"></div>
+                    <div id="msgCompose" class="hidden">
+                        <form class="compose-form" onsubmit="sendMessage(event)">
+                            <div class="form-group">
+                                <label>To (username)</label>
+                                <input type="text" id="composeTo" placeholder="username" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Subject</label>
+                                <input type="text" id="composeSubject" placeholder="(optional)">
+                            </div>
+                            <div class="form-group">
+                                <label>Message</label>
+                                <textarea id="composeBody" placeholder="Write your message..." required></textarea>
+                            </div>
+                            <div style="display:flex;gap:10px;justify-content:flex-end">
+                                <button type="submit" class="btn btn-primary">📨 Send</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div id="msgDetail" class="hidden"></div>
                 </div>
 
                 <!-- Uploads Tab -->
@@ -572,6 +654,19 @@
                         </div>
                     </form>
 
+                    <div class="settings-section" style="margin-top: 30px;">
+                        <h3>🔐 ENCRYPTION KEYS</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 15px;">Your messages are end-to-end encrypted. Back up your private key so you can read messages on other devices.</p>
+                        <div id="keyStatus" style="margin-bottom:15px;font-family:var(--font-mono);font-size:.85rem"></div>
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <button class="btn btn-ghost" onclick="E2E.exportKeyBackup()">📥 Export Private Key</button>
+                            <label class="btn btn-ghost" style="cursor:pointer">📤 Import Key
+                                <input type="file" accept=".json" style="display:none" onchange="importKey(this)">
+                            </label>
+                            <button class="btn btn-danger" onclick="regenerateKey()">🔄 Regenerate Key</button>
+                        </div>
+                    </div>
+
                     <div class="settings-section" style="margin-top: 40px; border-color: var(--red);">
                         <h3 style="color: var(--red);">⚠️ DANGER ZONE</h3>
                         <p style="color: var(--text-muted); margin-bottom: 20px;">These actions cannot be undone.</p>
@@ -625,38 +720,281 @@
         </div>
     </div>
 
+    <script src="static/js/site-nav.js"></script>
+    <script src="static/js/e2e.js"></script>
     <script>
+        const API = window.location.hostname === 'localhost'
+            ? `http://localhost:3000`
+            : `https://scholar.rootedrevival.us`;
         let user = null;
+        let _currentMsgView = 'inbox';
+        let _inboxCache = [];
+        let _sentCache = [];
 
-        function checkAuth() {
-            const saved = localStorage.getItem('user');
-            if (saved) {
-                try {
-                    user = JSON.parse(saved);
+        function toast(msg, type = 'ok') {
+            const el = document.createElement('div');
+            el.className = `toast ${type}`;
+            el.textContent = msg;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 3500);
+        }
+
+        function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+        function timeAgo(dateStr) {
+            const s = Math.floor((Date.now() - new Date(dateStr + 'Z').getTime()) / 1000);
+            if (s < 60) return 'just now';
+            if (s < 3600) return Math.floor(s/60) + 'm ago';
+            if (s < 86400) return Math.floor(s/3600) + 'h ago';
+            if (s < 604800) return Math.floor(s/86400) + 'd ago';
+            return new Date(dateStr).toLocaleDateString();
+        }
+
+        async function api(path, opts = {}) {
+            const res = await fetch(`${API}/api${path}`, {
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json', ...opts.headers },
+                ...opts,
+                body: opts.body ? JSON.stringify(opts.body) : undefined
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Request failed');
+            return data;
+        }
+
+        async function checkAuth() {
+            try {
+                const data = await api('/auth/me');
+                if (data && data.user) {
+                    user = data.user;
                     document.getElementById('loginRequired').classList.add('hidden');
                     document.getElementById('profileContent').classList.remove('hidden');
                     loadProfile();
-                } catch (e) {
-                    localStorage.removeItem('user');
+                    // Init E2E encryption
+                    try {
+                        const keyInfo = await E2E.init(API);
+                        if (keyInfo.generated) {
+                            toast('Encryption keys generated! Back them up in Settings.', 'ok');
+                        }
+                        updateKeyStatus();
+                    } catch (ke) { console.warn('E2E init:', ke); }
+                    loadInbox();
                 }
+            } catch (e) {
+                // Not logged in — show login prompt
             }
         }
 
         function loadProfile() {
             if (!user) return;
-            
-            document.getElementById('displayName').textContent = user.displayName || user.username;
+            document.getElementById('displayName').textContent = user.displayName || user.display_name || user.username;
             document.getElementById('username').textContent = user.username;
             document.getElementById('profileBio').textContent = user.bio || 'No bio yet. Add one in settings.';
-            
-            // Set form values
             const form = document.getElementById('settingsForm');
-            if (form.displayName) form.displayName.value = user.displayName || '';
+            if (form.displayName) form.displayName.value = user.displayName || user.display_name || '';
             if (form.email) form.email.value = user.email || '';
             if (form.bio) form.bio.value = user.bio || '';
         }
 
-        // Tabs
+        // ========== MESSAGING ==========
+
+        function switchMsgView(view) {
+            _currentMsgView = view;
+            ['inbox', 'sent', 'compose'].forEach(v => {
+                document.getElementById(`msg${v.charAt(0).toUpperCase() + v.slice(1)}`).classList.toggle('hidden', v !== view);
+                document.getElementById(`view${v.charAt(0).toUpperCase() + v.slice(1)}`).classList.toggle('active', v === view);
+            });
+            document.getElementById('msgDetail').classList.add('hidden');
+            if (view === 'inbox') loadInbox();
+            if (view === 'sent') loadSent();
+        }
+
+        async function loadInbox() {
+            try {
+                const { messages, unreadCount } = await api('/my/inbox');
+                _inboxCache = messages || [];
+                const badge = document.getElementById('inboxBadge');
+                if (unreadCount > 0) { badge.textContent = unreadCount; badge.classList.remove('hidden'); }
+                else { badge.classList.add('hidden'); }
+                renderInbox();
+            } catch (e) { console.error('Failed to load inbox:', e); }
+        }
+
+        async function renderInbox() {
+            const el = document.getElementById('msgInbox');
+            if (!_inboxCache.length) {
+                el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><h3>NO MESSAGES</h3><p>Your inbox is empty.</p></div>';
+                return;
+            }
+            // Decrypt previews
+            const items = [];
+            for (const m of _inboxCache) {
+                let preview = m.body;
+                try { if (E2E.isEncrypted(m.body)) preview = await E2E.decrypt(m.body); } catch { preview = '🔒 [encrypted]'; }
+                const fromName = m.from_display_name || m.from_username || m.sender_name || 'Anonymous';
+                items.push(`
+                    <div class="msg-item ${m.is_read ? '' : 'unread'}" onclick="viewInboxMsg(${m.id})">
+                        <div class="msg-from">${esc(fromName)}${!m.from_user_id ? ' <span style="color:var(--text-muted);font-size:.75rem">(visitor)</span>' : ''}</div>
+                        <div>
+                            ${m.subject ? `<div class="msg-subject">${esc(m.subject)}</div>` : ''}
+                            <div class="msg-preview">${esc(preview.substring(0, 100))}</div>
+                        </div>
+                        <div class="msg-time">${timeAgo(m.created_at)}</div>
+                    </div>
+                `);
+            }
+            el.innerHTML = items.join('');
+        }
+
+        async function loadSent() {
+            try {
+                const { messages } = await api('/my/sent');
+                _sentCache = messages || [];
+                renderSent();
+            } catch (e) { console.error('Failed to load sent:', e); }
+        }
+
+        async function renderSent() {
+            const el = document.getElementById('msgSent');
+            if (!_sentCache.length) {
+                el.innerHTML = '<div class="empty-state"><div class="icon">📤</div><h3>NO SENT MESSAGES</h3><p>Messages you send will appear here.</p></div>';
+                return;
+            }
+            const items = [];
+            for (const m of _sentCache) {
+                let preview = m.body;
+                try { if (E2E.isEncrypted(m.body)) preview = await E2E.decrypt(m.body); } catch { preview = '🔒 [encrypted]'; }
+                items.push(`
+                    <div class="msg-item" onclick="viewSentMsg(${m.id})">
+                        <div class="msg-from">To: ${esc(m.to_display_name || m.to_username)}</div>
+                        <div>
+                            ${m.subject ? `<div class="msg-subject">${esc(m.subject)}</div>` : ''}
+                            <div class="msg-preview">${esc(preview.substring(0, 100))}</div>
+                        </div>
+                        <div class="msg-time">${timeAgo(m.created_at)}</div>
+                    </div>
+                `);
+            }
+            el.innerHTML = items.join('');
+        }
+
+        function viewInboxMsg(id) {
+            const m = _inboxCache.find(x => x.id === id);
+            if (!m) return;
+            if (!m.is_read) api(`/my/messages/${id}/read`, { method: 'POST' }).then(() => { m.is_read = 1; renderInbox(); loadInbox(); });
+            showMsgDetail(m, 'inbox');
+        }
+
+        function viewSentMsg(id) {
+            const m = _sentCache.find(x => x.id === id);
+            if (!m) return;
+            showMsgDetail(m, 'sent');
+        }
+
+        async function showMsgDetail(m, context) {
+            const el = document.getElementById('msgDetail');
+            let body = m.body;
+            try { if (E2E.isEncrypted(m.body)) body = await E2E.decrypt(m.body); } catch { body = '🔒 Could not decrypt. Make sure you have the correct private key (check Settings > Encryption Keys).'; }
+            const fromName = m.from_display_name || m.from_username || m.sender_name || 'Anonymous';
+            const emailLine = m.sender_email ? `<div><strong>Email:</strong> <a href="mailto:${esc(m.sender_email)}">${esc(m.sender_email)}</a></div>` : '';
+            const fromLabel = context === 'inbox'
+                ? `From: <strong>${esc(fromName)}</strong>${!m.from_user_id ? ' <span style="color:var(--text-muted)">(visitor)</span>' : ''}`
+                : `To: <strong>${esc(m.to_display_name || m.to_username)}</strong>`;
+            const replyTo = context === 'inbox' ? (m.from_username) : null;
+            el.innerHTML = `
+                <div class="msg-detail">
+                    <div class="msg-detail-header">
+                        <div>
+                            <div>${fromLabel}</div>
+                            ${emailLine}
+                            ${m.subject ? `<div style="font-size:1.1rem;margin-top:5px;font-weight:600">${esc(m.subject)}</div>` : ''}
+                            <div style="color:var(--text-muted);font-size:0.85rem;margin-top:5px">${timeAgo(m.created_at)}</div>
+                        </div>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn btn-ghost" onclick="backToList()" style="padding:6px 12px;font-size:0.85rem">← Back</button>
+                            <button class="btn btn-danger" onclick="deleteMsg(${m.id},'${context}')" style="padding:6px 12px;font-size:0.85rem">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="msg-detail-body">${esc(body)}</div>
+                    ${replyTo ? `
+                    <div class="msg-reply-form">
+                        <textarea id="replyBody" placeholder="Write a reply..."></textarea>
+                        <div style="display:flex;justify-content:flex-end;margin-top:10px">
+                            <button class="btn btn-primary" onclick="replyToMsg('${esc(replyTo)}', ${m.id})" style="padding:8px 20px">↩️ Reply</button>
+                        </div>
+                    </div>` : ''}
+                </div>`;
+            document.getElementById('msgInbox').classList.add('hidden');
+            document.getElementById('msgSent').classList.add('hidden');
+            document.getElementById('msgCompose').classList.add('hidden');
+            el.classList.remove('hidden');
+        }
+
+        function backToList() {
+            document.getElementById('msgDetail').classList.add('hidden');
+            switchMsgView(_currentMsgView);
+        }
+
+        async function replyToMsg(toUsername, parentId) {
+            const body = document.getElementById('replyBody').value.trim();
+            if (!body) return;
+            try {
+                // Encrypt with recipient's public key
+                let encBody = body;
+                try {
+                    const { publicKey } = await api(`/users/${toUsername}/pubkey`);
+                    if (publicKey) encBody = await E2E.encrypt(body, publicKey);
+                } catch { /* send unencrypted if no pubkey */ }
+                await api('/my/messages/send', { method: 'POST', body: { to: toUsername, subject: 'Re: reply', body: encBody, parentId } });
+                toast('Reply sent!');
+                backToList();
+                loadInbox();
+            } catch (e) { toast(e.message, 'err'); }
+        }
+
+        async function sendMessage(e) {
+            e.preventDefault();
+            const to = document.getElementById('composeTo').value.trim();
+            const subject = document.getElementById('composeSubject').value.trim();
+            const body = document.getElementById('composeBody').value.trim();
+            if (!to || !body) return;
+            try {
+                // Encrypt with recipient's public key
+                let encBody = body;
+                try {
+                    const { publicKey } = await api(`/users/${to}/pubkey`);
+                    if (publicKey) encBody = await E2E.encrypt(body, publicKey);
+                } catch { /* send unencrypted if no pubkey */ }
+                await api('/my/messages/send', { method: 'POST', body: { to, subject, body: encBody } });
+                toast('Message sent!');
+                document.getElementById('composeTo').value = '';
+                document.getElementById('composeSubject').value = '';
+                document.getElementById('composeBody').value = '';
+                switchMsgView('sent');
+            } catch (e) { toast(e.message, 'err'); }
+        }
+
+        async function deleteMsg(id, context) {
+            if (!confirm('Delete this message?')) return;
+            try {
+                await api(`/my/messages/${id}`, { method: 'DELETE' });
+                toast('Deleted');
+                backToList();
+                if (context === 'inbox') loadInbox();
+                else loadSent();
+            } catch (e) { toast(e.message, 'err'); }
+        }
+
+        async function markAllInboxRead() {
+            try {
+                await api('/my/messages/read-all', { method: 'POST' });
+                toast('All marked as read');
+                loadInbox();
+            } catch (e) { toast(e.message, 'err'); }
+        }
+
+        // ========== TABS ==========
+
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -666,31 +1004,83 @@
             });
         });
 
-        // Settings form
-        document.getElementById('settingsForm')?.addEventListener('submit', (e) => {
+        // ========== SETTINGS ==========
+
+        document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
-            
-            // Update local user
-            user.displayName = form.displayName.value;
-            user.email = form.email.value;
-            user.bio = form.bio.value;
-            localStorage.setItem('user', JSON.stringify(user));
-            
-            // Update theme
-            setTheme(form.theme.value);
-            
-            alert('Settings saved!');
-            loadProfile();
+            try {
+                await api('/users/me', {
+                    method: 'PUT',
+                    body: {
+                        displayName: form.displayName.value,
+                        bio: form.bio.value,
+                    }
+                });
+                // Password change (if filled)
+                if (form.currentPassword.value && form.newPassword.value) {
+                    await api('/users/me/password', {
+                        method: 'POST',
+                        body: {
+                            currentPassword: form.currentPassword.value,
+                            newPassword: form.newPassword.value
+                        }
+                    });
+                    form.currentPassword.value = '';
+                    form.newPassword.value = '';
+                }
+                toast('Settings saved!');
+                checkAuth(); // Refresh profile
+            } catch (err) { toast(err.message, 'err'); }
         });
 
         // Logout
-        document.getElementById('logoutBtn')?.addEventListener('click', () => {
+        document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+            try { await api('/auth/logout', { method: 'POST' }); } catch (e) {}
             localStorage.removeItem('user');
             window.location.href = 'index.html';
         });
 
-        // Theme
+        // ========== ENCRYPTION KEY MANAGEMENT ==========
+
+        function updateKeyStatus() {
+            const el = document.getElementById('keyStatus');
+            if (!el) return;
+            if (E2E.hasPrivateKey()) {
+                el.innerHTML = '<span style="color:var(--accent)">✓ Private key loaded</span> — Messages are end-to-end encrypted.';
+            } else {
+                el.innerHTML = '<span style="color:var(--red)">✗ No private key</span> — You won\'t be able to read encrypted messages. Import a backup or regenerate.';
+            }
+        }
+
+        async function importKey(input) {
+            const file = input.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                await E2E.importKeyBackup(text);
+                toast('Private key imported!');
+                updateKeyStatus();
+            } catch (e) { toast('Invalid key file: ' + e.message, 'err'); }
+            input.value = '';
+        }
+
+        async function regenerateKey() {
+            if (!confirm('This will generate a new encryption keypair. You will NOT be able to read old encrypted messages. Continue?')) return;
+            try {
+                const keypair = await E2E.generateKeypair();
+                const pubStr = await E2E.exportPublicKey(keypair);
+                const privStr = await E2E.exportPrivateKey(keypair);
+                localStorage.setItem('e2e_privkey', privStr);
+                await api('/users/me/pubkey', { method: 'PUT', body: { publicKey: pubStr } });
+                toast('New keypair generated! Back it up now.', 'ok');
+                updateKeyStatus();
+                E2E.exportKeyBackup();
+            } catch (e) { toast(e.message, 'err'); }
+        }
+
+        // ========== THEME ==========
+
         function setTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
             localStorage.setItem('theme', theme);
@@ -707,6 +1097,15 @@
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
             checkAuth();
+
+            // Check if URL has ?tab=messages to auto-switch
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('tab') === 'messages') {
+                setTimeout(() => {
+                    const msgBtn = document.querySelector('[data-tab="messages"]');
+                    if (msgBtn) msgBtn.click();
+                }, 200);
+            }
 
             document.getElementById('themeToggle').addEventListener('click', () => {
                 document.getElementById('themeMenu').classList.toggle('open');
