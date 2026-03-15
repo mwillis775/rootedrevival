@@ -94,7 +94,7 @@ jobs:
         run: cargo test --manifest-path grab/Cargo.toml --release
 
       - name: Run Scholar unit tests
-        run: cargo test --manifest-path scholar/Cargo.toml --release
+        run: cargo test --manifest-path scholar/Cargo.toml --release --bin scholar
 
       - name: Upload binaries
         uses: actions/upload-artifact@v4
