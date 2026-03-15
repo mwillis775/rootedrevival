@@ -1,0 +1,1224 @@
+openapi: 3.1.0
+info:
+  title: Open Scholar API
+  description: |
+    Open Scholar is a decentralized platform for academic publishing and knowledge sharing,
+    built on top of GrabNet - a peer-to-peer content-addressed network.
+    
+    ## Authentication
+    Most endpoints require authentication via Bearer token. Obtain a token by logging in
+    via `/api/auth/login`. Include the token in the `Authorization` header:
+    ```
+    Authorization: Bearer <your-token>
+    ```
+    
+    ## Rate Limits
+    - General: 100 requests/second
+    - Login: 10 attempts/minute per IP
+    - Registration: 5 attempts/hour per IP
+    - Uploads: 20/minute per user
+  version: 0.1.0
+  contact:
+    name: Rooted Revival
+    email: michaelwillisbotany@proton.me
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8889/api
+    description: Local development
+  - url: https://scholar.rootedrevival.us/api
+    description: Production
+
+tags:
+  - name: Health
+    description: Service health and status
+  - name: Auth
+    description: Authentication and user management
+  - name: Files
+    description: File upload, download, and management
+  - name: Browse
+    description: Browse and search files
+  - name: Reviews
+    description: Peer review system
+  - name: Admin
+    description: Administrative endpoints (requires admin role)
+  - name: GrabNet
+    description: GrabNet P2P network integration
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns service health status
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: scholar
+                  version:
+                    type: string
+                    example: 0.1.0
+
+  /status:
+    get:
+      tags: [Health]
+      summary: Service status
+      description: Returns detailed service status including GrabNet availability
+      responses:
+        '200':
+          description: Status information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+
+  /csrf-token:
+    get:
+      tags: [Auth]
+      summary: Get CSRF token
+      description: Get a CSRF token for form submissions
+      responses:
+        '200':
+          description: CSRF token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  csrf_token:
+                    type: string
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register new user
+      description: |
+        Create a new user account. Automatically generates an ed25519 keypair
+        for GrabNet identity. The private key is returned once - user must save it!
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input or username/email taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      description: Authenticate and receive a session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      description: Invalidate the current session token
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out successfully
+        '401':
+          description: Not authenticated
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user
+      description: Get the currently authenticated user's information
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Not authenticated
+
+  /profiles/{username}:
+    get:
+      tags: [Auth]
+      summary: Get user profile
+      description: Get a user's public profile
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '404':
+          description: User not found
+
+  /profiles/me:
+    put:
+      tags: [Auth]
+      summary: Update profile
+      description: Update the current user's profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated
+        '401':
+          description: Not authenticated
+
+  /files:
+    post:
+      tags: [Files]
+      summary: Upload file
+      description: |
+        Upload a file with metadata. File is automatically pinned to GrabNet.
+        Supports any file type.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload
+                metadata:
+                  type: string
+                  description: JSON string with title, description, tags, is_public
+      responses:
+        '201':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '400':
+          description: Invalid file or metadata
+        '401':
+          description: Not authenticated
+        '413':
+          description: File too large
+
+  /files/{uuid}:
+    get:
+      tags: [Files]
+      summary: Get file metadata
+      description: Get metadata for a specific file
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '404':
+          description: File not found
+    put:
+      tags: [Files]
+      summary: Update file metadata
+      description: Update title, description, tags, or visibility
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFileRequest'
+      responses:
+        '200':
+          description: File updated
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not file owner
+        '404':
+          description: File not found
+    delete:
+      tags: [Files]
+      summary: Delete file
+      description: Delete a file (owner only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: File deleted
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not file owner
+        '404':
+          description: File not found
+
+  /files/{uuid}/stream:
+    get:
+      tags: [Files]
+      summary: Stream file content
+      description: Stream file content for viewing in browser
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File content stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File not found
+
+  /files/{uuid}/download:
+    get:
+      tags: [Files]
+      summary: Download file
+      description: Download file with original filename
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File download
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: attachment; filename="original_name.ext"
+        '404':
+          description: File not found
+
+  /browse/recent:
+    get:
+      tags: [Browse]
+      summary: Recent uploads
+      description: Get recently uploaded public files
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      responses:
+        '200':
+          description: List of recent files
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileList'
+
+  /browse/type/{content_type}:
+    get:
+      tags: [Browse]
+      summary: Browse by type
+      description: Get files of a specific content type
+      parameters:
+        - name: content_type
+          in: path
+          required: true
+          schema:
+            type: string
+            example: application/pdf
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      responses:
+        '200':
+          description: Files of specified type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileList'
+
+  /browse/tag/{tag}:
+    get:
+      tags: [Browse]
+      summary: Browse by tag
+      description: Get files with a specific tag
+      parameters:
+        - name: tag
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      responses:
+        '200':
+          description: Files with specified tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileList'
+
+  /browse/search:
+    get:
+      tags: [Browse]
+      summary: Search files
+      description: Full-text search across files
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileList'
+
+  /browse/needs-review:
+    get:
+      tags: [Browse]
+      summary: Files needing review
+      description: Get files that have few or no reviews
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      responses:
+        '200':
+          description: Files needing reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileList'
+
+  /tags:
+    get:
+      tags: [Browse]
+      summary: Popular tags
+      description: Get list of popular tags with counts
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Tag list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tags:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        tag:
+                          type: string
+                        count:
+                          type: integer
+
+  /files/{file_uuid}/reviews:
+    get:
+      tags: [Reviews]
+      summary: Get reviews for file
+      description: Get all reviews for a specific file
+      parameters:
+        - name: file_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      responses:
+        '200':
+          description: Reviews for file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewList'
+    post:
+      tags: [Reviews]
+      summary: Create review
+      description: Submit a review for a file
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: file_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '201':
+          description: Review created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          description: Already reviewed this file
+        '401':
+          description: Not authenticated
+        '404':
+          description: File not found
+
+  /files/{file_uuid}/reviews/{review_id}/vote:
+    post:
+      tags: [Reviews]
+      summary: Vote on review
+      description: Vote a review as helpful or unhelpful
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: file_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: review_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - helpful
+              properties:
+                helpful:
+                  type: boolean
+      responses:
+        '200':
+          description: Vote recorded
+        '401':
+          description: Not authenticated
+        '404':
+          description: Review not found
+
+  /reviews/recent:
+    get:
+      tags: [Reviews]
+      summary: Recent reviews
+      description: Get recently submitted reviews
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        '200':
+          description: Recent reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewList'
+
+  /site/publish:
+    post:
+      tags: [GrabNet]
+      summary: Publish to GrabNet
+      description: Publish static files to GrabNet for P2P distribution
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - path
+              properties:
+                path:
+                  type: string
+                  description: Path to directory to publish
+                name:
+                  type: string
+                  description: Human-readable site name
+      responses:
+        '200':
+          description: Site published
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  site_id:
+                    type: string
+                  url:
+                    type: string
+        '401':
+          description: Not authenticated
+
+  /site/status:
+    get:
+      tags: [GrabNet]
+      summary: GrabNet status
+      description: Get GrabNet connection status
+      responses:
+        '200':
+          description: GrabNet status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connected:
+                    type: boolean
+                  peer_id:
+                    type: string
+
+  /grabnet:
+    get:
+      tags: [GrabNet]
+      summary: Full GrabNet status
+      description: Get comprehensive GrabNet network status
+      responses:
+        '200':
+          description: GrabNet network status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrabNetStatus'
+
+  /tor:
+    get:
+      tags: [Health]
+      summary: Tor status
+      description: Detect if request is coming through Tor
+      responses:
+        '200':
+          description: Tor detection result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tor:
+                    type: object
+                    properties:
+                      detected:
+                        type: boolean
+                      message:
+                        type: string
+
+  /admin/stats:
+    get:
+      tags: [Admin]
+      summary: Dashboard statistics
+      description: Get overview statistics for admin dashboard
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminStats'
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not an admin
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: List users
+      description: Get paginated list of all users
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      responses:
+        '200':
+          description: User list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  total:
+                    type: integer
+        '403':
+          description: Not an admin
+
+  /admin/users/{user_id}/role:
+    put:
+      tags: [Admin]
+      summary: Update user role
+      description: Update a user's admin/moderator/verified status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_admin:
+                  type: boolean
+                is_moderator:
+                  type: boolean
+                is_verified:
+                  type: boolean
+      responses:
+        '200':
+          description: Role updated
+        '403':
+          description: Not an admin
+        '404':
+          description: User not found
+
+  /admin/users/{user_id}:
+    delete:
+      tags: [Admin]
+      summary: Delete user
+      description: Delete a user account
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: User deleted
+        '403':
+          description: Not an admin
+        '404':
+          description: User not found
+
+  /admin/files:
+    get:
+      tags: [Admin]
+      summary: List all files
+      description: Get paginated list of all files (admin view)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      responses:
+        '200':
+          description: File list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileList'
+        '403':
+          description: Not an admin
+
+  /admin/files/{file_uuid}:
+    delete:
+      tags: [Admin]
+      summary: Admin delete file
+      description: Delete any file (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: file_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: File deleted
+        '403':
+          description: Not an admin
+        '404':
+          description: File not found
+
+  /admin/system:
+    get:
+      tags: [Admin]
+      summary: System status
+      description: Get system health and resource usage
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: System status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uptime:
+                    type: integer
+                    description: Uptime in seconds
+                  memory:
+                    type: object
+                  disk:
+                    type: object
+                  grabnet:
+                    type: object
+        '403':
+          description: Not an admin
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Session token from login
+
+  parameters:
+    limitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 20
+        maximum: 100
+      description: Number of results to return
+    offsetParam:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        default: 0
+      description: Number of results to skip
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        grabnet:
+          type: object
+          properties:
+            available:
+              type: boolean
+
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+          pattern: '^[a-zA-Z0-9_-]+$'
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Session token for authentication
+        user:
+          $ref: '#/components/schemas/User'
+        private_key:
+          type: string
+          description: Only returned on registration - user must save!
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        public_key:
+          type: string
+        display_name:
+          type: string
+        bio:
+          type: string
+        affiliation:
+          type: string
+        is_admin:
+          type: boolean
+        is_moderator:
+          type: boolean
+        is_verified:
+          type: boolean
+        total_uploads:
+          type: integer
+        total_reviews:
+          type: integer
+        reputation_score:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    UserProfile:
+      type: object
+      properties:
+        username:
+          type: string
+        display_name:
+          type: string
+        bio:
+          type: string
+        affiliation:
+          type: string
+        is_verified:
+          type: boolean
+        total_uploads:
+          type: integer
+        total_reviews:
+          type: integer
+        reputation_score:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+        bio:
+          type: string
+        affiliation:
+          type: string
+
+    File:
+      type: object
+      properties:
+        id:
+          type: integer
+        uuid:
+          type: string
+          format: uuid
+        user_id:
+          type: integer
+        username:
+          type: string
+        filename:
+          type: string
+        original_filename:
+          type: string
+        content_type:
+          type: string
+        size:
+          type: integer
+        hash:
+          type: string
+        grabnet_cid:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        is_public:
+          type: boolean
+        view_count:
+          type: integer
+        download_count:
+          type: integer
+        review_count:
+          type: integer
+        average_rating:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    FileList:
+      type: object
+      properties:
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+        total:
+          type: integer
+
+    UpdateFileRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        is_public:
+          type: boolean
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+        file_id:
+          type: integer
+        reviewer_id:
+          type: integer
+        reviewer_username:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        content:
+          type: string
+        methodology_score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        clarity_score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        reproducibility_score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        significance_score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        helpful_count:
+          type: integer
+        unhelpful_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    ReviewList:
+      type: object
+      properties:
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        total:
+          type: integer
+        average_rating:
+          type: number
+
+    CreateReviewRequest:
+      type: object
+      required:
+        - rating
+        - content
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        content:
+          type: string
+          minLength: 50
+        methodology_score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        clarity_score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        reproducibility_score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        significance_score:
+          type: integer
+          minimum: 1
+          maximum: 5
+
+    GrabNetStatus:
+      type: object
+      properties:
+        grabnet:
+          type: object
+          properties:
+            available:
+              type: boolean
+            gateway_url:
+              type: string
+            peer_viewer:
+              type: string
+            network:
+              type: object
+              properties:
+                running:
+                  type: boolean
+                peer_id:
+                  type: string
+                connected_peers:
+                  type: integer
+                published_sites:
+                  type: integer
+                hosted_sites:
+                  type: integer
+
+    AdminStats:
+      type: object
+      properties:
+        total_users:
+          type: integer
+        total_files:
+          type: integer
+        total_reviews:
+          type: integer
+        total_storage:
+          type: integer
+        new_users_today:
+          type: integer
+        new_files_today:
+          type: integer
+        active_users_week:
+          type: integer

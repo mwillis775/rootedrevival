@@ -1,0 +1,68 @@
+[package]
+name = "scholar"
+version = "0.1.0"
+edition = "2021"
+authors = ["Michael Willis <michaelwillisbotany@proton.me>"]
+description = "Open Scholar - Decentralized knowledge sharing built on GrabNet"
+license = "MIT"
+repository = "https://github.com/rootedrevival/scholar"
+
+[dependencies]
+# Web framework
+axum = { version = "0.7", features = ["multipart", "macros"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["fs", "cors", "trace", "compression-gzip"] }
+tower_governor = "0.4"
+governor = "0.6"
+
+# Thread-safe data structures
+parking_lot = "0.12"
+dashmap = "5.5"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Database
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# Cryptography
+ed25519-dalek = { version = "2", features = ["rand_core", "serde"] }
+sha2 = "0.10"
+rand = "0.8"
+bs58 = "0.5"
+argon2 = "0.5"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+
+# Utilities
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+mime_guess = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "1"
+anyhow = "1"
+hex = "0.4"
+dirs = "5"
+
+# Templating
+askama = "0.12"
+
+# Email
+lettre = { version = "0.11", features = ["tokio1-native-tls", "builder", "smtp-transport"] }
+
+# GrabNet P2P network
+grabnet = { git = "https://github.com/mwillis775/grab.git", branch = "main" }
+
+[dev-dependencies]
+tempfile = "3"
+tokio-test = "0.4"
+
+[[bin]]
+name = "scholar"
+path = "src/main.rs"
