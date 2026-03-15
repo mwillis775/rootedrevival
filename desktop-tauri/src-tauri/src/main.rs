@@ -1,5 +1,5 @@
 //! Rooted Revival Desktop Application
-//! 
+//!
 //! Native desktop app built with Tauri that integrates
 //! Scholar and GrabNet for offline-first decentralized knowledge sharing.
 
@@ -15,7 +15,7 @@ use tokio::sync::Mutex;
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .manage(Arc::new(Mutex::new(AppState::default())))
+        .manage(Arc::new(Mutex::new(AppState::new())))
         .invoke_handler(tauri::generate_handler![
             commands::start_scholar,
             commands::stop_scholar,
@@ -27,13 +27,17 @@ fn main() {
             commands::get_published_sites,
             commands::publish_site,
             commands::pin_site,
+            commands::unpin_site,
             commands::get_files,
+            commands::search_content,
             commands::upload_file,
             commands::download_file,
             commands::get_network_stats,
             commands::get_storage_stats,
             commands::export_identity,
             commands::import_identity,
+            commands::get_config,
+            commands::set_offline_mode,
         ])
         .run(tauri::generate_context!())
         .expect("Error running Tauri application");

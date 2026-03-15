@@ -51,11 +51,17 @@ npm run tauri build
 
 ```
 desktop-tauri/
+├── ui/                   # Frontend (vanilla HTML/CSS/JS)
+│   ├── index.html        # Main application shell
+│   ├── styles.css        # Terminal-aesthetic theme
+│   └── app.js            # Tauri IPC bridge & UI logic
 ├── src-tauri/
 │   ├── src/
 │   │   ├── main.rs       # Application entry point
-│   │   ├── commands.rs   # Tauri command handlers
+│   │   ├── lib.rs        # Library exports
+│   │   ├── commands.rs   # Tauri command handlers (18 commands)
 │   │   └── state.rs      # Application state
+│   ├── icons/            # App icons (PNG, ICO, ICNS)
 │   ├── Cargo.toml        # Rust dependencies
 │   └── tauri.conf.json   # Tauri configuration
 ├── package.json          # Node.js dependencies
@@ -98,9 +104,11 @@ The app exposes these Tauri commands to the frontend:
 - `get_published_sites`
 - `publish_site`
 - `pin_site`
+- `unpin_site`
 
 ### Files
 - `get_files`
+- `search_content`
 - `upload_file`
 - `download_file`
 
@@ -111,6 +119,10 @@ The app exposes these Tauri commands to the frontend:
 ### Identity
 - `export_identity`
 - `import_identity`
+
+### Config
+- `get_config`
+- `set_offline_mode`
 
 ## Building for Distribution
 
