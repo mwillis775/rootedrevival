@@ -1,123 +1,83 @@
-# Rooted Revival — Project Instructions
+# Rooted Revival - Copilot Instructions
 
-## Architecture Overview
+## Mission
+Rooted Revival is not a single app. This repository combines the public site, the Node-based CMS and admin backend, the Rust-based Open Scholar service, the GrabNet P2P network, browser P2P helpers, relay and pinning services, and desktop clients. Treat changes as belonging to a specific subsystem. Do not assume one folder is an implementation detail of another.
 
-Rooted Revival is a decentralized academic archive running at **rootedrevival.us**.
+## System Map
+- Repo root: static HTML pages such as `index.html`, `admin.html`, `profile.html`, `view.html`. No bundler, no framework.
+- `site/`: the GrabNet-published site tree. CMS site-file editing and GrabNet publishing operate on this directory.
+- `server/`: Node.js API server, SQLite DB, CMS routes, moderation, WebAuthn/U2F, and GrabNet orchestration.
+- `scholar/`: Rust academic API and moderation service with its own handlers, models, tests, and OpenAPI spec.
+- `grab/`: Rust GrabNet core for site publishing, content addressing, replication, gateway, storage, and networking.
+- `relay/`: WebSocket relay for browser libp2p peers.
+- `pinning-service/`: Node.js content pinning service.
+- `desktop/`, `desktop-tauri/`, `grabnet-gui/`: desktop clients and launcher surfaces.
+- `static/`: shared browser-side GrabNet and P2P scripts.
 
-### Stack
-- **Frontend**: Static HTML pages served from repo root (`admin.html`, `index.html`, etc.) — no build step, no framework
-- **API Server** (`server/`): Node.js with custom micro-framework (`src/http.js`), SQLite via `better-sqlite3`
-- **P2P Layer** (`grab/`): Rust crate — content-addressed storage, libp2p, Merkle trees, replication
-- **Scholar API** (`scholar/`): Rust/Actix-web academic API with moderation, peer review, GrabNet publishing
-- **Relay**: WebSocket relay (`relay/ws-relay.js`) for P2P signaling
-- **Pinning Service**: Node.js service (`pinning-service/`) for persistent content pinning
-- **Desktop Apps**: Electron (`desktop/`) and Tauri (`desktop-tauri/`) clients
+## Frontend Ownership Rules
+- There is no frontend build step. Prefer direct HTML, CSS, and JS edits in the owning file.
+- Before editing a page, identify which surface owns it: repo root, `site/`, `server/public/`, desktop renderer, or shared `static/` assets.
+- `site/` is the source used by CMS site-file APIs and by GrabNet publish/update flows.
+- Root-level pages often overlap with files in `site/`. Do not assume they stay in sync automatically. If a page exists in both places and the change is meant to affect the public site, inspect both and keep them aligned unless there is a documented reason to diverge.
+- `server/public/` belongs to the standalone Node server frontend, not the main static site.
+- Preserve the existing design language unless the user explicitly asks for a redesign: terminal-inspired aesthetics, CSS custom properties, Share Tech Mono and Inter, and theme-aware styling.
+- `admin.html` is a large single-file admin app. Make targeted edits and avoid broad rewrites.
 
-### Deployment
-- P2P-served via GrabNet through Cloudflare tunnel
-- Internet Archive provides downtime protection / archival
-- Domain: `rootedrevival.us`
-- API base: `https://scholar.rootedrevival.us/api`
+## Server Conventions
+- The server uses a custom micro-framework in `server/src/http.js`, not Express. Reuse `createApp()`, `auth()`, `cors()`, `rateLimit()`, and `parseMultipart()` patterns.
+- Database access is synchronous SQLite through `better-sqlite3`. Follow the existing repository modules in `server/src/db/` instead of issuing ad hoc SQL throughout route files.
+- Response conventions are `res.json(...)` for success and `res.error(message, statusCode)` for failure.
+- Use `server/src/config.js` for environment-driven configuration. Do not hardcode local paths, secrets, or domains when a config value already exists.
+- Existing upload, MIME-type, and size restrictions are intentional. Extend them only when the task requires it.
 
-## Security Model
+## Security-Critical Rules
+- Do not weaken authentication, authorization, CORS, upload validation, or path traversal protections.
+- Auth is tiered:
+	1. Session auth via the `session` cookie or bearer token.
+	2. Admin or moderator role checks from the user record.
+	3. Hardware-key elevation via `u2f_verified` for destructive admin actions.
+- `req.u2fVerified` is populated in `server/src/http.js` from the `u2f_verified` cookie. Preserve that flow.
+- Destructive CMS and admin operations are intentionally gated by `requireU2FAdmin()`, `requireElevatedAdmin()`, or `requireProtectedAdminAction()`. Do not replace those with weaker checks.
+- WebAuthn is implemented in-house in `server/src/webauthn.js`. Be cautious with ceremony logic, challenge verification, CBOR parsing, signature handling, RP ID/origin checks, and sign-count updates.
+- CORS is credentialed. Do not combine wildcard origins with credentialed requests.
+- Keep secrets and operational values in environment variables. Never commit tokens, passwords, or private keys.
+- Preserve file-safety checks around CMS site-file editing. Current code intentionally limits editable extensions and uses `path.basename()` to block traversal.
 
-### Authentication Tiers
-1. **Session auth**: Cookie-based (`session` cookie), standard login
-2. **Admin auth**: `isAdmin` flag on user record, grants read access to moderation tools
-3. **U2F-elevated admin**: Hardware security key (Flipper Zero) verification sets `u2f_verified` cookie — required for destructive/write admin operations (page edits, user bans, site settings changes)
+## Publishing And P2P Rules
+- `server/src/grab.js` publishes the `site/` directory under the site name `rootedrevival`.
+- The publish flow kills the GrabNet gateway, waits for the DB lock to clear, then republishes and restarts the gateway. Avoid concurrent publish-related changes and do not assume the gateway stays up during publish.
+- User-uploaded site content is stored under `site/content/<username>/` and includes sidecar metadata files.
+- Do not make speculative changes to `grab/`, the relay protocol, or browser libp2p behavior unless the user explicitly asks for network-layer work.
 
-### WebAuthn / Flipper Zero
-- Backend: `server/src/webauthn.js` — registration & authentication ceremony, CBOR decoder, credential storage
-- Middleware: `server/src/http.js` line ~321 maps `u2f_verified` cookie → `req.u2fVerified`
-- CMS routes: `server/src/cms-routes.js` — `requireU2FAdmin()` gates write operations
-- Frontend: `admin.html` — WebAuthn API calls with binary↔base64url conversion
-- RP ID: `rootedrevival.us`, configurable via `WEBAUTHN_RP_ID` env var
+## Scholar And Multi-Service Boundaries
+- `server/` and `scholar/` are separate backends with different stacks and runtime models. Do not conflate their APIs, tests, or persistence logic.
+- `scholar/` is Rust-based and should follow its existing handler, middleware, and DB patterns.
+- Desktop clients are separate products. UI or IPC changes there should stay localized to the relevant app.
+- The relay and pinning services are operational components. Avoid breaking protocol assumptions or port expectations without updating related docs and configs.
 
-### CORS
-- Allowed origins: `rootedrevival.us`, `scholar.rootedrevival.us`, `localhost:*`
-- Credentials: always included (`credentials: 'include'` on fetch, `Allow-Credentials: true` on server)
+## Current Product Reality
+- The admin/CMS layer includes more than pages and media. It also handles navigation, themes, components, site files, contact messages, and user-to-user messaging.
+- Messaging exists in the Node server CMS layer, including inbox, sent, compose, and admin-side message management. Be careful not to remove or bypass those flows when editing profile, admin, or CMS behavior.
+- Rooted Revival mixes public-facing site content, academic archive functionality, and decentralized hosting infrastructure. Seemingly small UI changes can affect moderation, publishing, or user workflows.
 
-## Database
+## Working Style For This Repo
+- Trace the full path before changing behavior: UI -> route -> DB/service module -> published/static surface.
+- Prefer small, surgical changes over broad refactors, especially in `admin.html`, `server/src/http.js`, `server/src/cms-routes.js`, `server/src/admin-routes.js`, and security-sensitive Rust handlers.
+- When changing a feature that spans mirrored files or multiple surfaces, update all relevant copies in the same task or clearly document what was intentionally left separate.
+- Update docs when behavior, commands, ports, security expectations, or editing ownership rules change.
+- Do not introduce unnecessary dependencies, bundlers, or framework migrations.
 
-SQLite at `server/data/scholar.db`. Key tables:
-- `users` — accounts with `is_admin` flag
-- `papers` — uploaded academic content with moderation status
-- `webauthn_credentials` — hardware key registrations (credential_id, public_key, sign_count)
-- `cms_pages` — editable site pages (slug, content, status, template, custom CSS/JS)
-- `cms_media` — uploaded media assets
-- `cms_settings` — key-value site configuration
-- `cms_nav_items` — navigation menu entries
-- `cms_components` — reusable HTML blocks (header, footer, sidebar)
-- `cms_themes` — theme definitions with CSS variable overrides
+## Useful Commands
+- Server: `cd server && npm run db:init`, `npm run dev`, `npm test`
+- Scholar: `cd scholar && cargo run`, `cargo test`
+- GrabNet: `cd grab && cargo build --release`, `cargo test`
+- Relay: `cd relay && npm start`
+- Desktop: `cd desktop && npm run dev`
+- GrabNet GUI: `cd grabnet-gui && npm run dev`
 
-DB modules: `server/src/db/` — `users.js`, `papers.js`, `cms.js`, `moderation.js`, `files.js`, etc.
-
-## Admin Panel (`admin.html`)
-
-Single-page app, ~1500 lines. Sections:
-- **Dashboard**: Stats, recent activity
-- **Pages**: WYSIWYG editor with toolbar, HTML mode toggle, revision history
-- **Media**: Grid/upload with drag-drop, detail editor, folder filtering
-- **Navigation**: Drag-reorder nav items per menu
-- **Themes**: CSS variable editor with live preview
-- **Settings**: Grouped key-value pairs (general, appearance, seo, advanced)
-- **Components**: Editable HTML blocks (header, footer, sidebar, scripts)
-- **GrabNet**: P2P publishing controls, node status, pinning
-- **Moderation**: Pending queue, approve/reject, user management, audit logs
-- **Security Keys**: Register/delete U2F keys, session elevation status
-
-### UI Conventions
-- Dark terminal aesthetic (green-on-black) as default theme
-- 4 themes: `terminal`, `vapor`, `midnight`, `paper`
-- Monospace font: Share Tech Mono; Sans: Inter
-- Toast notifications for feedback
-- Modal dialogs for confirmations and detail views
-- Sidebar navigation with active states and badge counts
-
-## API Endpoints
-
-### Auth
-- `POST /api/auth/login` — username + password
-- `POST /api/auth/register` — create account
-- `GET /api/auth/me` — current session
-
-### WebAuthn
-- `GET /api/webauthn/status` — check registered keys
-- `POST /api/webauthn/register/begin` → `/register/complete` — register new key
-- `POST /api/webauthn/auth/begin` → `/auth/complete` — authenticate with key
-- `DELETE /api/webauthn/credentials/:id` — remove key
-
-### CMS
-- `GET/POST /api/cms/pages` — list/create pages
-- `GET/PUT/DELETE /api/cms/pages/:uuid` — single page CRUD
-- `GET /api/cms/pages/:uuid/revisions` — revision history
-- `POST /api/cms/pages/:uuid/revisions/:id/restore` — restore revision
-- `GET/POST /api/cms/media` — list/upload media (multipart)
-- `GET /api/cms/media/:uuid/file` — serve media file
-- `PUT/DELETE /api/cms/media/:uuid` — update/delete media
-- `GET/PUT /api/cms/settings` — site settings
-- `GET/PUT /api/cms/navigation/:menu` — nav menus
-- `GET /api/cms/components` — list components
-- `PUT /api/cms/components/:name` — update component
-- `GET/POST /api/cms/theme` — list/create themes
-- `POST /api/cms/theme/:name/activate` — activate theme
-- `GET /api/cms/export` — export full site
-
-### Admin / Moderation
-- `GET /api/admin/stats` — dashboard stats
-- `GET /api/admin/pending` — moderation queue
-- `POST /api/admin/moderate/:id` — approve/reject
-- `GET /api/admin/users` — user list
-- `POST /api/admin/users/:id/ban` — ban user
-- `POST /api/admin/users/:id/unban` — unban user
-- `POST /api/admin/users/:id/role` — change role
-- `GET /api/admin/logs` — audit logs
-
-## Coding Conventions
-- No build tools, no bundler — vanilla HTML/CSS/JS for frontend
-- Server uses custom `createApp()` from `http.js` (Express-like but hand-rolled)
-- All DB access via synchronous `better-sqlite3` prepared statements
-- Crypto: Node.js built-in `crypto` module only — no external auth libraries
-- File uploads: custom multipart parser in `http.js`
-- Error responses: `res.error(message, statusCode)`
-- Success responses: `res.json(data)`
+## Avoid
+- Do not bypass U2F or moderator/admin checks for convenience.
+- Do not edit only one copy of a duplicated page without verifying ownership and deployment impact.
+- Do not replace the custom Node server patterns with Express-style assumptions.
+- Do not hardcode production-only domains or local-machine paths where configuration already exists.
+- Do not make unrelated GrabNet, relay, or Scholar changes during a frontend or CMS task.

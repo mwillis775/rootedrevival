@@ -346,13 +346,15 @@ function registerCmsRoutes(app) {
     });
     
     /**
-     * Begin U2F key registration — returns challenge for navigator.credentials.create()
+     * Begin key registration — returns challenge for navigator.credentials.create()
+     * Accepts optional authenticatorType: 'cross-platform' | 'platform' | 'any'
      */
     app.post('/api/webauthn/register/begin', async (req, res) => {
         await auth({ required: true })(req, res, async () => {
             await requireAdmin(req, res, async () => {
                 try {
-                    const options = webauthn.generateRegistrationOptions(req.user);
+                    const { authenticatorType } = req.body || {};
+                    const options = webauthn.generateRegistrationOptions(req.user, authenticatorType || 'any');
                     res.json({ options });
                 } catch (e) {
                     res.error(e.message, 500);
@@ -362,7 +364,7 @@ function registerCmsRoutes(app) {
     });
     
     /**
-     * Complete U2F key registration — verifies attestation and stores credential
+     * Complete key registration — verifies attestation and stores credential
      */
     app.post('/api/webauthn/register/complete', async (req, res) => {
         await auth({ required: true })(req, res, async () => {
@@ -377,7 +379,7 @@ function registerCmsRoutes(app) {
                     const result = webauthn.verifyRegistration(
                         req.user,
                         credential,
-                        deviceName || 'Flipper Zero'
+                        deviceName || 'Security Key'
                     );
                     
                     res.json({
@@ -393,7 +395,7 @@ function registerCmsRoutes(app) {
     });
     
     /**
-     * Begin U2F authentication — returns challenge for navigator.credentials.get()
+     * Begin authentication — returns challenge for navigator.credentials.get()
      */
     app.post('/api/webauthn/auth/begin', async (req, res) => {
         await auth({ required: false })(req, res, async () => {
@@ -408,7 +410,7 @@ function registerCmsRoutes(app) {
     });
     
     /**
-     * Complete U2F authentication — verifies signature, elevates session to admin
+     * Complete authentication — verifies signature, elevates session to admin
      */
     app.post('/api/webauthn/auth/complete', async (req, res) => {
         await auth({ required: false })(req, res, async () => {

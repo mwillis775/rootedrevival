@@ -148,10 +148,10 @@ tr:hover{background:var(--el)}
     </div>
     <div id="gateU2F" class="hidden">
       <div class="u2f-box">
-        <h3>🗝️ HARDWARE KEY REQUIRED</h3>
-        <p style="color:var(--tm);font-size:.85rem">Tap your Flipper Zero or insert your security key to unlock the admin console.</p>
+        <h3>🗝️ AUTHENTICATION REQUIRED</h3>
+        <p style="color:var(--tm);font-size:.85rem">Verify your identity with a passkey or security key to unlock the admin console.</p>
         <div class="u2f-status" id="u2fStatus">Waiting...</div>
-        <button class="btn btn-u2f" id="btnU2FAuth" onclick="doU2FAuth()">🔓 Tap Key to Authenticate</button>
+        <button class="btn btn-u2f" id="btnU2FAuth" onclick="doU2FAuth()">🔓 Authenticate</button>
       </div>
     </div>
     <div id="gateNoAdmin" class="hidden">
@@ -167,7 +167,7 @@ tr:hover{background:var(--el)}
     <a href="index.html" class="logo">
       <span>🌱</span><span>ROOTED_REVIVAL</span>
       <span class="admin-badge">ADMIN</span>
-      <span class="u2f-badge" id="u2fBadge" title="Hardware key verified — elevated access active">🗝️ U2F</span>
+      <span class="u2f-badge" id="u2fBadge" title="Passkey verified — elevated access active">🗝️ VERIFIED</span>
     </a>
     <div class="header-actions">
       <select id="themeSelect" onchange="setTheme(this.value)" style="width:auto;padding:4px 8px;font-size:.8rem">
@@ -406,19 +406,34 @@ tr:hover{background:var(--el)}
 
       <!-- ===== HARDWARE KEYS ===== -->
       <section id="sec-keys" class="hidden">
-        <div class="page-hd"><h1>🗝️ HARDWARE KEYS</h1><p>Manage U2F / WebAuthn security keys (Flipper Zero, YubiKey, etc.)</p></div>
+        <div class="page-hd"><h1>🗝️ ADMIN KEYS</h1><p>Manage passkeys &amp; hardware security keys for elevated admin access.</p></div>
         <div class="card"><div class="card-hd"><h3>Registered Keys</h3><button class="btn btn-p btn-s" onclick="registerNewKey()">+ Register Key</button></div>
           <table><thead><tr><th>DEVICE</th><th>REGISTERED</th><th>LAST USED</th><th>SIGN COUNT</th><th>ACTIONS</th></tr></thead>
           <tbody id="keysTable"></tbody></table></div>
         <div class="card" style="margin-top:20px"><div class="card-body">
-          <h3 style="font-family:var(--fm);color:var(--am);margin-bottom:8px">🦈 Flipper Zero Setup</h3>
-          <ol style="color:var(--tm);font-size:.9rem;padding-left:20px;line-height:2">
-            <li>On your Flipper Zero, go to <strong>U2F</strong> app</li>
-            <li>Select <strong>Start</strong> to enable U2F mode</li>
-            <li>Click <strong>Register Key</strong> above</li>
-            <li>When prompted, press the button on Flipper Zero to confirm</li>
-            <li>Give it a name like "Flipper Zero" and you're set!</li>
-          </ol>
+          <h3 style="font-family:var(--fm);color:var(--ac);margin-bottom:12px">Supported Key Types</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+            <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:16px">
+              <div style="font-size:1.5rem;margin-bottom:6px">🍎</div>
+              <strong style="color:var(--tx);font-size:.9rem">Apple</strong>
+              <p style="color:var(--tm);font-size:.8rem;margin-top:4px">Touch ID, Face ID, or iCloud Keychain passkey</p>
+            </div>
+            <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:16px">
+              <div style="font-size:1.5rem;margin-bottom:6px">🔑</div>
+              <strong style="color:var(--tx);font-size:.9rem">Google</strong>
+              <p style="color:var(--tm);font-size:.8rem;margin-top:4px">Google Password Manager passkey on Chrome or Android</p>
+            </div>
+            <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:16px">
+              <div style="font-size:1.5rem;margin-bottom:6px">🪟</div>
+              <strong style="color:var(--tx);font-size:.9rem">Microsoft</strong>
+              <p style="color:var(--tm);font-size:.8rem;margin-top:4px">Windows Hello PIN, fingerprint, or facial recognition</p>
+            </div>
+            <div style="background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:16px">
+              <div style="font-size:1.5rem;margin-bottom:6px">🦈</div>
+              <strong style="color:var(--tx);font-size:.9rem">Hardware Key</strong>
+              <p style="color:var(--tm);font-size:.8rem;margin-top:4px">Flipper Zero U2F, YubiKey, or other FIDO2 security key</p>
+            </div>
+          </div>
         </div></div>
       </section>
 
@@ -542,14 +557,29 @@ tr:hover{background:var(--el)}
 
 <!-- ===== KEY REGISTRATION MODAL ===== -->
 <div class="modal-overlay" id="keyRegModal">
-  <div class="modal" style="max-width:450px">
-    <div class="modal-hd"><h2>🗝️ Register Hardware Key</h2><button class="modal-close" onclick="closeModal('keyRegModal')">&times;</button></div>
-    <div class="modal-body" style="text-align:center">
-      <div style="font-size:3rem;margin-bottom:12px">🦈</div>
-      <p style="color:var(--tm);margin-bottom:16px">Make sure your Flipper Zero (or other U2F key) is connected and in U2F mode.</p>
-      <div class="form-row"><label>DEVICE NAME</label><input id="keyDeviceName" placeholder="Flipper Zero" value="Flipper Zero"></div>
+  <div class="modal" style="max-width:500px">
+    <div class="modal-hd"><h2>🗝️ Register Admin Key</h2><button class="modal-close" onclick="closeModal('keyRegModal')">&times;</button></div>
+    <div class="modal-body">
+      <p style="color:var(--tm);margin-bottom:16px;font-size:.85rem">Choose how you'd like to authenticate for elevated admin access.</p>
+      <div style="display:grid;gap:10px;margin-bottom:16px" id="keyTypeGrid">
+        <label style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border:2px solid var(--bd);border-radius:var(--r);cursor:pointer" onclick="selectKeyType('platform')" id="keyType-platform">
+          <input type="radio" name="keyType" value="platform" style="width:auto">
+          <div>
+            <strong style="color:var(--tx)">🍎 🔑 🪟 Passkey</strong>
+            <div style="color:var(--tm);font-size:.8rem">Apple Touch ID / Face ID, Google Passkey, Windows Hello</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border:2px solid var(--bd);border-radius:var(--r);cursor:pointer" onclick="selectKeyType('cross-platform')" id="keyType-cross-platform">
+          <input type="radio" name="keyType" value="cross-platform" style="width:auto">
+          <div>
+            <strong style="color:var(--tx)">🦈 Hardware Security Key</strong>
+            <div style="color:var(--tm);font-size:.8rem">Flipper Zero U2F, YubiKey, or other FIDO2 key</div>
+          </div>
+        </label>
+      </div>
+      <div class="form-row"><label>DEVICE NAME</label><input id="keyDeviceName" placeholder="My Passkey"></div>
       <div id="keyRegStatus" style="font-family:var(--fm);color:var(--tm);margin:12px 0"></div>
-      <button class="btn btn-u2f" id="btnRegKey" onclick="doRegisterKey()">🔓 Begin Registration</button>
+      <button class="btn btn-u2f" id="btnRegKey" onclick="doRegisterKey()" style="width:100%">🔓 Begin Registration</button>
     </div>
   </div>
 </div>
@@ -696,14 +726,14 @@ async function initAuth() {
         u2fVerified = true;
         enterAdmin();
       } else {
-        gateMsg.textContent = 'Admin session detected. Hardware key verification needed.';
+        gateMsg.textContent = 'Admin session detected. Key verification needed.';
         document.getElementById('gateU2F').classList.remove('hidden');
       }
     } else {
       // Admin with no keys registered — let them in (they can register from inside)
       u2fVerified = false;
       enterAdmin();
-      toast('No hardware key registered. Register one in Security Keys for enhanced protection.', 'warn');
+      toast('No admin key registered. Register one in Admin Keys for enhanced protection.', 'warn');
     }
     
   } catch(e) {
@@ -721,7 +751,22 @@ function enterAdmin() {
   showSection('dashboard');
 }
 
-// ========== WEBAUTHN / U2F ==========
+// ========== WEBAUTHN / PASSKEYS ==========
+let selectedKeyType = 'platform';
+
+function selectKeyType(type) {
+  selectedKeyType = type;
+  document.querySelectorAll('#keyTypeGrid label').forEach(l => l.style.borderColor = 'var(--bd)');
+  const el = document.getElementById('keyType-' + type);
+  if (el) el.style.borderColor = 'var(--ac)';
+  const nameInput = document.getElementById('keyDeviceName');
+  if (type === 'cross-platform') {
+    nameInput.placeholder = 'Flipper Zero';
+  } else {
+    nameInput.placeholder = 'My Passkey';
+  }
+}
+
 async function doU2FAuth() {
   const status = document.getElementById('u2fStatus');
   const btn = document.getElementById('btnU2FAuth');
@@ -741,7 +786,7 @@ async function doU2FAuth() {
       }));
     }
     
-    status.textContent = '🔓 Tap your Flipper Zero now...';
+    status.textContent = '🔓 Complete authentication on your device...';
     status.style.color = 'var(--ac)';
     
     const credential = await navigator.credentials.get({ publicKey: options });
@@ -766,7 +811,7 @@ async function doU2FAuth() {
     
     u2fVerified = true;
     if (result.user) currentUser = result.user;
-    toast('Hardware key verified! Full access granted.', 'ok');
+    toast('Identity verified! Full access granted.', 'ok');
     enterAdmin();
     
   } catch(e) {
@@ -777,6 +822,12 @@ async function doU2FAuth() {
 }
 
 async function registerNewKey() {
+  selectedKeyType = 'platform';
+  document.getElementById('keyDeviceName').value = '';
+  document.getElementById('keyDeviceName').placeholder = 'My Passkey';
+  selectKeyType('platform');
+  const radio = document.querySelector('input[name="keyType"][value="platform"]');
+  if (radio) radio.checked = true;
   openModal('keyRegModal');
   document.getElementById('keyRegStatus').textContent = '';
 }
@@ -784,14 +835,17 @@ async function registerNewKey() {
 async function doRegisterKey() {
   const status = document.getElementById('keyRegStatus');
   const btn = document.getElementById('btnRegKey');
-  const name = document.getElementById('keyDeviceName').value || 'Security Key';
+  const name = document.getElementById('keyDeviceName').value || (selectedKeyType === 'cross-platform' ? 'Security Key' : 'Passkey');
   
   try {
     btn.disabled = true;
     status.textContent = 'Getting challenge from server...';
     status.style.color = 'var(--am)';
     
-    const { options } = await api('/webauthn/register/begin', { method: 'POST' });
+    const { options } = await api('/webauthn/register/begin', { 
+      method: 'POST',
+      body: { authenticatorType: selectedKeyType }
+    });
     
     // Convert for browser
     options.challenge = b64urlToBuffer(options.challenge);
@@ -803,12 +857,17 @@ async function doRegisterKey() {
       }));
     }
     
-    status.textContent = '🔓 Tap your Flipper Zero to register...';
+    status.textContent = selectedKeyType === 'cross-platform' 
+      ? '🔓 Tap your security key to register...'
+      : '🔓 Complete authentication on your device...';
     status.style.color = 'var(--ac)';
     
     const credential = await navigator.credentials.create({ publicKey: options });
     
     status.textContent = 'Storing credential...';
+    
+    // Extract transports if the browser provides them
+    const transports = credential.response.getTransports ? credential.response.getTransports() : undefined;
     
     await api('/webauthn/register/complete', {
       method: 'POST',
@@ -817,6 +876,7 @@ async function doRegisterKey() {
           id: credential.id,
           rawId: b64url(credential.rawId),
           type: credential.type,
+          transports,
           response: {
             clientDataJSON: b64url(credential.response.clientDataJSON),
             attestationObject: b64url(credential.response.attestationObject)
@@ -826,7 +886,7 @@ async function doRegisterKey() {
       }
     });
     
-    toast('Hardware key registered!', 'ok');
+    toast('Key registered successfully!', 'ok');
     closeModal('keyRegModal');
     loadKeys();
     
@@ -1752,13 +1812,13 @@ async function deleteMessage(id) {
   } catch(e) { toast(e.message, 'err'); }
 }
 
-// ========== HARDWARE KEYS ==========
+// ========== ADMIN KEYS ==========
 async function loadKeys() {
   try {
     const data = await api('/webauthn/status');
     const tb = document.getElementById('keysTable');
     if (!data.keys?.length) {
-      tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="icon">🗝️</div><h3>NO KEYS REGISTERED</h3><p>Register your Flipper Zero to enable hardware-key admin access.</p></div></td></tr>';
+      tb.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="icon">🗝️</div><h3>NO KEYS REGISTERED</h3><p>Register a passkey or hardware security key to enable elevated admin access.</p></div></td></tr>';
       return;
     }
     tb.innerHTML = data.keys.map(k => `
@@ -1776,7 +1836,7 @@ async function loadKeys() {
 }
 
 async function deleteKey(id) {
-  if (!confirm('Remove this hardware key? You may lose admin access.')) return;
+  if (!confirm('Remove this key? You may lose elevated admin access.')) return;
   try {
     await api(`/webauthn/credentials/${id}`, { method: 'DELETE' });
     toast('Key removed', 'ok');

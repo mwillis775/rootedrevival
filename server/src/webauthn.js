@@ -1,9 +1,10 @@
 /**
- * Rooted Revival - WebAuthn/U2F Authentication
+ * Rooted Revival - WebAuthn Authentication
  * 
  * Supports hardware security keys (Flipper Zero U2F, YubiKey, etc.)
- * for admin-level authentication. When a registered U2F key is present
- * and verified, the session is elevated to admin.
+ * and platform authenticators (Apple Touch ID/Face ID, Google passkeys,
+ * Windows Hello) for admin-level authentication.
+ * When a registered key is present and verified, the session is elevated to admin.
  * 
  * Uses the Web Authentication API (WebAuthn Level 2) with pure Node.js crypto.
  * No external WebAuthn libraries required.
@@ -269,10 +270,36 @@ function base64urlDecode(str) {
 
 // --- Registration ---
 
+// Authenticator type presets for registration
+const AUTHENTICATOR_TYPES = {
+    // Hardware keys: Flipper Zero, YubiKey, etc.
+    'cross-platform': {
+        authenticatorAttachment: 'cross-platform',
+        residentKey: 'discouraged',
+        requireResidentKey: false,
+        userVerification: 'discouraged'
+    },
+    // Platform authenticators: Apple Touch ID/Face ID, Google passkeys, Windows Hello
+    'platform': {
+        authenticatorAttachment: 'platform',
+        residentKey: 'preferred',
+        requireResidentKey: false,
+        userVerification: 'preferred'
+    },
+    // Any authenticator (let the browser decide)
+    'any': {
+        residentKey: 'preferred',
+        requireResidentKey: false,
+        userVerification: 'preferred'
+    }
+};
+
 /**
  * Generate registration options for WebAuthn credential creation
+ * @param {object} user - The user registering a credential
+ * @param {string} authenticatorType - 'cross-platform' | 'platform' | 'any'
  */
-function generateRegistrationOptions(user) {
+function generateRegistrationOptions(user, authenticatorType = 'any') {
     const challenge = crypto.randomBytes(32);
     const challengeB64 = base64urlEncode(challenge);
     
@@ -286,8 +313,10 @@ function generateRegistrationOptions(user) {
     // Get existing credentials to exclude
     const db = getDb();
     const existing = db.prepare(
-        'SELECT credential_id FROM webauthn_credentials WHERE user_id = ?'
+        'SELECT credential_id, transports FROM webauthn_credentials WHERE user_id = ?'
     ).all(user.id);
+    
+    const preset = AUTHENTICATOR_TYPES[authenticatorType] || AUTHENTICATOR_TYPES['any'];
     
     return {
         rp: {
@@ -304,18 +333,13 @@ function generateRegistrationOptions(user) {
             { type: 'public-key', alg: COSE_ALG.ES256 },
             { type: 'public-key', alg: COSE_ALG.RS256 }
         ],
-        timeout: 120000, // 2 minutes (Flipper Zero can be slow)
-        authenticatorSelection: {
-            // Don't require resident key - U2F keys (Flipper) don't support it
-            residentKey: 'discouraged',
-            requireResidentKey: false,
-            userVerification: 'discouraged' // Flipper U2F doesn't have biometrics
-        },
+        timeout: 120000,
+        authenticatorSelection: { ...preset },
         attestation: 'direct',
         excludeCredentials: existing.map(c => ({
             type: 'public-key',
             id: c.credential_id,
-            transports: ['usb', 'nfc'] // Flipper supports USB and NFC
+            transports: JSON.parse(c.transports || '["usb","nfc"]')
         }))
     };
 }
@@ -401,6 +425,9 @@ function verifyRegistration(user, response, deviceName = 'Security Key') {
     const db = getDb();
     const credIdB64 = base64urlEncode(credentialId);
     
+    // Use transports from response if provided, otherwise infer from device name
+    const transports = response.transports || inferTransports(deviceName);
+    
     db.prepare(`
         INSERT INTO webauthn_credentials 
         (user_id, credential_id, public_key, sign_count, device_name, aaguid, transports)
@@ -415,7 +442,7 @@ function verifyRegistration(user, response, deviceName = 'Security Key') {
         signCount,
         deviceName,
         aaguid.toString('hex'),
-        JSON.stringify(['usb', 'nfc'])
+        JSON.stringify(transports)
     );
     
     return {
@@ -426,6 +453,27 @@ function verifyRegistration(user, response, deviceName = 'Security Key') {
 }
 
 // --- Authentication ---
+
+/**
+ * Infer transports from device name when actual transports aren't available
+ */
+function inferTransports(deviceName) {
+    const name = (deviceName || '').toLowerCase();
+    if (name.includes('flipper') || name.includes('yubikey') || name.includes('security key')) {
+        return ['usb', 'nfc'];
+    }
+    if (name.includes('apple') || name.includes('touch id') || name.includes('face id') || name.includes('icloud')) {
+        return ['internal', 'hybrid'];
+    }
+    if (name.includes('google') || name.includes('android') || name.includes('chrome')) {
+        return ['internal', 'hybrid'];
+    }
+    if (name.includes('windows') || name.includes('hello') || name.includes('microsoft')) {
+        return ['internal'];
+    }
+    // Default: support all common transports
+    return ['internal', 'hybrid', 'usb', 'nfc', 'ble'];
+}
 
 /**
  * Generate authentication options (challenge for signing)
@@ -444,7 +492,7 @@ function generateAuthenticationOptions(userId = null) {
         challenge: challengeB64,
         timeout: 120000,
         rpId: RP_ID,
-        userVerification: 'discouraged' // Flipper Zero doesn't support UV
+        userVerification: 'preferred' // Allow biometrics for platform keys, optional for hardware
     };
     
     // If we know the user, only allow their credentials
@@ -457,7 +505,7 @@ function generateAuthenticationOptions(userId = null) {
         options.allowCredentials = creds.map(c => ({
             type: 'public-key',
             id: c.credential_id,
-            transports: JSON.parse(c.transports || '["usb","nfc"]')
+            transports: JSON.parse(c.transports || '["internal","hybrid","usb","nfc"]')
         }));
     }
     
