@@ -125,26 +125,31 @@ function deleteFileFromSite(username, filename) {
  */
 function killGateway() {
     try {
-        // Find gateway process
-        const result = execSync("ps aux | grep 'grab gateway' | grep -v grep | awk '{print $2}'", { 
-            encoding: 'utf8',
-            stdio: ['pipe', 'pipe', 'pipe']
-        }).trim();
-        
-        if (result) {
-            const pids = result.split('\n').filter(Boolean);
-            for (const pid of pids) {
-                try {
-                    execSync(`kill ${pid}`, { stdio: 'pipe' });
-                } catch (e) {
-                    // Process may have already exited
-                }
-            }
-            // Wait for process to die
-            return new Promise(resolve => setTimeout(resolve, 1000));
-        }
+        // Try systemctl stop first (preferred)
+        execSync('sudo systemctl stop grab-gateway', { stdio: 'pipe', timeout: 5000 });
+        return new Promise(resolve => setTimeout(resolve, 1000));
     } catch (e) {
-        // No gateway running
+        // Fallback: kill by PID
+        try {
+            const result = execSync("ps aux | grep 'grab gateway' | grep -v grep | awk '{print $2}'", { 
+                encoding: 'utf8',
+                stdio: ['pipe', 'pipe', 'pipe']
+            }).trim();
+            
+            if (result) {
+                const pids = result.split('\n').filter(Boolean);
+                for (const pid of pids) {
+                    try {
+                        execSync(`kill ${pid}`, { stdio: 'pipe' });
+                    } catch (e) {
+                        // Process may have already exited
+                    }
+                }
+                return new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        } catch (e2) {
+            // No gateway running
+        }
     }
     return Promise.resolve();
 }
@@ -153,15 +158,22 @@ function killGateway() {
  * Restart the gateway with the default site
  */
 function restartGateway() {
-    const gatewayPort = process.env.GRAB_GATEWAY_PORT || '8888';
-    
-    spawn(GRAB_BIN, ['gateway', '--port', gatewayPort, '--default-site', SITE_NAME], {
-        cwd: path.dirname(GRAB_BIN),
-        detached: true,
-        stdio: 'ignore'
-    }).unref();
-    
-    console.log(`🌐 Restarted GrabNet gateway on port ${gatewayPort}`);
+    try {
+        // Prefer systemctl restart (lets systemd manage the process)
+        execSync('sudo systemctl start grab-gateway', { stdio: 'pipe', timeout: 10000 });
+        console.log('🌐 Restarted GrabNet gateway via systemd');
+    } catch (e) {
+        // Fallback to direct spawn if systemd not available
+        const gatewayPort = process.env.GRAB_GATEWAY_PORT || '8888';
+        
+        spawn(GRAB_BIN, ['gateway', '--port', gatewayPort, '--default-site', SITE_NAME], {
+            cwd: path.dirname(GRAB_BIN),
+            detached: true,
+            stdio: 'ignore'
+        }).unref();
+        
+        console.log(`🌐 Restarted GrabNet gateway on port ${gatewayPort} (direct spawn)`);
+    }
 }
 
 /**
