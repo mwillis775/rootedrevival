@@ -282,6 +282,42 @@ function getSiteInfo() {
     };
 }
 
+// --- Debounced Auto-Publish ---
+
+let publishTimer = null;
+let publishInProgress = false;
+
+/**
+ * Schedule a debounced publish. Multiple calls within the delay window
+ * collapse into a single publish. Safe to call frequently after content changes.
+ */
+function schedulePublish() {
+    if (!config.grabEnabled || !config.grabAutoPublish) return;
+    if (!isAvailable()) return;
+
+    if (publishTimer) clearTimeout(publishTimer);
+
+    publishTimer = setTimeout(async () => {
+        publishTimer = null;
+        if (publishInProgress) {
+            // Another publish running — reschedule
+            schedulePublish();
+            return;
+        }
+        publishInProgress = true;
+        try {
+            const result = await publishSite();
+            console.log(`🔄 Auto-publish complete: revision ${result.revision || '?'}`);
+        } catch (e) {
+            console.error('🔄 Auto-publish failed:', e.message);
+        } finally {
+            publishInProgress = false;
+        }
+    }, config.grabPublishDelay);
+
+    console.log(`🔄 Publish scheduled (${config.grabPublishDelay / 1000}s debounce)`);
+}
+
 module.exports = {
     isAvailable,
     getStatus,
@@ -290,6 +326,7 @@ module.exports = {
     addFileToSite,
     deleteFileFromSite,
     publishSite,
+    schedulePublish,
     getGatewayUrl,
     getSiteInfo,
     SITE_DIR,

@@ -158,6 +158,8 @@ function registerGrabRoutes(app) {
                 }
             }, 201);
             
+            grab.schedulePublish();
+            
         } catch (error) {
             res.error(error.message);
         }
@@ -219,6 +221,7 @@ function registerGrabRoutes(app) {
         files.deleteFile(file.id);
         
         res.json({ success: true });
+        grab.schedulePublish();
     });
     
     // ========================================

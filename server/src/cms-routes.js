@@ -14,6 +14,7 @@ const { auth, parseMultipart } = require('./http');
 const webauthn = require('./webauthn');
 const cms = require('./db/cms');
 const users = require('./db/users');
+const grab = require('./grab');
 const config = require('./config');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -314,6 +315,7 @@ function registerCmsRoutes(app) {
                 try {
                     cms.writeSiteFile(req.params.filename, content);
                     res.json({ success: true });
+                    grab.schedulePublish();
                 } catch (e) {
                     res.error(e.message, 400);
                 }
@@ -522,6 +524,7 @@ function registerCmsRoutes(app) {
                         createdBy: req.user.id
                     });
                     res.json({ success: true, page: result }, 201);
+                    grab.schedulePublish();
                 } catch (e) {
                     res.error(e.message);
                 }
@@ -541,6 +544,7 @@ function registerCmsRoutes(app) {
                         updatedBy: req.user.id
                     });
                     res.json({ success: true, page });
+                    grab.schedulePublish();
                 } catch (e) {
                     res.error(e.message);
                 }
@@ -557,6 +561,7 @@ function registerCmsRoutes(app) {
                 const deleted = cms.deletePage(req.params.uuid);
                 if (!deleted) return res.error('Page not found', 404);
                 res.json({ success: true });
+                grab.schedulePublish();
             });
         });
     });
@@ -582,6 +587,7 @@ function registerCmsRoutes(app) {
                 try {
                     const page = cms.restoreRevision(req.params.uuid, parseInt(req.params.revisionId));
                     res.json({ success: true, page });
+                    grab.schedulePublish();
                 } catch (e) {
                     res.error(e.message);
                 }
@@ -705,6 +711,7 @@ function registerCmsRoutes(app) {
                 }
                 
                 res.json({ success: true, media: results }, 201);
+                grab.schedulePublish();
             });
         });
     });
@@ -749,6 +756,7 @@ function registerCmsRoutes(app) {
                 const deleted = cms.deleteMedia(req.params.uuid);
                 if (!deleted) return res.error('Media not found', 404);
                 res.json({ success: true });
+                grab.schedulePublish();
             });
         });
     });
@@ -781,6 +789,7 @@ function registerCmsRoutes(app) {
                 }
                 cms.updateSettings(settings);
                 res.json({ success: true });
+                grab.schedulePublish();
             });
         });
     });
@@ -813,6 +822,7 @@ function registerCmsRoutes(app) {
                 }
                 cms.updateNavigation(req.params.menu, items);
                 res.json({ success: true });
+                grab.schedulePublish();
             });
         });
     });
@@ -835,6 +845,7 @@ function registerCmsRoutes(app) {
             await requireU2FAdmin(req, res, async () => {
                 cms.upsertComponent(req.params.name, req.body);
                 res.json({ success: true });
+                grab.schedulePublish();
             });
         });
     });
@@ -859,6 +870,7 @@ function registerCmsRoutes(app) {
                 if (!name) return res.error('Theme name required');
                 cms.saveTheme(name, variables || {});
                 res.json({ success: true });
+                grab.schedulePublish();
             });
         });
     });
@@ -868,6 +880,7 @@ function registerCmsRoutes(app) {
             await requireU2FAdmin(req, res, async () => {
                 cms.activateTheme(req.params.name);
                 res.json({ success: true });
+                grab.schedulePublish();
             });
         });
     });

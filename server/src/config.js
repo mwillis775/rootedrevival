@@ -71,6 +71,8 @@ const config = {
     grabBin: process.env.GRAB_BIN || path.resolve(__dirname, '../../grab/target/release/grab'),
     grabGatewayUrl: process.env.GRAB_GATEWAY_URL || 'http://127.0.0.1:8888',
     grabEnabled: process.env.GRAB_ENABLED !== 'false',
+    grabAutoPublish: process.env.GRAB_AUTO_PUBLISH !== 'false',
+    grabPublishDelay: parseInt(process.env.GRAB_PUBLISH_DELAY || '30000', 10), // 30s debounce
     
     // User site directories
     sitesDir: process.env.SITES_DIR || path.resolve(__dirname, '..', 'data', 'sites'),
