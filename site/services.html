@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="terminal">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <title>Services — Rooted Revival | Tulsa, OK</title>
+    <meta name="description" content="Rooted Revival offers regenerative landscaping, greenhouse design, food forests, controlled environment agriculture, and full-service project management in Tulsa, Oklahoma.">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --bg-surface: #111;
+            --bg-elevated: #1a1a1a;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --accent: #33ff33;
+            --accent-dim: rgba(51, 255, 51, 0.15);
+            --accent-glow: rgba(51, 255, 51, 0.4);
+            --amber: #ffb000;
+            --cyan: #00ffff;
+            --border: #333;
+            --radius: 6px;
+            --font-mono: 'Share Tech Mono', monospace;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-shadow: 0 0 10px var(--accent-glow); }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 0;
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-size: 1.3rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon { font-size: 1.5rem; }
+
+        .nav { display: flex; gap: 25px; }
+        .nav a { color: var(--text); font-size: 0.9rem; transition: all 0.2s; }
+        .nav a:hover { color: var(--accent); }
+        .nav a.active { color: var(--accent); }
+
+        /* Hero */
+        .hero {
+            padding: 120px 0 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 50% 0%, var(--accent-dim) 0%, transparent 50%),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(51, 255, 51, 0.03) 2px, rgba(51, 255, 51, 0.03) 4px);
+            pointer-events: none;
+        }
+
+        .terminal-prompt {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-size: 1rem;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        .hero h1 {
+            font-family: var(--font-mono);
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 400;
+            margin-bottom: 20px;
+            color: var(--accent);
+            text-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .hero p {
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 0 auto;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 1.2em;
+            background: var(--accent);
+            animation: blink 1s step-end infinite;
+            vertical-align: text-bottom;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Section styles */
+        section { padding: 80px 0; }
+
+        .section-header { text-align: center; margin-bottom: 60px; }
+
+        .section-label {
+            font-family: var(--font-mono);
+            color: var(--amber);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .section-title {
+            font-family: var(--font-mono);
+            font-size: 2rem;
+            color: var(--accent);
+            font-weight: 400;
+        }
+
+        .section-subtitle {
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 15px auto 0;
+            font-size: 1.05rem;
+        }
+
+        /* Service categories */
+        .category {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .category:nth-child(even) {
+            background: var(--bg-surface);
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .category-icon { font-size: 2rem; }
+
+        .category-header h2 {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-size: 1.4rem;
+            font-weight: 400;
+        }
+
+        .category-desc {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            margin-bottom: 30px;
+            max-width: 800px;
+            line-height: 1.8;
+        }
+
+        /* Service grid */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .service-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 25px;
+            transition: all 0.3s;
+        }
+
+        .service-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-dim);
+            transform: translateY(-3px);
+        }
+
+        .service-card h3 {
+            font-family: var(--font-mono);
+            color: var(--text);
+            font-size: 1rem;
+            margin-bottom: 10px;
+            font-weight: 400;
+        }
+
+        .service-card h3::before {
+            content: "▸ ";
+            color: var(--accent);
+        }
+
+        .service-card p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        /* Approach section */
+        .approach {
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .approach-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .approach-text h3 {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-size: 1.3rem;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+
+        .approach-text p {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            line-height: 1.8;
+            font-size: 1.05rem;
+        }
+
+        .approach-visual {
+            font-family: var(--font-mono);
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 30px;
+            font-size: 0.85rem;
+        }
+
+        .terminal-line { margin-bottom: 8px; }
+        .terminal-line .prompt { color: var(--accent); }
+        .terminal-line .command { color: var(--text); }
+        .terminal-line .output { color: var(--text-muted); padding-left: 20px; }
+        .terminal-line .success { color: var(--accent); }
+        .terminal-line .warn { color: var(--amber); }
+
+        /* CTA */
+        .cta {
+            text-align: center;
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+        }
+
+        .cta h2 {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-size: 1.8rem;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+
+        .cta p {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            font-size: 1.05rem;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+            border-color: var(--accent);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 0 30px var(--accent-glow);
+            transform: translateY(-2px);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--accent);
+            border-color: var(--accent);
+            margin-left: 15px;
+        }
+        .btn-ghost:hover { background: var(--accent-dim); }
+
+        /* Footer */
+        .footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .footer-logo {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-tagline {
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .footer-copy {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .nav { display: none; }
+            .approach-grid { grid-template-columns: 1fr; }
+            .services-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">🌱</span>
+                <span>ROOTED_REVIVAL</span>
+            </a>
+            <nav class="nav">
+                <a href="index.html">Home</a>
+                <a href="services.html" class="active">Services</a>
+                <a href="about.html">About</a>
+                <a href="browse.html">📚 Scholar</a>
+                <a href="download.html">⬇️ App</a>
+                <a href="index.html#contact">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <p class="terminal-prompt">$ ./services --list --all</p>
+                <h1>WHAT WE BUILD<span class="cursor"></span></h1>
+                <p>From a backyard garden bed to a fully automated modern greenhouse — and everything in between. If it grows, we know how to make it thrive.</p>
+            </div>
+        </section>
+
+        <!-- Growing & Agriculture -->
+        <section class="category" id="growing">
+            <div class="container">
+                <div class="category-header">
+                    <span class="category-icon">🌿</span>
+                    <h2>// Growing Systems</h2>
+                </div>
+                <p class="category-desc">We understand growing in every possible way — from in the ground to aeroponics — and more importantly, we know where each method actually works best. Tradition and cutting-edge technology aren't at odds. The best systems combine both.</p>
+                <div class="services-grid">
+                    <div class="service-card">
+                        <h3>In-Ground Gardens</h3>
+                        <p>Traditional beds, raised beds, hugelkultur, and no-till systems. Sometimes the old ways are the right ways. Soil-building that compounds year over year.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Food Forests</h3>
+                        <p>Multi-layered perennial ecosystems producing fruit, nuts, berries, herbs, and medicine. Self-sustaining after establishment.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Hydroponics & Aquaponics</h3>
+                        <p>Water-based growing — from simple deep water culture to integrated fish-and-plant systems. Year-round production in controlled environments.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Aeroponics</h3>
+                        <p>Mist-based root-zone delivery for maximum efficiency. Ideal for high-value crops and research environments where precision matters.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Native Plant Landscapes</h3>
+                        <p>Oklahoma-native plantings that support local pollinators and wildlife while thriving without irrigation or synthetic inputs.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Pollinator &amp; Wildlife Habitat</h3>
+                        <p>Designed ecosystems that support bees, butterflies, birds, and beneficial insects. Biodiversity is the foundation of resilience.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Greenhouses & CEA -->
+        <section class="category" id="greenhouses">
+            <div class="container">
+                <div class="category-header">
+                    <span class="category-icon">🏗️</span>
+                    <h2>// Greenhouses &amp; Controlled Environments</h2>
+                </div>
+                <p class="category-desc">We design and build greenhouses from the ground up — that means the concrete, the framing, the glazing, the HVAC, the electrical, and the automation software. One team, one vision, no gaps between trades.</p>
+                <div class="services-grid">
+                    <div class="service-card">
+                        <h3>Greenhouse Design &amp; Build</h3>
+                        <p>Custom structures from hobby-scale to commercial production. We handle everything from foundation to finish — concrete, steel, glazing, and fit-out.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Climate Control &amp; HVAC</h3>
+                        <p>Heating, cooling, dehumidification, and ventilation engineered for plant health. Energy-efficient systems designed for your specific crops and climate zone.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Electrical &amp; Lighting</h3>
+                        <p>Full electrical systems, supplemental grow lighting, and power management. LED spectrum tuning for optimized growth at every stage.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Automation &amp; Controls</h3>
+                        <p>Sensors, controllers, and custom software for environment monitoring and automated fertigation, irrigation, and climate management.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Fertigation Systems</h3>
+                        <p>Precision nutrient delivery — from simple injector setups to fully automated dosing systems with EC/pH monitoring and adjustment.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Retrofit &amp; Upgrades</h3>
+                        <p>Bring existing structures up to modern standards. Add automation, improve climate control, or convert a building into a growing space.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Construction & Trades -->
+        <section class="category" id="construction">
+            <div class="container">
+                <div class="category-header">
+                    <span class="category-icon">🔧</span>
+                    <h2>// Construction &amp; Trades</h2>
+                </div>
+                <p class="category-desc">Our projects don't stop at the plant. We do the sitework, the concrete, the framing, the plumbing, and the wiring. Working with industry leaders in every trade so nothing falls through the cracks.</p>
+                <div class="services-grid">
+                    <div class="service-card">
+                        <h3>Concrete &amp; Foundations</h3>
+                        <p>Slabs, footings, retaining walls, and hardscape. Proper foundations for structures that last.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>General Contracting</h3>
+                        <p>Full project management from permits to punch list. We coordinate the trades and keep your project on track.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Electrical</h3>
+                        <p>Service panels, circuits, lighting, and controls. Residential and agricultural electrical work.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Plumbing &amp; Irrigation</h3>
+                        <p>Water supply, drainage, irrigation systems, and rainwater harvesting. Getting water where it needs to go efficiently.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Earthwork &amp; Grading</h3>
+                        <p>Site preparation, drainage solutions, swale construction, and landscape grading for proper water management.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Structures &amp; Fencing</h3>
+                        <p>Pergolas, arbors, raised bed frames, deer fencing, and other landscape structures built to last.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technology -->
+        <section class="category" id="technology">
+            <div class="container">
+                <div class="category-header">
+                    <span class="category-icon">💻</span>
+                    <h2>// Technology &amp; Software</h2>
+                </div>
+                <p class="category-desc">The same team that builds your greenhouse writes the software that runs it. Hardware design, firmware, networking, dashboards, and data — all in-house.</p>
+                <div class="services-grid">
+                    <div class="service-card">
+                        <h3>Environment Monitoring</h3>
+                        <p>Custom sensor networks for temperature, humidity, CO₂, light, soil moisture, and nutrient levels. Real-time data, historical trends.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Automation Software</h3>
+                        <p>Control systems for irrigation, climate, lighting, and fertigation. Scheduled or responsive — your environment runs itself.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Hardware &amp; Electronics</h3>
+                        <p>PCB design, microcontroller programming, relay boards, and custom actuator integration. If it doesn't exist off the shelf, we build it.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Data &amp; Analytics</h3>
+                        <p>Dashboards, alerting, and growth tracking. Turn sensor data into actionable insights for better yields and earlier problem detection.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Consultation -->
+        <section class="category" id="consulting">
+            <div class="container">
+                <div class="category-header">
+                    <span class="category-icon">🗺️</span>
+                    <h2>// Consultation &amp; Design</h2>
+                </div>
+                <p class="category-desc">Not every project needs a full build. Sometimes you just need the right plan, a second opinion, or someone who's done it before to walk you through the options.</p>
+                <div class="services-grid">
+                    <div class="service-card">
+                        <h3>Site Assessment</h3>
+                        <p>We study your land — soil, water, sun, microclimate, existing ecology — and tell you what's possible and what makes sense.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>System Design</h3>
+                        <p>Complete growing system plans — from backyard beds to commercial operations. Species selection, layout, infrastructure, and phasing.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Soil &amp; Water Analysis</h3>
+                        <p>Understanding what you're working with is the first step. We test, interpret, and recommend amendments and management strategies.</p>
+                    </div>
+                    <div class="service-card">
+                        <h3>Project Planning</h3>
+                        <p>Budget estimation, material sourcing, scheduling, and phased implementation plans for projects of any scale.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Approach -->
+        <section class="approach" id="approach">
+            <div class="container">
+                <div class="approach-grid">
+                    <div class="approach-text">
+                        <h3>// How We Work</h3>
+                        <p>Every project starts with listening. We want to understand what you're trying to grow, why it matters to you, and what your land can support.</p>
+                        <p>We don't push products or upsell systems you don't need. If a simple in-ground garden does the job, that's what we'll build. If the project calls for a climate-controlled facility with automated fertigation, we can do that too.</p>
+                        <p>We partner with industry leaders in every aspect of our work — from soil scientists to HVAC engineers — so you get the absolute best at every stage.</p>
+                    </div>
+                    <div class="approach-visual">
+                        <div class="terminal-line"><span class="prompt">$</span> <span class="command">project --init</span></div>
+                        <div class="terminal-line"><span class="output">→ Listening to your goals...</span></div>
+                        <div class="terminal-line"><span class="output">→ Assessing site conditions...</span></div>
+                        <div class="terminal-line"><span class="output">→ Evaluating growing methods...</span></div>
+                        <div class="terminal-line"><span class="success">✓ Right tool for the job identified</span></div>
+                        <div class="terminal-line"><span class="prompt">$</span> <span class="command">design --honest --practical</span></div>
+                        <div class="terminal-line"><span class="output">→ No upsells. No bloat.</span></div>
+                        <div class="terminal-line"><span class="success">✓ Plan built around YOUR needs</span></div>
+                        <div class="terminal-line"><span class="prompt">$</span> <span class="command">build --quality --durable</span></div>
+                        <div class="terminal-line"><span class="warn">⚠ Industry partners engaged</span></div>
+                        <div class="terminal-line"><span class="success">✓ Project complete. Ecosystem thriving.</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="cta">
+            <div class="container">
+                <h2>LET'S BUILD SOMETHING</h2>
+                <p>Whether it's a few tomato plants or a 10,000 sqft greenhouse, we'd love to hear about your project. Free consultations in the Tulsa metro area.</p>
+                <a href="index.html#contact" class="btn btn-primary">Get in Touch</a>
+                <a href="about.html" class="btn btn-ghost">Learn More About Us</a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <span>🌱</span>
+                    <span>ROOTED_REVIVAL</span>
+                </div>
+                <p class="footer-tagline">// Working with nature, not against it</p>
+                <p class="footer-copy">© 2026 Rooted Revival • Tulsa, OK</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
