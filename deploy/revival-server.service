@@ -1,0 +1,22 @@
+[Unit]
+Description=Rooted Revival Node.js API Server
+After=network.target grab-gateway.service
+Wants=grab-gateway.service
+
+[Service]
+Type=simple
+User=michael
+WorkingDirectory=/home/michael/projects/rootedrevival/server
+EnvironmentFile=/home/michael/projects/rootedrevival/server/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node src/index.js
+Restart=always
+RestartSec=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=revival-server
+
+[Install]
+WantedBy=multi-user.target

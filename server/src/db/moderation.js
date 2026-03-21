@@ -249,10 +249,10 @@ function getSiteStats() {
     const db = getDb();
     
     const users = db.prepare('SELECT COUNT(*) as count FROM users').get();
-    const papers = db.prepare('SELECT COUNT(*) as count FROM papers WHERE status = "published"').get();
-    const drafts = db.prepare('SELECT COUNT(*) as count FROM papers WHERE status = "draft"').get();
+    const papers = db.prepare("SELECT COUNT(*) as count FROM papers WHERE status = 'published'").get();
+    const drafts = db.prepare("SELECT COUNT(*) as count FROM papers WHERE status = 'draft'").get();
     const files = db.prepare('SELECT COUNT(*) as count, SUM(file_size) as total_size FROM paper_files').get();
-    const pins = db.prepare('SELECT COUNT(*) as count FROM ipfs_pins WHERE status = "pinned"').get();
+    const pins = db.prepare("SELECT COUNT(*) as count FROM ipfs_pins WHERE status = 'pinned'").get();
     const collections = db.prepare('SELECT COUNT(*) as count FROM collections').get();
     
     const recentPapers = db.prepare(`

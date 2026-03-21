@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Admin Console — Rooted Revival</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -559,19 +560,20 @@ tr:hover{background:var(--el)}
         <label style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border:2px solid var(--bd);border-radius:var(--r);cursor:pointer" onclick="selectKeyType('platform')" id="keyType-platform">
           <input type="radio" name="keyType" value="platform" style="width:auto">
           <div>
-            <strong style="color:var(--tx)">🍎 🔑 🪟 Passkey</strong>
-            <div style="color:var(--tm);font-size:.8rem">Apple Touch ID / Face ID, Google Passkey, Windows Hello</div>
+            <strong style="color:var(--tx)">🍎 🔑 🪟 Passkey (this device)</strong>
+            <div style="color:var(--tm);font-size:.8rem">Touch ID, Face ID, Windows Hello, or any passkey on this device</div>
           </div>
         </label>
         <label style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border:2px solid var(--bd);border-radius:var(--r);cursor:pointer" onclick="selectKeyType('cross-platform')" id="keyType-cross-platform">
           <input type="radio" name="keyType" value="cross-platform" style="width:auto">
           <div>
             <strong style="color:var(--tx)">🦈 Hardware Security Key</strong>
-            <div style="color:var(--tm);font-size:.8rem">Flipper Zero U2F, YubiKey, or other FIDO2 key</div>
+            <div style="color:var(--tm);font-size:.8rem">Flipper Zero U2F, YubiKey, or other FIDO2 key via USB/NFC</div>
           </div>
         </label>
       </div>
       <div class="form-row"><label>DEVICE NAME</label><input id="keyDeviceName" placeholder="My Passkey"></div>
+      <div id="keyRegHint" style="background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:.8rem;color:var(--tm)">📱 <strong>Want to use your iPhone?</strong> Open <code>rootedrevival.us/admin.html</code> in Safari on your phone, log in, then register the passkey there — Face ID will work directly. No QR code needed.</div>
       <div id="keyRegStatus" style="font-family:var(--fm);color:var(--tm);margin:12px 0"></div>
       <button class="btn btn-u2f" id="btnRegKey" onclick="doRegisterKey()" style="width:100%">🔓 Begin Registration</button>
     </div>
@@ -754,10 +756,13 @@ function selectKeyType(type) {
   const el = document.getElementById('keyType-' + type);
   if (el) el.style.borderColor = 'var(--ac)';
   const nameInput = document.getElementById('keyDeviceName');
+  const hint = document.getElementById('keyRegHint');
   if (type === 'cross-platform') {
     nameInput.placeholder = 'Flipper Zero';
+    if (hint) hint.innerHTML = '🦈 <strong>Plug in your key</strong> via USB, then click Begin Registration below. Tap the key when it blinks.';
   } else {
     nameInput.placeholder = 'My Passkey';
+    if (hint) hint.innerHTML = '📱 <strong>Want to use your iPhone?</strong> Open <code>rootedrevival.us/admin.html</code> in Safari on your phone, log in, then register the passkey there — Face ID will work directly. No QR code needed.';
   }
 }
 

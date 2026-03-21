@@ -280,8 +280,9 @@ const AUTHENTICATOR_TYPES = {
         userVerification: 'discouraged'
     },
     // Platform authenticators: Apple Touch ID/Face ID, Google passkeys, Windows Hello
+    // Don't set authenticatorAttachment so browsers can offer hybrid transport
+    // (QR code scan from phone) alongside local platform authenticators
     'platform': {
-        authenticatorAttachment: 'platform',
         residentKey: 'preferred',
         requireResidentKey: false,
         userVerification: 'preferred'
