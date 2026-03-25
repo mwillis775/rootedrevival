@@ -15,8 +15,8 @@ async function createUser({ username, email, password, displayName = null }) {
     const db = getDb();
     
     // Validate inputs
-    if (!username || !email || !password) {
-        throw new Error('Username, email, and password are required');
+    if (!username || !password) {
+        throw new Error('Username and password are required');
     }
     
     if (username.length < 3 || username.length > 30) {
@@ -31,13 +31,23 @@ async function createUser({ username, email, password, displayName = null }) {
         throw new Error('Password must be at least 8 characters');
     }
     
-    // Check if username or email already exists
-    const existing = db.prepare(
-        'SELECT id FROM users WHERE username = ? OR email = ?'
-    ).get(username.toLowerCase(), email.toLowerCase());
+    // Check if username already exists
+    const existingUsername = db.prepare(
+        'SELECT id FROM users WHERE username = ?'
+    ).get(username.toLowerCase());
     
-    if (existing) {
-        throw new Error('Username or email already registered');
+    if (existingUsername) {
+        throw new Error('Username already registered');
+    }
+    
+    // Check if email already exists (if provided)
+    if (email) {
+        const existingEmail = db.prepare(
+            'SELECT id FROM users WHERE email = ?'
+        ).get(email.toLowerCase());
+        if (existingEmail) {
+            throw new Error('Email already registered');
+        }
     }
     
     // Hash password
@@ -47,12 +57,12 @@ async function createUser({ username, email, password, displayName = null }) {
     const result = db.prepare(`
         INSERT INTO users (username, email, password_hash, display_name)
         VALUES (?, ?, ?, ?)
-    `).run(username.toLowerCase(), email.toLowerCase(), passwordHash, displayName || username);
+    `).run(username.toLowerCase(), email ? email.toLowerCase() : null, passwordHash, displayName || username);
     
     return {
         id: result.lastInsertRowid,
         username: username.toLowerCase(),
-        email: email.toLowerCase(),
+        email: email ? email.toLowerCase() : null,
         displayName: displayName || username
     };
 }
@@ -280,5 +290,23 @@ module.exports = {
         const db = getDb();
         const row = db.prepare('SELECT public_key FROM users WHERE username = ?').get(username.toLowerCase());
         return row ? row.public_key : null;
+    },
+    getE2EKeysByUsername: function(username) {
+        const db = getDb();
+        return db.prepare(
+            'SELECT public_key, encrypted_private_key FROM users WHERE username = ?'
+        ).get(username.toLowerCase());
+    },
+    setE2EKeys: function(userId, { encryptedPrivateKey, keySalt, publicKey }) {
+        const db = getDb();
+        db.prepare(
+            "UPDATE users SET encrypted_private_key = ?, key_salt = ?, public_key = ? WHERE id = ?"
+        ).run(encryptedPrivateKey, keySalt, publicKey, userId);
+    },
+    getE2EKeys: function(userId) {
+        const db = getDb();
+        return db.prepare(
+            'SELECT encrypted_private_key, key_salt, public_key FROM users WHERE id = ?'
+        ).get(userId);
     }
 };

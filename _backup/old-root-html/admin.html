@@ -300,13 +300,7 @@ tr:hover{background:var(--el)}
           <div class="tab active" data-navmenu="main">Main Menu</div>
           <div class="tab" data-navmenu="footer">Footer Menu</div>
         </div>
-        <div class="card"><div class="card-hd"><h3 id="navMenuLabel">Main Menu</h3>
-          <div style="display:flex;gap:8px;align-items:center">
-            <select id="navPagePicker" onchange="addNavFromPage(this)" style="width:auto;font-size:.85rem">
-              <option value="">+ Add from page…</option>
-            </select>
-            <button class="btn btn-p btn-s" onclick="addNavItem()">+ Custom Link</button>
-          </div></div>
+        <div class="card"><div class="card-hd"><h3 id="navMenuLabel">Main Menu</h3><button class="btn btn-p btn-s" onclick="addNavItem()">+ Add Item</button></div>
           <div class="card-body"><ul class="nav-list" id="navList"></ul>
           <div style="margin-top:16px;display:flex;justify-content:flex-end"><button class="btn btn-p" onclick="saveNavigation()">💾 Save Navigation</button></div>
         </div></div>
@@ -735,7 +729,7 @@ async function initAuth() {
       // Admin with no keys registered — let them in (they can register from inside)
       u2fVerified = false;
       enterAdmin();
-      toast('No admin key registered. Register one in Admin Keys for enhanced protection.', 'warn');
+      toast('No admin key registered. Some features locked.', 'warn');
     }
     
   } catch(e) {
@@ -1240,72 +1234,30 @@ async function deleteMedia() {
 
 // ========== NAVIGATION ==========
 let navItems = [];
-let navAvailablePages = [];
-
-// Built-in site pages (always available)
-const builtinPages = [
-  { label: 'Home', url: '/' },
-  { label: 'About', url: '/about.html' },
-  { label: 'Browse', url: '/browse.html' },
-  { label: 'Search', url: '/search.html' },
-  { label: 'Upload', url: '/upload.html' },
-  { label: 'Help', url: '/help.html' },
-  { label: 'Login', url: '/login.html' },
-  { label: 'Register', url: '/register.html' },
-  { label: 'Profile', url: '/profile.html' },
-  { label: 'Scholar', url: '/scholar.html' },
-  { label: 'GrabNet', url: '/grab.html' },
-  { label: 'Download', url: '/download.html' },
-];
 
 async function loadNavigation(menu) {
   try {
-    const [navData, pagesData] = await Promise.all([
-      api(`/cms/navigation/${menu}`),
-      api('/cms/pages').catch(() => ({ pages: [] }))
-    ]);
-    navItems = navData.items || [];
-    navAvailablePages = (pagesData.pages || []).filter(p => p.status === 'published');
+    const data = await api(`/cms/navigation/${menu}`);
+    navItems = data.items || [];
     renderNavList();
   } catch(e) {
     navItems = [];
-    navAvailablePages = [];
     renderNavList();
   }
-}
-
-function buildPageOptions() {
-  const opts = builtinPages.map(p => `<option value="${esc(p.url)}">${esc(p.label)}</option>`);
-  navAvailablePages.forEach(p => {
-    opts.push(`<option value="/p/${esc(p.slug)}">${esc(p.title)}</option>`);
-  });
-  return opts.join('');
 }
 
 function renderNavList() {
   const list = document.getElementById('navList');
-  // Populate the page picker dropdown
-  const picker = document.getElementById('navPagePicker');
-  if (picker) {
-    picker.innerHTML = '<option value="">+ Add from page…</option>'
-      + '<optgroup label="Site Pages">' + buildPageOptions() + '</optgroup>';
-  }
   if (!navItems.length) {
-    list.innerHTML = '<li style="color:var(--tm);text-align:center;padding:20px">No menu items. Pick a page above or add a custom link.</li>';
+    list.innerHTML = '<li style="color:var(--tm);text-align:center;padding:20px">No menu items. Click + Add Item.</li>';
     return;
   }
-
-  // Build datalist of known pages for URL autocomplete
-  const dlOpts = builtinPages.map(p => `<option value="${esc(p.url)}">`).join('')
-    + navAvailablePages.map(p => `<option value="/p/${esc(p.slug)}">`).join('');
-
-  list.innerHTML = `<datalist id="navUrlHints">${dlOpts}</datalist>`
-    + navItems.map((item, i) => `
+  list.innerHTML = navItems.map((item, i) => `
     <li class="nav-item" draggable="true" data-idx="${i}">
       <span class="handle">⠿</span>
       <input value="${esc(item.icon || '')}" placeholder="Icon" style="width:50px" onchange="navItems[${i}].icon=this.value">
       <input value="${esc(item.label)}" placeholder="Label" onchange="navItems[${i}].label=this.value">
-      <input value="${esc(item.url)}" placeholder="/path or https://..." list="navUrlHints" onchange="navItems[${i}].url=this.value">
+      <input value="${esc(item.url)}" placeholder="/path or https://..." onchange="navItems[${i}].url=this.value">
       <select onchange="navItems[${i}].visibility=this.value" style="width:auto">
         <option value="all" ${item.visibility==='all'?'selected':''}>All</option>
         <option value="authenticated" ${item.visibility==='authenticated'?'selected':''}>Logged In</option>
@@ -1335,15 +1287,6 @@ function renderNavList() {
 
 function addNavItem() {
   navItems.push({ label: 'New Link', url: '/', icon: '📄', visibility: 'all', isExternal: false, sortOrder: navItems.length });
-  renderNavList();
-}
-
-function addNavFromPage(sel) {
-  if (!sel.value) return;
-  const label = sel.options[sel.selectedIndex].text;
-  const url = sel.value;
-  navItems.push({ label, url, icon: '📄', visibility: 'all', isExternal: false, sortOrder: navItems.length });
-  sel.value = '';
   renderNavList();
 }
 

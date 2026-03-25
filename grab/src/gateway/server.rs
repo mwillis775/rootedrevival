@@ -446,13 +446,23 @@ async fn serve_file(
         _ => (content, None),
     };
 
-    // Build response
+    // Build response — use short cache for mutable site files (HTML, JS, CSS),
+    // long cache only for truly immutable content-addressed assets
+    let cache_control = if file.mime_type.starts_with("text/html")
+        || file.mime_type.contains("javascript")
+        || file.mime_type.contains("css")
+    {
+        "public, max-age=0, must-revalidate"
+    } else {
+        "public, max-age=31536000, immutable"
+    };
+
     let mut response = Response::builder()
         .status(status)
         .header(header::CONTENT_TYPE, &file.mime_type)
         .header(header::CONTENT_LENGTH, body.len())
         .header(header::ETAG, &etag)
-        .header(header::CACHE_CONTROL, "public, max-age=31536000, immutable");
+        .header(header::CACHE_CONTROL, cache_control);
 
     if let Some(encoding) = content_encoding {
         response = response.header(header::CONTENT_ENCODING, encoding);

@@ -412,8 +412,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="email">Email (optional, reccommend proton.me)</label>
-                        <input type="email" id="email" name="email" placeholder="your@email.com" required>
+                        <label for="email">Email (optional, recommend proton.me)</label>
+                        <input type="email" id="email" name="email" placeholder="your@email.com">
                     </div>
 
                     <div class="form-group">
@@ -438,9 +438,9 @@
                     </div>
 
                     <div class="checkbox-group">
-                        <input type="checkbox" id="updates" name="updates" required>
+                        <input type="checkbox" id="updates" name="updates">
                         <label for="updates">
-                           I agree to have sporadic update emails sent to my inbox
+                           I'd like to receive occasional update emails
                         </label>
                     </div>
 
@@ -482,8 +482,11 @@
     </div>
 
     <script src="static/js/site-nav.js"></script>
+    <script src="static/js/e2e.js"></script>
     <script>
-        const API_BASE = 'https://scholar.rootedrevival.us/api';
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://localhost:3000/api'
+            : 'https://scholar.rootedrevival.us/api';
         document.getElementById('password').addEventListener('input', (e) => {
             const password = e.target.value;
             const strength = document.getElementById('passwordStrength');
@@ -545,18 +548,31 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
+                    credentials: 'include',
                     body: JSON.stringify({ username, email, password })
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    successEl.textContent = 'Account created successfully! Redirecting to login...';
+                    // Generate E2E keys (uses auto-login session from registration)
+                    try {
+                        const keyBundle = await E2E.generateAndWrapKeys(password);
+                        await fetch(`${API_BASE}/users/me/e2e-keys`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify(keyBundle)
+                        });
+                    } catch (ke) { console.warn('E2E key gen:', ke); }
+
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    successEl.textContent = 'Account created successfully! Redirecting...';
                     successEl.classList.add('show');
                     
                     setTimeout(() => {
-                        window.location.href = 'login.html?registered=1';
-                    }, 2000);
+                        window.location.href = 'profile.html';
+                    }, 1500);
                 } else {
                     errorEl.textContent = data.error || 'Registration failed. Please try again.';
                     errorEl.classList.add('show');

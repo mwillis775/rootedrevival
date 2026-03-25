@@ -696,20 +696,20 @@
             
             const filtered = currentFilter === 'all' 
                 ? content 
-                : content.filter(item => item.type === currentFilter);
+                : content.filter(item => item.paper_type === currentFilter);
 
             // Grid view
             grid.innerHTML = filtered.map(item => `
                 <a href="view.html?id=${escapeHtml(item.uuid)}" class="content-card">
                     <div class="card-thumb">
-                        ${typeIcons[item.type] || '📄'}
-                        <span class="card-badge">${escapeHtml(item.type?.toUpperCase() || 'PAPER')}</span>
+                        ${typeIcons[item.paper_type] || '📄'}
+                        <span class="card-badge">${escapeHtml(item.paper_type?.toUpperCase() || 'PAPER')}</span>
                     </div>
                     <div class="card-body">
                         <div class="card-type">${escapeHtml(item.discipline || 'Research')}</div>
                         <h3 class="card-title">${escapeHtml(item.title)}</h3>
                         <div class="card-meta">
-                            <span>${escapeHtml(item.authors?.[0]?.name || 'Anonymous')}</span>
+                            <span>${escapeHtml(item.uploader_name || item.uploader_username || 'Anonymous')}</span>
                             <span>${escapeHtml(item.publication_year || '2026')}</span>
                         </div>
                     </div>
@@ -719,12 +719,12 @@
             // List view
             list.innerHTML = filtered.map(item => `
                 <a href="view.html?id=${escapeHtml(item.uuid)}" class="list-item">
-                    <div class="list-thumb">${typeIcons[item.type] || '📄'}</div>
+                    <div class="list-thumb">${typeIcons[item.paper_type] || '📄'}</div>
                     <div class="list-content">
                         <h3 class="list-title">${escapeHtml(item.title)}</h3>
                         <p class="list-desc">${escapeHtml(item.abstract || item.description || 'No description available.')}</p>
                         <div class="list-meta">
-                            <span>👤 ${escapeHtml(item.authors?.[0]?.name || 'Anonymous')}</span>
+                            <span>👤 ${escapeHtml(item.uploader_name || item.uploader_username || 'Anonymous')}</span>
                             <span>📅 ${escapeHtml(item.publication_year || '2026')}</span>
                             <span>👁️ ${item.view_count || 0} views</span>
                         </div>

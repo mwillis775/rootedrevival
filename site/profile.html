@@ -656,15 +656,15 @@
                     </form>
 
                     <div class="settings-section" style="margin-top: 30px;">
-                        <h3>🔐 ENCRYPTION KEYS</h3>
-                        <p style="color: var(--text-muted); margin-bottom: 15px;">Your messages are end-to-end encrypted. Back up your private key so you can read messages on other devices.</p>
+                        <h3>🔐 ENCRYPTION</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 15px;">Messages are end-to-end encrypted. Your encryption key is tied to your password and syncs across devices automatically.</p>
                         <div id="keyStatus" style="margin-bottom:15px;font-family:var(--font-mono);font-size:.85rem"></div>
-                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                            <button class="btn btn-ghost" onclick="E2E.exportKeyBackup()">📥 Export Private Key</button>
-                            <label class="btn btn-ghost" style="cursor:pointer">📤 Import Key
-                                <input type="file" accept=".json" style="display:none" onchange="importKey(this)">
-                            </label>
-                            <button class="btn btn-danger" onclick="regenerateKey()">🔄 Regenerate Key</button>
+                        <div id="keyUnlockSection" class="hidden" style="margin-top:10px">
+                            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:8px">Enter your password to unlock encryption keys for this session:</p>
+                            <div style="display:flex;gap:10px;align-items:center">
+                                <input type="password" id="unlockPassword" placeholder="Password" style="flex:1;padding:8px;background:var(--input-bg,#111);color:var(--text);border:1px solid var(--border,#333);border-radius:4px">
+                                <button class="btn btn-primary" onclick="unlockE2E()" style="padding:8px 16px">🔓 Unlock</button>
+                            </div>
                         </div>
                     </div>
 
@@ -771,14 +771,8 @@
                     document.getElementById('loginRequired').classList.add('hidden');
                     document.getElementById('profileContent').classList.remove('hidden');
                     loadProfile();
-                    // Init E2E encryption
-                    try {
-                        const keyInfo = await E2E.init(API);
-                        if (keyInfo.generated) {
-                            toast('Encryption keys generated! Back them up in Settings.', 'ok');
-                        }
-                        updateKeyStatus();
-                    } catch (ke) { console.warn('E2E init:', ke); }
+                    // Check E2E key status (keys are set up at login)
+                    updateKeyStatus();
                     loadInbox();
                 }
             } catch (e) {
@@ -795,6 +789,43 @@
             if (form.displayName) form.displayName.value = user.displayName || user.display_name || '';
             if (form.email) form.email.value = user.email || '';
             if (form.bio) form.bio.value = user.bio || '';
+            loadUploads();
+        }
+
+        // ========== UPLOADS ==========
+
+        async function loadUploads() {
+            try {
+                const data = await api('/me/papers');
+                const papers = data.papers || [];
+                document.getElementById('uploadCount').textContent = papers.length;
+                
+                if (papers.length === 0) {
+                    document.getElementById('uploadsEmpty').classList.remove('hidden');
+                    document.getElementById('uploadsGrid').innerHTML = '';
+                    return;
+                }
+                
+                document.getElementById('uploadsEmpty').classList.add('hidden');
+                const typeIcons = { paper: '\ud83d\udcc4', video: '\ud83c\udfac', art: '\ud83c\udfa8', music: '\ud83c\udfb5' };
+                document.getElementById('uploadsGrid').innerHTML = papers.map(p => `
+                    <a href="view.html?id=${esc(p.uuid)}" class="upload-card" style="display:block;padding:16px;border:1px solid var(--border,#333);border-radius:8px;margin-bottom:12px;text-decoration:none;color:inherit;transition:border-color 0.2s;">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <span style="font-size:1.5rem;">${typeIcons[p.paper_type] || '\ud83d\udcc4'}</span>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.title)}</div>
+                                <div style="font-size:0.8rem;color:var(--text-muted,#888);margin-top:4px;">
+                                    <span class="st-badge st-${p.status === 'published' ? 'active' : 'pending'}" style="font-size:0.7rem;padding:2px 6px;">${esc(p.status)}</span>
+                                    ${esc(p.paper_type || 'paper')} &middot; ${timeAgo(p.created_at)}
+                                    &middot; \ud83d\udc41\ufe0f ${p.view_count || 0} &middot; \u2b07\ufe0f ${p.download_count || 0}
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                `).join('');
+            } catch (e) {
+                console.warn('Failed to load uploads:', e);
+            }
         }
 
         // ========== MESSAGING ==========
@@ -937,16 +968,19 @@
         }
 
         async function replyToMsg(toUsername, parentId) {
-            const body = document.getElementById('replyBody').value.trim();
+            let body = document.getElementById('replyBody').value.trim();
             if (!body) return;
             try {
-                // Encrypt with recipient's public key
-                let encBody = body;
-                try {
-                    const { publicKey } = await api(`/users/${toUsername}/pubkey`);
-                    if (publicKey) encBody = await E2E.encrypt(body, publicKey);
-                } catch { /* send unencrypted if no pubkey */ }
-                await api('/my/messages/send', { method: 'POST', body: { to: toUsername, subject: 'Re: reply', body: encBody, parentId } });
+                // Encrypt if both parties have E2E keys
+                if (E2E.hasPrivateKey()) {
+                    try {
+                        const pkResp = await api(`/users/${encodeURIComponent(toUsername)}/pubkey`);
+                        if (pkResp.publicKey) {
+                            body = await E2E.encrypt(body, pkResp.publicKey);
+                        }
+                    } catch { /* recipient has no key — send plaintext */ }
+                }
+                await api('/my/messages/send', { method: 'POST', body: { to: toUsername, subject: 'Re: reply', body, parentId } });
                 toast('Reply sent!');
                 backToList();
                 loadInbox();
@@ -957,16 +991,19 @@
             e.preventDefault();
             const to = document.getElementById('composeTo').value.trim();
             const subject = document.getElementById('composeSubject').value.trim();
-            const body = document.getElementById('composeBody').value.trim();
+            let body = document.getElementById('composeBody').value.trim();
             if (!to || !body) return;
             try {
-                // Encrypt with recipient's public key
-                let encBody = body;
-                try {
-                    const { publicKey } = await api(`/users/${to}/pubkey`);
-                    if (publicKey) encBody = await E2E.encrypt(body, publicKey);
-                } catch { /* send unencrypted if no pubkey */ }
-                await api('/my/messages/send', { method: 'POST', body: { to, subject, body: encBody } });
+                // Encrypt if both parties have E2E keys
+                if (E2E.hasPrivateKey()) {
+                    try {
+                        const pkResp = await api(`/users/${encodeURIComponent(to)}/pubkey`);
+                        if (pkResp.publicKey) {
+                            body = await E2E.encrypt(body, pkResp.publicKey);
+                        }
+                    } catch { /* recipient has no key — send plaintext */ }
+                }
+                await api('/my/messages/send', { method: 'POST', body: { to, subject, body } });
                 toast('Message sent!');
                 document.getElementById('composeTo').value = '';
                 document.getElementById('composeSubject').value = '';
@@ -1020,6 +1057,13 @@
                 });
                 // Password change (if filled)
                 if (form.currentPassword.value && form.newPassword.value) {
+                    // Re-wrap E2E key with new password before changing
+                    if (E2E.hasPrivateKey()) {
+                        try {
+                            const newKeyBundle = await E2E.rewrapWithNewPassword(form.newPassword.value);
+                            await api('/users/me/e2e-keys', { method: 'PUT', body: newKeyBundle });
+                        } catch (ke) { console.warn('E2E re-wrap:', ke); }
+                    }
                     await api('/users/me/password', {
                         method: 'POST',
                         body: {
@@ -1035,52 +1079,51 @@
             } catch (err) { toast(err.message, 'err'); }
         });
 
-        // Logout
-        document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-            try { await api('/auth/logout', { method: 'POST' }); } catch (e) {}
-            localStorage.removeItem('user');
-            window.location.href = 'index.html';
-        });
-
         // ========== ENCRYPTION KEY MANAGEMENT ==========
 
         function updateKeyStatus() {
             const el = document.getElementById('keyStatus');
+            const unlockSection = document.getElementById('keyUnlockSection');
             if (!el) return;
             if (E2E.hasPrivateKey()) {
-                el.innerHTML = '<span style="color:var(--accent)">✓ Private key loaded</span> — Messages are end-to-end encrypted.';
+                el.innerHTML = '<span style="color:var(--accent)">✓ Encryption active</span> — Messages are end-to-end encrypted.';
+                if (unlockSection) unlockSection.classList.add('hidden');
             } else {
-                el.innerHTML = '<span style="color:var(--red)">✗ No private key</span> — You won\'t be able to read encrypted messages. Import a backup or regenerate.';
+                el.innerHTML = '<span style="color:var(--red)">✗ Keys locked</span> — Enter your password below to unlock encryption.';
+                if (unlockSection) unlockSection.classList.remove('hidden');
             }
         }
 
-        async function importKey(input) {
-            const file = input.files[0];
-            if (!file) return;
+        async function unlockE2E() {
+            const pw = document.getElementById('unlockPassword').value;
+            if (!pw) return;
             try {
-                const text = await file.text();
-                await E2E.importKeyBackup(text);
-                toast('Private key imported!');
+                const keyData = await api('/users/me/e2e-keys');
+                if (keyData.hasKeys) {
+                    await E2E.unlockPrivateKey(pw, keyData.encryptedPrivateKey, keyData.keySalt, keyData.publicKey);
+                    toast('Encryption keys unlocked!', 'ok');
+                } else {
+                    // No keys on server yet — generate and upload
+                    const keyBundle = await E2E.generateAndWrapKeys(pw);
+                    await api('/users/me/e2e-keys', { method: 'PUT', body: keyBundle });
+                    toast('Encryption keys created!', 'ok');
+                }
+                document.getElementById('unlockPassword').value = '';
                 updateKeyStatus();
-            } catch (e) { toast('Invalid key file: ' + e.message, 'err'); }
-            input.value = '';
+                renderInbox();
+                renderSent();
+            } catch (e) {
+                toast('Wrong password or corrupted keys.', 'err');
+            }
         }
 
-        async function regenerateKey() {
-            if (!confirm('This will generate a new encryption keypair. You will NOT be able to read old encrypted messages. Continue?')) return;
-            try {
-                const keypair = await E2E.generateKeypair();
-                const pubStr = await E2E.exportPublicKey(keypair);
-                const privStr = await E2E.exportPrivateKey(keypair);
-                localStorage.setItem('e2e_privkey', privStr);
-                await api('/users/me/pubkey', { method: 'PUT', body: { publicKey: pubStr } });
-                toast('New keypair generated! Back it up now.', 'ok');
-                updateKeyStatus();
-                E2E.exportKeyBackup();
-            } catch (e) { toast(e.message, 'err'); }
-        }
-
-        // ========== THEME ==========
+        // Logout
+        document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+            try { await api('/auth/logout', { method: 'POST' }); } catch (e) {}
+            E2E.clearKeys();
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        });
 
         function setTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);

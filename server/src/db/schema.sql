@@ -11,13 +11,16 @@ PRAGMA journal_mode = WAL;
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
-    email TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
     password_hash TEXT NOT NULL,
     display_name TEXT,
     bio TEXT,
     affiliation TEXT,
     orcid TEXT,
     customization TEXT,  -- JSON: avatar, avatarUrl, effects[], banner
+    public_key TEXT,
+    encrypted_private_key TEXT,
+    key_salt TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),
     email_verified INTEGER DEFAULT 0,
@@ -374,9 +377,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS papers_fts USING fts5(
     title,
     abstract,
     keywords,
-    author_names,
-    content=papers,
-    content_rowid=id
+    author_names
 );
 
 -- Triggers to keep FTS in sync
@@ -386,13 +387,11 @@ CREATE TRIGGER IF NOT EXISTS papers_fts_insert AFTER INSERT ON papers BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS papers_fts_delete AFTER DELETE ON papers BEGIN
-    INSERT INTO papers_fts(papers_fts, rowid, title, abstract, keywords, author_names)
-    VALUES ('delete', old.id, old.title, old.abstract, '', '');
+    DELETE FROM papers_fts WHERE rowid = old.id;
 END;
 
 CREATE TRIGGER IF NOT EXISTS papers_fts_update AFTER UPDATE ON papers BEGIN
-    INSERT INTO papers_fts(papers_fts, rowid, title, abstract, keywords, author_names)
-    VALUES ('delete', old.id, old.title, old.abstract, '', '');
+    DELETE FROM papers_fts WHERE rowid = old.id;
     INSERT INTO papers_fts(rowid, title, abstract, keywords, author_names)
     VALUES (new.id, new.title, new.abstract, '', '');
 END;

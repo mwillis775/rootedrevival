@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="terminal">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <title>Profile — Rooted Revival</title>
+    <meta name="description" content="Your Rooted Revival profile. Manage your uploads and settings.">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --bg-surface: #111;
+            --bg-elevated: #1a1a1a;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --accent: #33ff33;
+            --accent-dim: rgba(51, 255, 51, 0.2);
+            --accent-hover: #55ff55;
+            --amber: #ffb000;
+            --red: #ff4444;
+            --cyan: #00ffff;
+            --purple: #9966ff;
+            --border: #333;
+            --radius: 6px;
+            --font-mono: 'Share Tech Mono', monospace;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        [data-theme="vapor"] {
+            --bg: #1a0a2e;
+            --bg-surface: #2d1b4e;
+            --accent: #ff71ce;
+            --accent-dim: rgba(255, 113, 206, 0.2);
+            --cyan: #01cdfe;
+            --amber: #fffb96;
+        }
+
+        [data-theme="paper"] {
+            --bg: #f5f1e8;
+            --bg-surface: #fffef9;
+            --bg-elevated: #fff;
+            --text: #2c2c2c;
+            --text-muted: #666;
+            --accent: #8b4513;
+            --accent-dim: rgba(139, 69, 19, 0.1);
+            --border: #ddd;
+        }
+
+        [data-theme="midnight"] {
+            --bg: #0d1117;
+            --bg-surface: #161b22;
+            --accent: #58a6ff;
+            --accent-dim: rgba(88, 166, 255, 0.15);
+            --amber: #d29922;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.03) 2px, rgba(0, 0, 0, 0.03) 4px);
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { color: var(--accent-hover); }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 0;
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-size: 1.2rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav { display: flex; gap: 8px; }
+
+        .nav a {
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            color: var(--text);
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .nav a:hover { background: var(--accent-dim); color: var(--accent); }
+        .nav a.active { background: var(--accent); color: var(--bg); }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+
+        .btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 0 20px var(--accent-dim); }
+        .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-danger { background: transparent; color: var(--red); border-color: var(--red); }
+        .btn-danger:hover { background: var(--red); color: var(--bg); }
+
+        /* Profile Header */
+        .profile-header {
+            padding: 60px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .profile-info {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            background: var(--accent-dim);
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            flex-shrink: 0;
+        }
+
+        .profile-details { flex: 1; }
+
+        .profile-details h1 {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            margin-bottom: 5px;
+            font-size: 1.8rem;
+        }
+
+        .profile-username {
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            margin-bottom: 15px;
+        }
+
+        .profile-bio {
+            color: var(--text);
+            margin-bottom: 20px;
+            max-width: 600px;
+        }
+
+        .profile-stats {
+            display: flex;
+            gap: 30px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: var(--font-mono);
+            font-size: 1.5rem;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* Tabs */
+        .profile-tabs {
+            display: flex;
+            gap: 5px;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: var(--radius);
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover { color: var(--text); background: var(--accent-dim); }
+        .tab-btn.active { color: var(--accent); background: var(--accent-dim); }
+
+        /* Content Tabs */
+        .tab-content { display: none; padding: 30px 0; }
+        .tab-content.active { display: block; }
+
+        /* Uploads Grid */
+        .uploads-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .upload-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: all 0.2s;
+        }
+
+        .upload-card:hover { border-color: var(--accent); }
+
+        .upload-card h3 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .upload-meta {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+        }
+
+        .upload-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .upload-actions .btn { padding: 6px 12px; font-size: 0.8rem; }
+
+        /* Settings Form */
+        .settings-section {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .settings-section h3 {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+        }
+
+        .form-group { margin-bottom: 20px; }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-group textarea { min-height: 100px; resize: vertical; }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        /* Node Status */
+        .node-status {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .node-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--accent-dim);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .node-icon.offline { background: rgba(255, 68, 68, 0.2); }
+
+        .node-details h4 { margin-bottom: 5px; }
+        .node-details p { color: var(--text-muted); font-size: 0.9rem; }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon { font-size: 3rem; margin-bottom: 15px; }
+        .empty-state h3 { color: var(--amber); margin-bottom: 10px; }
+
+        /* Footer */
+        .footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a { color: var(--text-muted); font-size: 0.9rem; }
+        .footer-links a:hover { color: var(--accent); }
+        .footer-copy { color: var(--text-muted); font-size: 0.85rem; }
+
+        /* Theme Picker */
+        .theme-picker { position: fixed; bottom: 20px; left: 20px; z-index: 1000; }
+
+        .theme-toggle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover { border-color: var(--accent); transform: scale(1.1); }
+
+        .theme-menu {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px;
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 150px;
+        }
+
+        .theme-menu.open { display: flex; }
+
+        .theme-option {
+            padding: 10px 15px;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            text-align: left;
+            border-radius: var(--radius);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+        }
+
+        .theme-option:hover { background: var(--accent-dim); }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 768px) {
+            .profile-info { flex-direction: column; align-items: center; text-align: center; }
+            .profile-stats { justify-content: center; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <a href="index.html" class="logo">
+                <span>🌱</span>
+                <span>ROOTED_REVIVAL</span>
+            </a>
+            <nav class="nav">
+                <a href="index.html">Home</a>
+                <a href="browse.html">Browse</a>
+                <a href="upload.html">Upload</a>
+                <a href="profile.html" class="active">Profile</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- Login Required -->
+        <div id="loginRequired" class="container" style="padding: 100px 20px; text-align: center;">
+            <div class="empty-state">
+                <div class="icon">🔐</div>
+                <h3>LOGIN REQUIRED</h3>
+                <p>You need to be logged in to view your profile.</p>
+                <div style="margin-top: 20px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <a href="login.html" class="btn btn-primary">🔑 Log In</a>
+                    <a href="download.html" class="btn btn-ghost">⬇️ Download App</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Content (hidden until logged in) -->
+        <div id="profileContent" class="hidden">
+            <section class="profile-header">
+                <div class="container">
+                    <div class="profile-info">
+                        <div class="profile-avatar" id="profileAvatar">👤</div>
+                        <div class="profile-details">
+                            <h1 id="displayName">Loading...</h1>
+                            <p class="profile-username">@<span id="username">username</span></p>
+                            <p class="profile-bio" id="profileBio">No bio yet. Add one in settings.</p>
+                            <div class="profile-stats">
+                                <div class="stat">
+                                    <div class="stat-value" id="uploadCount">0</div>
+                                    <div class="stat-label">Uploads</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-value" id="viewCount">0</div>
+                                    <div class="stat-label">Views</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-value" id="nodeUptime">--</div>
+                                    <div class="stat-label">Node Uptime</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="container">
+                <div class="profile-tabs">
+                    <button class="tab-btn active" data-tab="uploads">📤 My Uploads</button>
+                    <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+                    <button class="tab-btn" data-tab="node">🔗 Node Status</button>
+                </div>
+
+                <!-- Uploads Tab -->
+                <div class="tab-content active" id="tab-uploads">
+                    <div class="empty-state" id="uploadsEmpty">
+                        <div class="icon">📭</div>
+                        <h3>NO UPLOADS YET</h3>
+                        <p>You haven't uploaded anything to the archive.</p>
+                        <a href="upload.html" class="btn btn-primary" style="margin-top: 15px;">📤 Upload Something</a>
+                    </div>
+                    <div class="uploads-grid" id="uploadsGrid"></div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div class="tab-content" id="tab-settings">
+                    <form id="settingsForm">
+                        <div class="settings-section">
+                            <h3>👤 PROFILE</h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Display Name</label>
+                                    <input type="text" name="displayName" placeholder="Your display name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" name="email" placeholder="your@email.com">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Bio</label>
+                                <textarea name="bio" placeholder="Tell people about yourself..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Affiliation</label>
+                                <input type="text" name="affiliation" placeholder="University, organization, etc.">
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>🎨 APPEARANCE</h3>
+                            <div class="form-group">
+                                <label>Theme</label>
+                                <select name="theme" id="themeSelect">
+                                    <option value="terminal">Terminal (Green)</option>
+                                    <option value="midnight">Midnight (Blue)</option>
+                                    <option value="vapor">Vaporwave (Pink)</option>
+                                    <option value="paper">Paper (Light)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>🔒 SECURITY</h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Current Password</label>
+                                    <input type="password" name="currentPassword" placeholder="Current password">
+                                </div>
+                                <div class="form-group">
+                                    <label>New Password</label>
+                                    <input type="password" name="newPassword" placeholder="New password">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 15px; justify-content: flex-end;">
+                            <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+                        </div>
+                    </form>
+
+                    <div class="settings-section" style="margin-top: 40px; border-color: var(--red);">
+                        <h3 style="color: var(--red);">⚠️ DANGER ZONE</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 20px;">These actions cannot be undone.</p>
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <button class="btn btn-danger" id="logoutBtn">🚪 Log Out</button>
+                            <button class="btn btn-danger">🗑️ Delete Account</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Node Status Tab -->
+                <div class="tab-content" id="tab-node">
+                    <div class="node-status">
+                        <div class="node-icon offline" id="nodeIcon">🔴</div>
+                        <div class="node-details">
+                            <h4>Node Status: <span id="nodeStatusText">Offline</span></h4>
+                            <p id="nodeMessage">Connect via the desktop app to run your node.</p>
+                        </div>
+                    </div>
+
+                    <div class="settings-section" style="margin-top: 30px;">
+                        <h3>📊 NODE STATISTICS</h3>
+                        <p style="color: var(--text-muted);">Node statistics are only available when running the desktop app.</p>
+                        <div style="margin-top: 20px;">
+                            <a href="download.html" class="btn btn-primary">⬇️ Download Desktop App</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-links">
+                <a href="https://github.com/rootedrevival" target="_blank">💻 GitHub</a>
+                <a href="https://discord.gg/rootedrevival" target="_blank">💬 Discord</a>
+                <a href="mailto:michaelwillisbotany@proton.me">✉️ Contact</a>
+            </div>
+            <p class="footer-copy">© 2026 Rooted Revival • Tulsa, OK</p>
+        </div>
+    </footer>
+
+    <div class="theme-picker">
+        <button class="theme-toggle" id="themeToggle">🎨</button>
+        <div class="theme-menu" id="themeMenu">
+            <button class="theme-option" data-theme="terminal">Terminal</button>
+            <button class="theme-option" data-theme="midnight">Midnight</button>
+            <button class="theme-option" data-theme="vapor">Vaporwave</button>
+            <button class="theme-option" data-theme="paper">Paper</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://localhost:3000/api'
+            : 'https://scholar.rootedrevival.us/api';
+        let user = null;
+
+        async function checkAuth() {
+            try {
+                const resp = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data && data.user) {
+                        user = data.user;
+                        localStorage.setItem('user', JSON.stringify(user));
+                        document.getElementById('loginRequired').classList.add('hidden');
+                        document.getElementById('profileContent').classList.remove('hidden');
+                        loadProfile();
+                        return;
+                    }
+                }
+            } catch (e) {
+                // Server unreachable — fall through
+            }
+            // Not authenticated — clear stale data
+            localStorage.removeItem('user');
+        }
+
+        function loadProfile() {
+            if (!user) return;
+            
+            document.getElementById('displayName').textContent = user.displayName || user.username;
+            document.getElementById('username').textContent = user.username;
+            document.getElementById('profileBio').textContent = user.bio || 'No bio yet. Add one in settings.';
+            
+            // Set form values
+            const form = document.getElementById('settingsForm');
+            if (form.displayName) form.displayName.value = user.displayName || '';
+            if (form.email) form.email.value = user.email || '';
+            if (form.bio) form.bio.value = user.bio || '';
+        }
+
+        // Tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+            });
+        });
+
+        // Settings form
+        document.getElementById('settingsForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const form = e.target;
+            
+            // Update local user
+            user.displayName = form.displayName.value;
+            user.email = form.email.value;
+            user.bio = form.bio.value;
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            // Update theme
+            setTheme(form.theme.value);
+            
+            alert('Settings saved!');
+            loadProfile();
+        });
+
+        // Logout
+        document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+            try {
+                await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+            } catch (e) {}
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        });
+
+        // Theme
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            if (document.getElementById('themeSelect')) {
+                document.getElementById('themeSelect').value = theme;
+            }
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem('theme') || 'terminal';
+            setTheme(saved);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            checkAuth();
+
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                document.getElementById('themeMenu').classList.toggle('open');
+            });
+
+            document.querySelectorAll('.theme-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    setTheme(opt.dataset.theme);
+                    document.getElementById('themeMenu').classList.remove('open');
+                });
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.theme-picker')) {
+                    document.getElementById('themeMenu')?.classList.remove('open');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+[Unit]
+Description=GrabNet WebSocket Relay
+After=network.target
+Wants=grab-gateway.service
+
+[Service]
+Type=simple
+User=michael
+WorkingDirectory=/home/michael/projects/rootedrevival/relay
+ExecStart=/usr/bin/node ws-relay.js
+Restart=always
+RestartSec=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=grabnet-relay
+
+[Install]
+WantedBy=multi-user.target

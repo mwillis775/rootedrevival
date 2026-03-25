@@ -34,6 +34,9 @@ const config = {
         // Documents
         'application/pdf',
         'application/epub+zip',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.oasis.opendocument.text',
         'text/markdown',
         'text/plain',
         'application/json',

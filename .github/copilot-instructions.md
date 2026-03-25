@@ -68,12 +68,66 @@ Rooted Revival is not a single app. This repository combines the public site, th
 - Do not introduce unnecessary dependencies, bundlers, or framework migrations.
 
 ## Useful Commands
-- Server: `cd server && npm run db:init`, `npm run dev`, `npm test`
-- Scholar: `cd scholar && cargo run`, `cargo test`
-- GrabNet: `cd grab && cargo build --release`, `cargo test`
-- Relay: `cd relay && npm start`
-- Desktop: `cd desktop && npm run dev`
-- GrabNet GUI: `cd grabnet-gui && npm run dev`
+
+### Server (Node.js — port 3000)
+- `cd server && npm run db:init` — Initialize SQLite database
+- `cd server && npm run db:seed` — Seed test data
+- `cd server && npm run dev` — Start with auto-reload (development)
+- `cd server && npm start` — Production start
+- `cd server && npm test` — Run test suite
+- `cd server && ./setup.sh` — Full automated setup (installs deps, creates `.env`, inits DB)
+
+### Scholar (Rust — port 8889)
+- `cd scholar && cargo build --release` — Optimized build
+- `cd scholar && cargo run --release -- --port 8889` — Run in release mode
+- `cd scholar && cargo test` — Run unit + integration tests
+
+### GrabNet (Rust — gateway on port 8888)
+- `cd grab && cargo build --release` — Build the grab binary
+- `cd grab && cargo test` — Run tests
+- `grab publish ./site/ --name rootedrevival` — First-time publish site to GrabNet
+- `grab update rootedrevival` — Republish site after changes
+- `grab gateway --port 8888 --default-site rootedrevival` — Run gateway (prefer systemd)
+
+### Relay (WebSocket — port 8080)
+- `cd relay && npm start` — Start WebSocket relay
+- `cd relay && npm run dev` — Development mode
+
+### Pinning Service (Node.js)
+- `cd pinning-service && npm start` — Start pinning service
+- `cd pinning-service && npm run dev` — Development mode
+- `cd pinning-service && ./setup.sh` — Full setup (IPFS Kubo, Cloudflare tunnel, systemd)
+
+### Desktop Apps
+- `cd desktop && npm run dev` — Electron dev mode
+- `cd desktop && npm run build` — Build for current platform
+- `cd desktop && npm run build:all` — Build for all platforms
+- `cd grabnet-gui && npm run dev` — GrabNet GUI dev mode
+- `cd desktop-tauri && npm run tauri:dev` — Tauri dev mode
+- `cd desktop-tauri && npm run tauri:build` — Tauri production build
+
+### Systemd Services (production)
+- `sudo systemctl start|stop|restart revival-server` — Node.js API server
+- `sudo systemctl start|stop|restart grab-gateway` — GrabNet gateway
+- `sudo systemctl start|stop|restart grabnet-relay` — P2P WebSocket relay
+- `sudo systemctl start|stop|restart scholar` — Scholar service
+- `sudo systemctl start|stop|restart cloudflared` — Cloudflare tunnel
+- `sudo systemctl start|stop|restart pinning` — Pinning service
+- `sudo journalctl -u <service> -f` — Follow service logs
+
+### Deployment
+- `sudo ./deploy/install.sh` — Full production install (builds Rust, creates services, configures system)
+- `./deploy.sh [file] [--update-dns]` — Pin content to IPFS
+- `sudo ./tor/setup.sh` — Configure Tor hidden services
+
+### Docker
+- `docker-compose up -d` — Start full stack in containers
+- `docker-compose logs -f` — Follow container logs
+- `docker-compose down` — Stop containers
+
+### Site Publishing (from Node server or manually)
+- The server's `publishSite()` in `server/src/grab.js` stops the gateway, runs `grab update`, and restarts via systemd.
+- To publish manually: `sudo systemctl stop grab-gateway && cd grab && ./target/release/grab update rootedrevival && sudo systemctl start grab-gateway`
 
 ## Avoid
 - Do not bypass U2F or moderator/admin checks for convenience.

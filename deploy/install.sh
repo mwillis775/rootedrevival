@@ -79,6 +79,8 @@ echo -e "\n${YELLOW}Step 4: Installing systemd services${NC}"
 # Copy service files
 cp $(dirname "$0")/scholar.service /etc/systemd/system/
 cp $(dirname "$0")/grabnet.service /etc/systemd/system/
+cp $(dirname "$0")/grabnet-relay.service /etc/systemd/system/
+cp $(dirname "$0")/revival-server.service /etc/systemd/system/
 
 # Create environment files
 cat > /etc/scholar/scholar.env << EOF
@@ -125,9 +127,11 @@ echo -e "\n${YELLOW}Step 6: Starting services${NC}"
 # Enable and start services
 systemctl enable grabnet
 systemctl enable scholar
+systemctl enable grabnet-relay
 systemctl start grabnet
 sleep 3
 systemctl start scholar
+systemctl start grabnet-relay
 
 echo -e "${GREEN}✓ Services started${NC}"
 

@@ -545,40 +545,17 @@
                                 <label>Category</label>
                                 <select name="category">
                                     <option value="">Select category...</option>
-                                    <optgroup label="Humanities">
-                                        <option value="philosophy">Philosophy</option>
-                                        <option value="history">History</option>
-                                        <option value="literature">Literature</option>
-                                        <option value="linguistics">Linguistics</option>
-                                    </optgroup>
-                                    <optgroup label="Social Sciences">
-                                        <option value="psychology">Psychology</option>
-                                        <option value="sociology">Sociology</option>
-                                        <option value="economics">Economics</option>
-                                        <option value="political-science">Political Science</option>
-                                        <option value="anthropology">Anthropology</option>
-                                    </optgroup>
-                                    <optgroup label="STEM">
-                                        <option value="physics">Physics</option>
-                                        <option value="chemistry">Chemistry</option>
-                                        <option value="biology">Biology</option>
-                                        <option value="computer-science">Computer Science</option>
-                                        <option value="mathematics">Mathematics</option>
-                                        <option value="engineering">Engineering</option>
-                                        <option value="environmental-science">Environmental Science</option>
-                                    </optgroup>
-                                    <optgroup label="Medicine & Health">
-                                        <option value="medicine">Medicine</option>
-                                        <option value="public-health">Public Health</option>
-                                        <option value="neuroscience">Neuroscience</option>
-                                    </optgroup>
-                                    <optgroup label="Arts & Design">
-                                        <option value="visual-arts">Visual Arts</option>
-                                        <option value="music">Music</option>
-                                        <option value="architecture">Architecture</option>
-                                        <option value="design">Design</option>
-                                    </optgroup>
-                                    <option value="interdisciplinary">Interdisciplinary</option>
+                                    <option value="botany">Botany</option>
+                                    <option value="agriculture">Agriculture</option>
+                                    <option value="engineering">Engineering</option>
+                                    <option value="computer-science">Computer Science</option>
+                                    <option value="biology">Biology</option>
+                                    <option value="chemistry">Chemistry</option>
+                                    <option value="physics">Physics</option>
+                                    <option value="mathematics">Mathematics</option>
+                                    <option value="tutorial">Tutorial</option>
+                                    <option value="documentary">Documentary</option>
+                                    <option value="other">Other</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -699,7 +676,6 @@
         </div>
     </div>
 
-    <script src="static/js/site-nav.js"></script>
     <!-- GrabNet P2P Integration -->
     <script type="module">
         import { initGrabNet, ContentHash } from './static/js/grabnet-p2p.js';
@@ -962,8 +938,6 @@
                 const paperUuid = createResult.paper?.uuid || metadata.uuid;
                 
                 // Step 2: Upload files to the paper
-                let filesUploaded = 0;
-                const fileErrors = [];
                 for (const file of uploadedFiles) {
                     const formData = new FormData();
                     formData.append('file', file);
@@ -974,29 +948,9 @@
                         credentials: 'include',
                     });
                     
-                    if (fileRes.ok) {
-                        filesUploaded++;
-                    } else {
-                        const errBody = await fileRes.json().catch(() => ({}));
-                        const reason = errBody.error || `HTTP ${fileRes.status}`;
-                        console.warn('[Upload] File upload failed for:', file.name, reason);
-                        fileErrors.push(`${file.name}: ${reason}`);
+                    if (!fileRes.ok) {
+                        console.warn('[Upload] File upload failed for:', file.name);
                     }
-                }
-                
-                if (filesUploaded === 0) {
-                    throw new Error('No files were accepted. ' + fileErrors.join('; '));
-                }
-                
-                // Step 3: Publish the paper (make it publicly visible)
-                const publishRes = await fetch(`${API_BASE}/papers/${paperUuid}/publish`, {
-                    method: 'POST',
-                    credentials: 'include',
-                });
-                
-                if (!publishRes.ok) {
-                    const pubErr = await publishRes.json().catch(() => ({}));
-                    console.warn('[Upload] Auto-publish failed:', pubErr.error || publishRes.status);
                 }
                 
                 submitBtn.innerHTML = '✅ Published!';

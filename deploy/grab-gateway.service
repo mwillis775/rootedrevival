@@ -1,0 +1,16 @@
+[Unit]
+Description=GrabNet Gateway Service
+After=network.target
+
+[Service]
+Type=simple
+User=michael
+WorkingDirectory=/home/michael/projects/rootedrevival/grab
+ExecStart=/home/michael/projects/rootedrevival/grab/target/release/grab gateway --port 8888 --default-site rootedrevival
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

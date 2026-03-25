@@ -545,17 +545,40 @@
                                 <label>Category</label>
                                 <select name="category">
                                     <option value="">Select category...</option>
-                                    <option value="botany">Botany</option>
-                                    <option value="agriculture">Agriculture</option>
-                                    <option value="engineering">Engineering</option>
-                                    <option value="computer-science">Computer Science</option>
-                                    <option value="biology">Biology</option>
-                                    <option value="chemistry">Chemistry</option>
-                                    <option value="physics">Physics</option>
-                                    <option value="mathematics">Mathematics</option>
-                                    <option value="tutorial">Tutorial</option>
-                                    <option value="documentary">Documentary</option>
-                                    <option value="other">Other</option>
+                                    <optgroup label="Humanities">
+                                        <option value="philosophy">Philosophy</option>
+                                        <option value="history">History</option>
+                                        <option value="literature">Literature</option>
+                                        <option value="linguistics">Linguistics</option>
+                                    </optgroup>
+                                    <optgroup label="Social Sciences">
+                                        <option value="psychology">Psychology</option>
+                                        <option value="sociology">Sociology</option>
+                                        <option value="economics">Economics</option>
+                                        <option value="political-science">Political Science</option>
+                                        <option value="anthropology">Anthropology</option>
+                                    </optgroup>
+                                    <optgroup label="STEM">
+                                        <option value="physics">Physics</option>
+                                        <option value="chemistry">Chemistry</option>
+                                        <option value="biology">Biology</option>
+                                        <option value="computer-science">Computer Science</option>
+                                        <option value="mathematics">Mathematics</option>
+                                        <option value="engineering">Engineering</option>
+                                        <option value="environmental-science">Environmental Science</option>
+                                    </optgroup>
+                                    <optgroup label="Medicine & Health">
+                                        <option value="medicine">Medicine</option>
+                                        <option value="public-health">Public Health</option>
+                                        <option value="neuroscience">Neuroscience</option>
+                                    </optgroup>
+                                    <optgroup label="Arts & Design">
+                                        <option value="visual-arts">Visual Arts</option>
+                                        <option value="music">Music</option>
+                                        <option value="architecture">Architecture</option>
+                                        <option value="design">Design</option>
+                                    </optgroup>
+                                    <option value="interdisciplinary">Interdisciplinary</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -858,20 +881,21 @@
 
             try {
                 // Gather metadata
+                const form = e.target;
                 const metadata = {
                     uuid: crypto.randomUUID(),
                     type: selectedType,
-                    title: document.getElementById('title').value,
-                    abstract: document.getElementById('abstract')?.value || '',
-                    description: document.getElementById('description')?.value || '',
-                    discipline: document.getElementById('discipline')?.value || '',
+                    title: form.elements.title?.value || '',
+                    abstract: form.elements.abstract?.value || '',
+                    description: form.elements.description?.value || '',
+                    discipline: form.elements.category?.value || '',
                     keywords: tags,
-                    visibility: document.querySelector('input[name="visibility"]:checked')?.value || 'public',
-                    license: document.getElementById('license')?.value || 'cc-by-4.0',
+                    visibility: 'public',
+                    license: form.elements.license?.value || 'cc-by-4.0',
                     authors: [{
-                        name: user?.display_name || user?.username || 'Anonymous',
+                        name: form.elements.authors?.value || user?.display_name || user?.username || 'Anonymous',
                     }],
-                    publication_year: new Date().getFullYear().toString(),
+                    publication_year: form.elements.year?.value || new Date().getFullYear().toString(),
                     created_at: new Date().toISOString(),
                 };
                 
@@ -909,36 +933,78 @@
                 
                 submitBtn.innerHTML = '☁️ Syncing to API...';
                 
-                // Also upload to API for persistence
-                const formData = new FormData();
-                formData.append('metadata', JSON.stringify(metadata));
-                for (const file of uploadedFiles) {
-                    formData.append('files', file);
-                }
+                // Step 1: Create paper record via JSON
+                const paperPayload = {
+                    title: metadata.title,
+                    abstract: metadata.abstract || metadata.description || '',
+                    publicationYear: metadata.publication_year,
+                    paperType: metadata.type || 'paper',
+                    license: metadata.license,
+                    visibility: metadata.visibility,
+                    authors: metadata.authors,
+                    disciplines: metadata.discipline ? [metadata.discipline] : [],
+                    keywords: metadata.keywords || [],
+                };
                 
-                const response = await fetch(`${API_BASE}/papers`, {
+                const createRes = await fetch(`${API_BASE}/papers`, {
                     method: 'POST',
-                    body: formData,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(paperPayload),
                     credentials: 'include',
                 });
                 
-                if (response.ok) {
-                    const result = await response.json();
-                    submitBtn.innerHTML = '✅ Published!';
+                if (!createRes.ok) {
+                    const err = await createRes.json().catch(() => ({}));
+                    throw new Error(err.error || 'Failed to create paper');
+                }
+                
+                const createResult = await createRes.json();
+                const paperUuid = createResult.paper?.uuid || metadata.uuid;
+                
+                // Step 2: Upload files to the paper
+                let filesUploaded = 0;
+                const fileErrors = [];
+                for (const file of uploadedFiles) {
+                    const formData = new FormData();
+                    formData.append('file', file);
                     
-                    // Show success and redirect
-                    setTimeout(() => {
-                        window.location.href = `view.html?id=${result.uuid || metadata.uuid}`;
-                    }, 1500);
-                } else {
-                    // API failed but P2P might have worked
-                    if (p2pNode && p2pNode.getStatus().peerCount > 0) {
-                        submitBtn.innerHTML = '⚠️ Published to P2P only';
-                        alert('API upload failed, but your content is available on the P2P network. It may take longer to propagate.');
+                    const fileRes = await fetch(`${API_BASE}/papers/${paperUuid}/files`, {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'include',
+                    });
+                    
+                    if (fileRes.ok) {
+                        filesUploaded++;
                     } else {
-                        throw new Error('Upload failed');
+                        const errBody = await fileRes.json().catch(() => ({}));
+                        const reason = errBody.error || `HTTP ${fileRes.status}`;
+                        console.warn('[Upload] File upload failed for:', file.name, reason);
+                        fileErrors.push(`${file.name}: ${reason}`);
                     }
                 }
+                
+                if (filesUploaded === 0) {
+                    throw new Error('No files were accepted. ' + fileErrors.join('; '));
+                }
+                
+                // Step 3: Publish the paper (make it publicly visible)
+                const publishRes = await fetch(`${API_BASE}/papers/${paperUuid}/publish`, {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+                
+                if (!publishRes.ok) {
+                    const pubErr = await publishRes.json().catch(() => ({}));
+                    console.warn('[Upload] Auto-publish failed:', pubErr.error || publishRes.status);
+                }
+                
+                submitBtn.innerHTML = '✅ Published!';
+                
+                // Show success and redirect
+                setTimeout(() => {
+                    window.location.href = `view.html?id=${paperUuid}`;
+                }, 1500);
                 
             } catch (error) {
                 console.error('Upload failed:', error);

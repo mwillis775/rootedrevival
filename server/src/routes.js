@@ -49,15 +49,15 @@ function registerRoutes(app) {
         
         const { username, email, password, displayName } = req.body || {};
         
-        if (!username || !email || !password) {
-            return res.error('Username, email, and password are required');
+        if (!username || !password) {
+            return res.error('Username and password are required');
         }
         
         try {
-            const user = await users.createUser({ username, email, password, displayName });
+            const user = await users.createUser({ username, email: email || null, password, displayName });
             
             // Auto-login
-            const session = await users.authenticateUser(email, password, {
+            const session = await users.authenticateUser(username, password, {
                 ipAddress: req.socket.remoteAddress,
                 userAgent: req.headers['user-agent']
             });
@@ -182,9 +182,13 @@ function registerRoutes(app) {
      * Get a user's public key (public endpoint — needed for E2E encryption)
      */
     app.get('/api/users/:username/pubkey', async (req, res) => {
-        const pubkey = users.getPublicKey(req.params.username);
-        if (!pubkey) return res.error('Public key not found', 404);
-        res.json({ publicKey: pubkey });
+        // Only return pubkey if user has full v2 E2E setup (password-wrapped private key on server)
+        // Prevents encrypting with orphaned v1 keys whose private key is lost
+        const keys = users.getE2EKeysByUsername(req.params.username);
+        if (!keys || !keys.public_key || !keys.encrypted_private_key) {
+            return res.error('Public key not found', 404);
+        }
+        res.json({ publicKey: keys.public_key });
     });
     
     /**
@@ -196,6 +200,37 @@ function registerRoutes(app) {
         if (publicKey.length > 5000) return res.error('Key too large');
         users.setPublicKey(req.user.id, publicKey);
         res.json({ success: true });
+    });
+    
+    /**
+     * Store E2E encrypted private key + salt + public key (password-wrapped)
+     */
+    app.put('/api/users/me/e2e-keys', auth({ required: true }), async (req, res) => {
+        const { encryptedPrivateKey, keySalt, publicKey } = req.body || {};
+        if (!encryptedPrivateKey || !keySalt || !publicKey) {
+            return res.error('encryptedPrivateKey, keySalt, and publicKey are required');
+        }
+        if (encryptedPrivateKey.length > 10000 || keySalt.length > 200 || publicKey.length > 5000) {
+            return res.error('Key data too large');
+        }
+        users.setE2EKeys(req.user.id, { encryptedPrivateKey, keySalt, publicKey });
+        res.json({ success: true });
+    });
+
+    /**
+     * Retrieve E2E encrypted private key + salt for client-side unlocking
+     */
+    app.get('/api/users/me/e2e-keys', auth({ required: true }), async (req, res) => {
+        const keys = users.getE2EKeys(req.user.id);
+        if (!keys || !keys.encrypted_private_key) {
+            return res.json({ hasKeys: false });
+        }
+        res.json({
+            hasKeys: true,
+            encryptedPrivateKey: keys.encrypted_private_key,
+            keySalt: keys.key_salt,
+            publicKey: keys.public_key
+        });
     });
     
     // ========================================
@@ -244,8 +279,16 @@ function registerRoutes(app) {
         res.json({ papers: trending });
     });
     
-    app.get('/api/papers/:uuid', async (req, res) => {
-        const paper = papers.getPaperByUuid(req.params.uuid, false);
+    app.get('/api/papers/:uuid', auth({ required: false }), async (req, res) => {
+        // Try public first, then check if requester owns the draft
+        let paper = papers.getPaperByUuid(req.params.uuid, false);
+        
+        if (!paper && req.user) {
+            const privatePaper = papers.getPaperByUuid(req.params.uuid, true);
+            if (privatePaper && (privatePaper.uploader_id === req.user.id || req.user.isAdmin)) {
+                paper = privatePaper;
+            }
+        }
         
         if (!paper) {
             return res.error('Paper not found', 404);

@@ -17,19 +17,19 @@ const LIBP2P_CDN = 'https://cdn.jsdelivr.net/npm/';
 // Dynamic import helper
 async function importLibp2p() {
     const modules = await Promise.all([
-        import(`${LIBP2P_CDN}libp2p@1.2.0/+esm`),
-        import(`${LIBP2P_CDN}@libp2p/webrtc@4.0.0/+esm`),
-        import(`${LIBP2P_CDN}@libp2p/websockets@8.0.0/+esm`),
-        import(`${LIBP2P_CDN}@libp2p/circuit-relay-v2@1.0.0/+esm`),
-        import(`${LIBP2P_CDN}@libp2p/identify@1.0.0/+esm`),
-        import(`${LIBP2P_CDN}@libp2p/gossipsub@12.0.0/+esm`),
-        import(`${LIBP2P_CDN}@libp2p/kad-dht@12.0.0/+esm`),
-        import(`${LIBP2P_CDN}@libp2p/bootstrap@10.0.0/+esm`),
-        import(`${LIBP2P_CDN}@chainsafe/libp2p-noise@15.0.0/+esm`),
-        import(`${LIBP2P_CDN}@chainsafe/libp2p-yamux@6.0.0/+esm`),
-        import(`${LIBP2P_CDN}@libp2p/crypto@4.0.0/+esm`),
+        import(`${LIBP2P_CDN}libp2p@1.9.0/+esm`),
+        import(`${LIBP2P_CDN}@libp2p/webrtc@4.1.4/+esm`),
+        import(`${LIBP2P_CDN}@libp2p/websockets@8.2.0/+esm`),
+        import(`${LIBP2P_CDN}@libp2p/circuit-relay-v2@1.1.5/+esm`),
+        import(`${LIBP2P_CDN}@libp2p/identify@2.1.2/+esm`),
+        import(`${LIBP2P_CDN}@chainsafe/libp2p-gossipsub@13.0.0/+esm`),
+        import(`${LIBP2P_CDN}@libp2p/kad-dht@12.1.0/+esm`),
+        import(`${LIBP2P_CDN}@libp2p/bootstrap@10.1.2/+esm`),
+        import(`${LIBP2P_CDN}@chainsafe/libp2p-noise@15.1.2/+esm`),
+        import(`${LIBP2P_CDN}@chainsafe/libp2p-yamux@6.0.2/+esm`),
         import(`${LIBP2P_CDN}multiformats@13.0.0/+esm`),
         import(`${LIBP2P_CDN}uint8arrays@5.0.0/+esm`),
+        import(`${LIBP2P_CDN}@multiformats/multiaddr@12.3.1/+esm`),
     ]);
     
     return {
@@ -44,9 +44,9 @@ async function importLibp2p() {
         bootstrap: modules[7].bootstrap,
         noise: modules[8].noise,
         yamux: modules[9].yamux,
-        keys: modules[10].keys,
-        CID: modules[11].CID,
-        uint8arrays: modules[12],
+        CID: modules[10].CID,
+        uint8arrays: modules[11],
+        multiaddr: modules[12].multiaddr,
     };
 }
 
@@ -71,11 +71,12 @@ const GRABNET_CONFIG = {
     
     // Bootstrap nodes (WebSocket relays)
     BOOTSTRAP_NODES: [
-        // Primary relay (your server)
-        '/dns4/scholar.rootedrevival.us/tcp/4002/wss/p2p/12D3KooWBootstrap1',
-        // Backup relays
-        '/dns4/relay.rootedrevival.us/tcp/4002/wss/p2p/12D3KooWBootstrap2',
+        // Primary relay via Cloudflare Tunnel (WSS)
+        '/dns4/relay.rootedrevival.us/tcp/443/wss/p2p/12D3KooWM1KPVuqzoiVpARRe2ifwnDR2PMdozH31qAeN86u4DnoS',
     ],
+    
+    // Relay status endpoint for dynamic bootstrap discovery
+    RELAY_STATUS_URL: null, // Set at runtime based on context
     
     // Fallback API (hybrid mode)
     API_BASE: 'https://scholar.rootedrevival.us/api',
@@ -151,7 +152,7 @@ class ContentHash {
 class ContentStore {
     constructor() {
         this.dbName = 'grabnet_store';
-        this.dbVersion = 1;
+        this.dbVersion = 2;
         this.db = null;
     }
     
@@ -192,7 +193,32 @@ class ContentStore {
                 if (!db.objectStoreNames.contains('searchIndex')) {
                     const search = db.createObjectStore('searchIndex', { keyPath: 'term' });
                 }
+                
+                // Device key store (persistent PeerId per device)
+                if (!db.objectStoreNames.contains('keys')) {
+                    db.createObjectStore('keys', { keyPath: 'id' });
+                }
             };
+        });
+    }
+    
+    async storePrivateKey(keyBytes) {
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction(['keys'], 'readwrite');
+            const store = tx.objectStore('keys');
+            store.put({ id: 'device_private_key', key: keyBytes, createdAt: Date.now() });
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+    
+    async getPrivateKey() {
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction(['keys'], 'readonly');
+            const store = tx.objectStore('keys');
+            const request = store.get('device_private_key');
+            request.onsuccess = () => resolve(request.result?.key || null);
+            request.onerror = () => reject(request.error);
         });
     }
     
@@ -344,6 +370,10 @@ class GrabNetNode extends EventTarget {
         this.connectedPeers = new Map();
         this.pendingSearches = new Map();
         this.contentProviders = new Map(); // CID -> Set<PeerId>
+        this._dialingPeers = new Set(); // PeerIds currently being dialed
+        this._libs = null; // cached libp2p module references
+        this._announceInterval = null;
+        this._peerDeadlineTimer = null;
         
         // Stats
         this.stats = {
@@ -361,6 +391,9 @@ class GrabNetNode extends EventTarget {
     
     /**
      * Initialize and start the P2P node
+     *
+     * Attempts to connect to the relay via WebSocket. Falls back to API mode
+     * if the relay is unreachable or libp2p fails to initialize.
      */
     async start() {
         if (this.isStarted) return;
@@ -368,14 +401,31 @@ class GrabNetNode extends EventTarget {
         console.log('[GrabNet] Starting P2P node...');
         
         try {
+            await this._startNode();
+        } catch (error) {
+            console.warn('[GrabNet] P2P startup failed, running in API fallback mode:', error.message);
+            await this.store.init();
+            this.mode = 'fallback';
+            this.isStarted = true;
+            this.dispatchEvent(new CustomEvent('fallback', { detail: { reason: 'p2p-failed', error: error.message } }));
+        }
+    }
+    
+    async _startNode() {
+        try {
             // Initialize local store
             await this.store.init();
             
             // Import libp2p modules
             const libs = await importLibp2p();
+            this._libs = libs;
+            
+            // Each device auto-generates a unique ephemeral key pair.
+            // libp2p handles key generation internally — external @libp2p/crypto
+            // has version-mismatch issues with the bundled crypto in libp2p@1.9.0.
             
             // Create libp2p node
-            this.node = await libs.createLibp2p({
+            const nodeConfig = {
                 addresses: {
                     listen: [
                         '/webrtc',
@@ -384,7 +434,14 @@ class GrabNetNode extends EventTarget {
                 transports: [
                     libs.webRTC(),
                     libs.webSockets({
-                        filter: (addrs) => addrs.filter(a => a.toString().includes('wss'))
+                        filter: (addrs) => {
+                            if (!addrs) return [];
+                            return addrs.filter(a => {
+                                if (!a) return false;
+                                const s = a.toString();
+                                return s.includes('/ws') || s.includes('/wss');
+                            });
+                        }
                     }),
                     libs.circuitRelayTransport({
                         discoverRelays: 1,
@@ -402,12 +459,14 @@ class GrabNetNode extends EventTarget {
                     pubsub: libs.gossipsub({
                         allowPublishToZeroPeers: true,
                         emitSelf: false,
+                        doPX: true,
                     }),
                     dht: libs.kadDHT({
                         clientMode: true,
                     }),
                 },
-            });
+            };
+            this.node = await libs.createLibp2p(nodeConfig);
             
             this.peerId = this.node.peerId.toString();
             console.log(`[GrabNet] Node started with PeerId: ${this.peerId}`);
@@ -431,6 +490,16 @@ class GrabNetNode extends EventTarget {
             // Start peer discovery loop
             this._startPeerDiscovery();
             
+            // Auto-shutdown if no peers (not even the relay) connect within 30s
+            this._peerDeadlineTimer = setTimeout(() => {
+                if (this.connectedPeers.size === 0 && this.isStarted) {
+                    console.warn('[GrabNet] No peers found after 30s, stopping P2P to preserve performance');
+                    this.stop();
+                    this.mode = 'fallback';
+                    this.dispatchEvent(new CustomEvent('fallback', { detail: { reason: 'no-peers' } }));
+                }
+            }, 30000);
+            
             return this.peerId;
             
         } catch (error) {
@@ -449,10 +518,21 @@ class GrabNetNode extends EventTarget {
         
         console.log('[GrabNet] Stopping P2P node...');
         
+        if (this._peerDeadlineTimer) {
+            clearTimeout(this._peerDeadlineTimer);
+            this._peerDeadlineTimer = null;
+        }
+        if (this._announceInterval) {
+            clearInterval(this._announceInterval);
+            this._announceInterval = null;
+        }
+        
         if (this.node) {
             await this.node.stop();
         }
         
+        this.connectedPeers.clear();
+        this._dialingPeers.clear();
         this.isStarted = false;
         this.dispatchEvent(new CustomEvent('stopped'));
     }
@@ -692,6 +772,12 @@ class GrabNetNode extends EventTarget {
             this.connectedPeers.set(peerId, { connectedAt: Date.now() });
             this.store.storePeer(peerId, { connectedAt: Date.now() });
             
+            // Cancel auto-shutdown timer — we found a peer
+            if (this._peerDeadlineTimer) {
+                clearTimeout(this._peerDeadlineTimer);
+                this._peerDeadlineTimer = null;
+            }
+            
             this.dispatchEvent(new CustomEvent('peer:connect', { detail: { peerId } }));
             this._updateMode();
         });
@@ -703,6 +789,17 @@ class GrabNetNode extends EventTarget {
             
             this.dispatchEvent(new CustomEvent('peer:disconnect', { detail: { peerId } }));
             this._updateMode();
+        });
+        
+        // Peer discovery — dial newly discovered peers through the relay
+        this.node.addEventListener('peer:discovery', (event) => {
+            const discoveredId = event.detail.id.toString();
+            // Skip relay bootstrap nodes — we're already connected to them
+            const isBootstrap = this.options.BOOTSTRAP_NODES.some(addr => addr.includes(discoveredId));
+            if (isBootstrap || this.connectedPeers.has(discoveredId) || this._dialingPeers.has(discoveredId)) return;
+            
+            console.log(`[GrabNet] Discovered peer: ${discoveredId}`);
+            this._dialViaCiruitRelay(discoveredId);
         });
     }
     
@@ -832,9 +929,19 @@ class GrabNetNode extends EventTarget {
     _handlePeerDiscovery(data, fromPeer) {
         const { peers } = data;
         
-        // Store discovered peers
+        // The message sender is a real peer — try to connect to them directly
+        const senderId = fromPeer?.toString?.() || fromPeer;
+        if (senderId && senderId !== this.peerId && !this.connectedPeers.has(senderId)) {
+            console.log(`[GrabNet] Peer announced itself: ${senderId}`);
+            this._dialViaCiruitRelay(senderId);
+        }
+        
+        // Also try peers listed in the broadcast
         for (const peer of peers || []) {
             this.store.storePeer(peer.peerId, peer);
+            if (peer.peerId && peer.peerId !== this.peerId && !this.connectedPeers.has(peer.peerId)) {
+                this._dialViaCiruitRelay(peer.peerId);
+            }
         }
     }
     
@@ -846,6 +953,10 @@ class GrabNetNode extends EventTarget {
             await this.node.services.pubsub.publish(topic, encoded);
             this.stats.messagesSent++;
         } catch (error) {
+            // NoPeersSubscribedToTopic is expected when no other browsers are online
+            if (error.message?.includes('NoPeersSubscribedToTopic') || error.code === 'ERR_TOPIC_NO_PEERS') {
+                return;
+            }
             console.warn('[GrabNet] Publish failed:', error);
         }
     }
@@ -971,15 +1082,55 @@ class GrabNetNode extends EventTarget {
         this.dispatchEvent(new CustomEvent('mode:change', { detail: { mode: this.mode, peerCount } }));
     }
     
-    _startPeerDiscovery() {
-        // Periodic peer exchange
-        setInterval(() => {
-            if (this.connectedPeers.size > 0) {
-                this._publish(this.options.TOPICS.PEER_DISCOVERY, {
-                    peers: Array.from(this.connectedPeers.keys()).map(id => ({ peerId: id })),
-                });
+    /**
+     * Dial a peer through the relay using a circuit-relay address.
+     * Address format: <relay-multiaddr>/p2p-circuit/p2p/<target-peer-id>
+     */
+    async _dialViaCiruitRelay(targetPeerId) {
+        if (!this.node || !this.isStarted || !this._libs?.multiaddr) return;
+        // Skip if already connected or already dialing this peer
+        if (this.connectedPeers.has(targetPeerId) || this._dialingPeers.has(targetPeerId)) return;
+        
+        this._dialingPeers.add(targetPeerId);
+        try {
+            for (const relayAddr of this.options.BOOTSTRAP_NODES) {
+                const circuitAddr = `${relayAddr}/p2p-circuit/p2p/${targetPeerId}`;
+                try {
+                    const ma = this._libs.multiaddr(circuitAddr);
+                    await this.node.dial(ma, { signal: AbortSignal.timeout(5000) });
+                    console.log(`[GrabNet] Connected to peer ${targetPeerId} via circuit relay`);
+                    return;
+                } catch (error) {
+                    // Silently ignore dial failures — peer may be offline or unreachable
+                }
             }
-        }, 30000);
+        } finally {
+            this._dialingPeers.delete(targetPeerId);
+        }
+    }
+    
+    _announcePresence() {
+        // Broadcast our own PeerId so other browsers learn we exist
+        const selfEntry = {
+            peerId: this.peerId,
+            addrs: this.options.BOOTSTRAP_NODES.map(relay => `${relay}/p2p-circuit/p2p/${this.peerId}`),
+        };
+        const peerEntries = Array.from(this.connectedPeers.keys())
+            .filter(id => !this.options.BOOTSTRAP_NODES.some(a => a.includes(id)))
+            .map(id => ({
+                peerId: id,
+                addrs: this.options.BOOTSTRAP_NODES.map(relay => `${relay}/p2p-circuit/p2p/${id}`),
+            }));
+        this._publish(this.options.TOPICS.PEER_DISCOVERY, { peers: [selfEntry, ...peerEntries] });
+    }
+    
+    _startPeerDiscovery() {
+        // Announce after relay connection has time to establish
+        setTimeout(() => this._announcePresence(), 5000);
+        // Repeat at a moderate pace — no need to flood
+        this._announceInterval = setInterval(() => {
+            if (this.isStarted) this._announcePresence();
+        }, 20000);
     }
 }
 

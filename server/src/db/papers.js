@@ -67,14 +67,23 @@ function createPaper({
             );
         });
         
-        // Insert disciplines
+        // Insert disciplines (accepts integer IDs or string slugs)
         const insertDiscipline = db.prepare(`
             INSERT INTO paper_disciplines (paper_id, discipline_id, is_primary)
             VALUES (?, ?, ?)
         `);
         
-        disciplines.forEach((disciplineId, index) => {
-            insertDiscipline.run(paperId, disciplineId, index === 0 ? 1 : 0);
+        const lookupSlug = db.prepare('SELECT id FROM disciplines WHERE slug = ?');
+        
+        disciplines.forEach((disc, index) => {
+            let discId = typeof disc === 'number' ? disc : parseInt(disc, 10);
+            if (isNaN(discId)) {
+                // Treat as slug
+                const row = lookupSlug.get(disc);
+                if (!row) return; // skip unknown disciplines
+                discId = row.id;
+            }
+            insertDiscipline.run(paperId, discId, index === 0 ? 1 : 0);
         });
         
         // Insert keywords
@@ -84,11 +93,15 @@ function createPaper({
         });
         
         // Update FTS with author names and keywords
+        // The trigger inserts a row with empty keywords/author_names.
+        // Replace it with the full data.
         const authorNames = authors.map(a => a.name).join(', ');
         const keywordStr = keywords.join(', ');
+        db.prepare('DELETE FROM papers_fts WHERE rowid = ?').run(paperId);
         db.prepare(`
-            UPDATE papers_fts SET author_names = ?, keywords = ? WHERE rowid = ?
-        `).run(authorNames, keywordStr, paperId);
+            INSERT INTO papers_fts(rowid, title, abstract, keywords, author_names)
+            VALUES (?, ?, ?, ?, ?)
+        `).run(paperId, title, abstract || '', keywordStr, authorNames);
         
         return { id: paperId, uuid };
     });

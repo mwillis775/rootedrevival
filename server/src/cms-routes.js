@@ -80,22 +80,25 @@ function registerCmsRoutes(app) {
         if (senderUser) {
             // Logged-in user: use their account info
             name = senderUser.displayName || senderUser.display_name || senderUser.username;
-            email = senderUser.email;
+            email = senderUser.email || '';
         }
 
-        if (!name || !email || !message) {
-            return res.error('Name, email, and message are required');
+        if (!name || !message) {
+            return res.error('Name and message are required');
         }
-        if (name.length > 200 || email.length > 200 || message.length > 5000) {
+        if (!senderUser && !email) {
+            return res.error('Email is required for anonymous messages');
+        }
+        if (name.length > 200 || (email && email.length > 200) || message.length > 5000) {
             return res.error('Message too long');
         }
-        if (!senderUser && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        if (!senderUser && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             return res.error('Invalid email address');
         }
         try {
             cms.createContactMessage({
                 name: name.trim(),
-                email: email.trim(),
+                email: (email || '').trim(),
                 message: message.trim(),
                 senderUserId: senderUser ? senderUser.id : null,
                 recipientUsername: 'theboss'

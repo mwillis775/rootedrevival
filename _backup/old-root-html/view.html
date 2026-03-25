@@ -496,7 +496,6 @@
         </div>
     </div>
 
-    <script src="static/js/site-nav.js"></script>
     <!-- GrabNet P2P Integration -->
     <script type="module">
         import { initGrabNet } from './static/js/grabnet-p2p.js';
@@ -555,9 +554,7 @@
                 
                 // Fetch from API if not cached
                 if (!data) {
-                    const response = await fetch(`${API_BASE}/papers/${id}`, {
-                        credentials: 'include',
-                    });
+                    const response = await fetch(`${API_BASE}/papers/${id}`);
                     if (response.ok) {
                         data = await response.json();
                         
@@ -659,20 +656,11 @@
             document.getElementById('notFound').classList.add('hidden');
             document.getElementById('contentView').classList.remove('hidden');
 
-            const type = paper.paper_type || 'paper';
+            const type = paper.type || 'paper';
             document.getElementById('breadcrumbType').textContent = type.charAt(0).toUpperCase() + type.slice(1);
             document.getElementById('contentType').textContent = `${typeIcons[type] || '📄'} ${type.toUpperCase()}`;
             document.getElementById('contentTitle').textContent = paper.title;
-            
-            // Show draft notice if not published
-            if (paper.status && paper.status !== 'published') {
-                const notice = document.createElement('div');
-                notice.style.cssText = 'background:var(--accent,#f39c12);color:#000;padding:8px 16px;border-radius:4px;margin-bottom:12px;font-weight:bold;';
-                notice.textContent = `⚠️ This ${type} is in "${paper.status}" status and is only visible to you.`;
-                document.getElementById('contentTitle').after(notice);
-            }
-            
-            document.getElementById('contentAuthor').textContent = `👤 ${paper.authors?.[0]?.author_name || 'Anonymous'}`;
+            document.getElementById('contentAuthor').textContent = `👤 ${paper.authors?.[0]?.name || 'Anonymous'}`;
             document.getElementById('contentDate').textContent = `📅 ${paper.publication_year || '2026'}`;
             document.getElementById('contentViews').textContent = `👁️ ${paper.view_count || 0} views`;
             document.getElementById('contentDownloads').textContent = `⬇️ ${paper.download_count || 0} downloads`;
@@ -691,7 +679,7 @@
                         <span class="icon">📄</span>
                         <div class="info">
                             <div class="name">${escapeHtml(file.original_filename)}</div>
-                            <div class="size">${formatSize(file.file_size)}${file.grabnet_cid ? ' • P2P' : ''}</div>
+                            <div class="size">${formatSize(file.size)}${file.grabnet_cid ? ' • P2P' : ''}</div>
                         </div>
                     </a>
                 `).join('');

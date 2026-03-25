@@ -8,6 +8,15 @@
  * Run with: node ws-relay.js
  */
 
+// Polyfill for Node < 22
+if (typeof Promise.withResolvers !== 'function') {
+    Promise.withResolvers = function () {
+        let resolve, reject;
+        const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+        return { promise, resolve, reject };
+    };
+}
+
 import { createLibp2p } from 'libp2p';
 import { noise } from '@chainsafe/libp2p-noise';
 import { yamux } from '@chainsafe/libp2p-yamux';
@@ -15,18 +24,19 @@ import { webSockets } from '@libp2p/websockets';
 import { tcp } from '@libp2p/tcp';
 import { circuitRelayServer } from '@libp2p/circuit-relay-v2';
 import { identify } from '@libp2p/identify';
-import { gossipsub } from '@libp2p/gossipsub';
+import { gossipsub } from '@chainsafe/libp2p-gossipsub';
 import { kadDHT } from '@libp2p/kad-dht';
 import { bootstrap } from '@libp2p/bootstrap';
-import { createFromJSON } from '@libp2p/peer-id-factory';
+import { ping } from '@libp2p/ping';
+import { createFromJSON, createFromPrivKey, createEd25519PeerId } from '@libp2p/peer-id-factory';
 import fs from 'fs/promises';
 import path from 'path';
 
 // Configuration
 const CONFIG = {
     // Ports
-    TCP_PORT: 4001,
-    WS_PORT: 4002,
+    TCP_PORT: parseInt(process.env.TCP_PORT) || 4003,
+    WS_PORT: parseInt(process.env.WS_PORT) || 4004,
     
     // Data directory
     DATA_DIR: process.env.DATA_DIR || './data/relay',
@@ -55,18 +65,15 @@ async function loadOrCreatePeerId() {
         const data = await fs.readFile(idPath, 'utf8');
         return await createFromJSON(JSON.parse(data));
     } catch {
-        // Generate new
-        const { generateKeyPair } = await import('@libp2p/crypto/keys');
-        const privateKey = await generateKeyPair('Ed25519');
-        const { createFromPrivKey } = await import('@libp2p/peer-id-factory');
-        const peerId = await createFromPrivKey(privateKey);
+        // Generate new peer ID
+        const peerId = await createEd25519PeerId();
         
         // Save for next time
         await fs.mkdir(CONFIG.DATA_DIR, { recursive: true });
         await fs.writeFile(idPath, JSON.stringify({
             id: peerId.toString(),
-            privKey: Buffer.from(privateKey.bytes).toString('base64'),
-            pubKey: Buffer.from(privateKey.public.bytes).toString('base64'),
+            privKey: Buffer.from(peerId.privateKey).toString('base64'),
+            pubKey: Buffer.from(peerId.publicKey).toString('base64'),
         }));
         
         return peerId;
@@ -102,9 +109,8 @@ async function createRelay() {
                 `/ip4/0.0.0.0/tcp/${CONFIG.WS_PORT}/ws`,
             ],
             announce: [
-                // Add your public addresses here for discoverability
-                // `/dns4/relay.rootedrevival.us/tcp/4001/p2p/${peerId}`,
-                // `/dns4/relay.rootedrevival.us/tcp/4002/wss/p2p/${peerId}`,
+                // Public addresses via Cloudflare Tunnel (TLS termination at edge)
+                `/dns4/relay.rootedrevival.us/tcp/443/wss/p2p/${peerId}`,
             ],
         },
         transports: [
@@ -119,6 +125,7 @@ async function createRelay() {
         },
         services: {
             identify: identify(),
+            ping: ping(),
             relay: circuitRelayServer({
                 reservations: {
                     maxReservations: 500,

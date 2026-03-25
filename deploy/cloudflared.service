@@ -1,0 +1,13 @@
+[Unit]
+Description=Cloudflare Tunnel for Rooted Revival
+After=network.target
+
+[Service]
+Type=simple
+User=michael
+ExecStart=/usr/local/bin/cloudflared tunnel --config /home/michael/.cloudflared/config.yml run
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
