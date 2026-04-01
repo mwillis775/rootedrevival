@@ -308,9 +308,7 @@ pub enum GrabRequest {
         requests: Vec<(ChunkId, Vec<u8>)>,
     },
     /// Query which shards a peer holds for given chunks
-    QueryShards {
-        chunk_ids: Vec<ChunkId>,
-    },
+    QueryShards { chunk_ids: Vec<ChunkId> },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

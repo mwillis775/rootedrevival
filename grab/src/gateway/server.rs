@@ -364,7 +364,14 @@ async fn serve_site_path(
         None => {
             // Try 404.html
             if let Some(f) = manifest.files.iter().find(|f| f.path == "404.html") {
-                return serve_file(f, &state.chunk_store, state.shard_store.as_ref(), &headers, StatusCode::NOT_FOUND).await;
+                return serve_file(
+                    f,
+                    &state.chunk_store,
+                    state.shard_store.as_ref(),
+                    &headers,
+                    StatusCode::NOT_FOUND,
+                )
+                .await;
             }
             return (StatusCode::NOT_FOUND, "File not found").into_response();
         }
@@ -373,7 +380,14 @@ async fn serve_site_path(
     // Record access
     let _ = state.bundle_store.record_access(&site_id);
 
-    serve_file(file, &state.chunk_store, state.shard_store.as_ref(), &headers, StatusCode::OK).await
+    serve_file(
+        file,
+        &state.chunk_store,
+        state.shard_store.as_ref(),
+        &headers,
+        StatusCode::OK,
+    )
+    .await
 }
 
 fn find_file<'a>(
@@ -443,7 +457,8 @@ async fn serve_file(
                         }
                         Err(e) => {
                             tracing::warn!("Shard reconstruction failed for chunk: {}", e);
-                            return (StatusCode::INTERNAL_SERVER_ERROR, "Missing chunk").into_response();
+                            return (StatusCode::INTERNAL_SERVER_ERROR, "Missing chunk")
+                                .into_response();
                         }
                     }
                 } else {
