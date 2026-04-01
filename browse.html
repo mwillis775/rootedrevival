@@ -266,6 +266,79 @@
             object-fit: cover;
         }
 
+        .card-thumb canvas.pdf-thumb-canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #1a1a1a;
+        }
+
+        /* Audio waveform preview */
+        .audio-waveform-preview {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #1a0a2e 0%, #0a1628 50%, #1a0a2e 100%);
+            position: relative; overflow: hidden;
+        }
+        .audio-waveform-preview::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(ellipse at 50% 80%, rgba(51,255,51,0.08) 0%, transparent 60%);
+        }
+        .waveform-bars {
+            display: flex; align-items: center; gap: 2px;
+            height: 60%; padding: 0 15%;
+        }
+        .waveform-bars span {
+            flex: 1; min-width: 3px; max-width: 6px;
+            background: var(--accent); border-radius: 2px;
+            opacity: 0.7; animation: wave-pulse 1.8s ease-in-out infinite alternate;
+        }
+        .waveform-bars span:nth-child(odd) { animation-delay: -0.4s; }
+        .waveform-bars span:nth-child(3n) { animation-delay: -0.8s; }
+        .waveform-bars span:nth-child(4n+1) { animation-delay: -1.2s; }
+        @keyframes wave-pulse {
+            0% { opacity: 0.4; transform: scaleY(0.85); }
+            100% { opacity: 0.9; transform: scaleY(1); }
+        }
+        .audio-preview-label {
+            font-family: var(--font-mono); font-size: 0.7rem;
+            color: var(--accent); opacity: 0.7;
+            margin-top: 6px; letter-spacing: 2px;
+        }
+
+        /* Styled type fallback card */
+        .type-preview-card {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: linear-gradient(160deg, var(--bg-elevated) 0%, var(--bg) 100%);
+            position: relative; overflow: hidden;
+        }
+        .type-preview-card::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(circle at 30% 70%, var(--accent-dim) 0%, transparent 50%);
+        }
+        .type-preview-icon {
+            font-size: 2.5rem; position: relative;
+            filter: drop-shadow(0 0 12px var(--accent-dim));
+        }
+        .type-preview-label {
+            font-family: var(--font-mono); font-size: 0.65rem;
+            color: var(--text-muted); letter-spacing: 3px;
+            margin-top: 8px; position: relative;
+        }
+
+        .list-thumb .audio-waveform-preview,
+        .list-thumb .type-preview-card { border-radius: var(--radius); }
+        .list-thumb .waveform-bars { height: 50%; }
+        .list-thumb .type-preview-icon { font-size: 1.8rem; }
+        .list-thumb canvas.pdf-thumb-canvas {
+            width: 100%; height: 100%;
+            object-fit: contain; border-radius: var(--radius);
+            background: #1a1a1a;
+        }
+
         .card-badge {
             position: absolute;
             top: 10px;
@@ -701,10 +774,76 @@
             if (fileId && mime.startsWith('video/')) {
                 return `<video src="${API_BASE}/files/${fileId}/stream" muted preload="metadata" onloadeddata="this.currentTime=1" style="width:100%;height:100%;object-fit:cover;pointer-events:none"></video>`;
             }
-            if (mime.startsWith('audio/')) {
-                return `<span style="display:flex;flex-direction:column;align-items:center;gap:4px">🎵<span style="font-size:0.7rem;font-family:var(--font-mono);color:var(--text-muted)">AUDIO</span></span>`;
+            if (fileId && mime.startsWith('audio/')) {
+                return `<div class="audio-waveform-preview">${generateWaveformBars(fileId)}<div class="audio-preview-label">AUDIO</div></div>`;
             }
-            return typeIcons[item.paper_type] || '📄';
+            if (fileId && mime === 'application/pdf') {
+                return `<canvas class="pdf-thumb-canvas" data-pdf-src="${API_BASE}/files/${fileId}/stream"></canvas>`;
+            }
+            // Styled fallback
+            const icon = typeIcons[item.paper_type] || '📄';
+            const typeLabel = (item.paper_type || 'paper').toUpperCase();
+            return `<div class="type-preview-card"><span class="type-preview-icon">${icon}</span><span class="type-preview-label">${typeLabel}</span></div>`;
+        }
+
+        // Generate deterministic waveform bar heights from fileId
+        function generateWaveformBars(fileId) {
+            let hash = 0;
+            const str = String(fileId);
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0;
+            }
+            const bars = [];
+            for (let i = 0; i < 24; i++) {
+                const h = 20 + Math.abs((hash * (i + 1) * 2654435761) % 65);
+                bars.push(`<span style="height:${h}%"></span>`);
+            }
+            return `<div class="waveform-bars">${bars.join('')}</div>`;
+        }
+
+        // Lazy-load PDF first-page thumbnails
+        function initCardPreviews() {
+            const pdfCanvases = document.querySelectorAll('canvas[data-pdf-src]');
+            if (pdfCanvases.length === 0) return;
+
+            function loadPdfJs() {
+                return new Promise((resolve, reject) => {
+                    if (window.pdfjsLib) return resolve();
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                    s.onload = () => {
+                        pdfjsLib.GlobalWorkerOptions.workerSrc =
+                            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                        resolve();
+                    };
+                    s.onerror = reject;
+                    document.head.appendChild(s);
+                });
+            }
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(async (entry) => {
+                    if (!entry.isIntersecting) return;
+                    const canvas = entry.target;
+                    observer.unobserve(canvas);
+                    try {
+                        await loadPdfJs();
+                        const pdf = await pdfjsLib.getDocument(canvas.dataset.pdfSrc).promise;
+                        const page = await pdf.getPage(1);
+                        const vp1 = page.getViewport({ scale: 1 });
+                        const scale = Math.min(320 / vp1.width, 180 / vp1.height);
+                        const viewport = page.getViewport({ scale });
+                        canvas.width = viewport.width;
+                        canvas.height = viewport.height;
+                        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+                    } catch (e) {
+                        canvas.parentElement.innerHTML = '<div class="type-preview-card"><span class="type-preview-icon">📄</span><span class="type-preview-label">PDF</span></div>';
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            pdfCanvases.forEach(c => observer.observe(c));
         }
 
         function renderContent() {
@@ -748,6 +887,9 @@
                     </div>
                 </a>
             `).join('');
+
+            // Initialize lazy-loaded previews (PDF thumbnails)
+            initCardPreviews();
         }
 
         // Filter buttons
