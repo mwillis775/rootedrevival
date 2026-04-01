@@ -214,6 +214,9 @@ pub struct StorageConfig {
     /// Maximum storage in GB (0 = unlimited)
     #[serde(default)]
     pub max_storage_gb: usize,
+    /// Erasure coding config for distributed storage (None = full replication)
+    #[serde(default)]
+    pub erasure: Option<crate::erasure::ErasureConfig>,
 }
 
 fn default_cache_size() -> usize {
@@ -251,6 +254,7 @@ impl Default for Config {
             storage: StorageConfig {
                 cache_size_mb: default_cache_size(),
                 max_storage_gb: 0,
+                erasure: None,
             },
             publisher: PublisherConfig {
                 chunk_size: default_chunk_size(),
@@ -298,6 +302,15 @@ pub enum GrabRequest {
     Announce { site_id: SiteId, revision: u64 },
     /// Push an update to hosts
     PushUpdate { bundle: Box<WebBundle> },
+    /// Get erasure-coded shards for specific chunks
+    GetShards {
+        /// List of (chunk_id, shard_indices) to fetch
+        requests: Vec<(ChunkId, Vec<u8>)>,
+    },
+    /// Query which shards a peer holds for given chunks
+    QueryShards {
+        chunk_ids: Vec<ChunkId>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -312,6 +325,15 @@ pub enum GrabResponse {
     Ack,
     /// Error
     Error { message: String },
+    /// Erasure-coded shards
+    Shards {
+        /// Vec of (chunk_id, shard_index, shard_data)
+        shards: Vec<(ChunkId, u8, Vec<u8>)>,
+    },
+    /// Shard availability map: (chunk_id, list of shard indices held)
+    ShardMap {
+        availability: Vec<(ChunkId, Vec<u8>)>,
+    },
 }
 
 /// Information about a peer hosting a site

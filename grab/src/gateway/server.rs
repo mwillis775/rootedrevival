@@ -19,6 +19,7 @@ use tower_http::cors::{Any, CorsLayer};
 
 use crate::content::UserContentManager;
 use crate::crypto::SiteIdExt;
+use crate::erasure::{ErasureCodec, ShardStore};
 use crate::network::GrabNetwork;
 use crate::storage::{BundleStore, ChunkStore};
 use crate::types::{Compression, Config, FileEntry, SiteId};
@@ -28,6 +29,7 @@ pub struct Gateway {
     config: Config,
     chunk_store: Arc<ChunkStore>,
     bundle_store: Arc<BundleStore>,
+    shard_store: Option<Arc<ShardStore>>,
     content_manager: Option<UserContentManager>,
     shutdown_tx: Option<oneshot::Sender<()>>,
     default_site: Option<SiteId>,
@@ -40,6 +42,7 @@ pub struct Gateway {
 struct AppState {
     chunk_store: Arc<ChunkStore>,
     bundle_store: Arc<BundleStore>,
+    shard_store: Option<Arc<ShardStore>>,
     content_manager: Option<Arc<UserContentManager>>,
     default_site: Option<SiteId>,
     network: Option<Arc<RwLock<Option<GrabNetwork>>>>,
@@ -58,6 +61,7 @@ impl Gateway {
             config: config.clone(),
             chunk_store,
             bundle_store,
+            shard_store: None,
             content_manager,
             shutdown_tx: None,
             default_site: None,
@@ -78,12 +82,19 @@ impl Gateway {
             config: config.clone(),
             chunk_store,
             bundle_store,
+            shard_store: None,
             content_manager,
             shutdown_tx: None,
             default_site: Some(default_site),
             network: None,
             start_time: Instant::now(),
         }
+    }
+
+    /// Set the shard store for erasure-coded chunk reconstruction
+    pub fn with_shard_store(mut self, shard_store: Arc<ShardStore>) -> Self {
+        self.shard_store = Some(shard_store);
+        self
     }
 
     /// Set the network reference for peer info endpoints
@@ -100,6 +111,7 @@ impl Gateway {
         let state = AppState {
             chunk_store: self.chunk_store.clone(),
             bundle_store: self.bundle_store.clone(),
+            shard_store: self.shard_store.clone(),
             content_manager: self.content_manager.as_ref().map(|m| Arc::new(m.clone())),
             default_site: self.default_site.clone(),
             network: self.network.clone(),
@@ -352,7 +364,7 @@ async fn serve_site_path(
         None => {
             // Try 404.html
             if let Some(f) = manifest.files.iter().find(|f| f.path == "404.html") {
-                return serve_file(f, &state.chunk_store, &headers, StatusCode::NOT_FOUND).await;
+                return serve_file(f, &state.chunk_store, state.shard_store.as_ref(), &headers, StatusCode::NOT_FOUND).await;
             }
             return (StatusCode::NOT_FOUND, "File not found").into_response();
         }
@@ -361,7 +373,7 @@ async fn serve_site_path(
     // Record access
     let _ = state.bundle_store.record_access(&site_id);
 
-    serve_file(file, &state.chunk_store, &headers, StatusCode::OK).await
+    serve_file(file, &state.chunk_store, state.shard_store.as_ref(), &headers, StatusCode::OK).await
 }
 
 fn find_file<'a>(
@@ -403,6 +415,7 @@ fn find_file<'a>(
 async fn serve_file(
     file: &FileEntry,
     chunk_store: &ChunkStore,
+    shard_store: Option<&Arc<ShardStore>>,
     request_headers: &HeaderMap,
     status: StatusCode,
 ) -> Response {
@@ -414,12 +427,29 @@ async fn serve_file(
         }
     }
 
-    // Collect chunks
+    // Collect chunks, falling back to shard reconstruction when a chunk is missing
     let mut content = Vec::with_capacity(file.size as usize);
     for chunk_id in &file.chunks {
         match chunk_store.get(chunk_id) {
             Ok(Some(data)) => content.extend_from_slice(&data),
-            _ => return (StatusCode::INTERNAL_SERVER_ERROR, "Missing chunk").into_response(),
+            _ => {
+                // Try reconstructing from erasure-coded shards
+                if let Some(ss) = shard_store {
+                    match reconstruct_chunk_from_shards(chunk_id, ss) {
+                        Ok(data) => {
+                            // Cache the reconstructed chunk back into chunk store
+                            let _ = chunk_store.put(&data);
+                            content.extend_from_slice(&data);
+                        }
+                        Err(e) => {
+                            tracing::warn!("Shard reconstruction failed for chunk: {}", e);
+                            return (StatusCode::INTERNAL_SERVER_ERROR, "Missing chunk").into_response();
+                        }
+                    }
+                } else {
+                    return (StatusCode::INTERNAL_SERVER_ERROR, "Missing chunk").into_response();
+                }
+            }
         }
     }
 
@@ -469,6 +499,57 @@ async fn serve_file(
     }
 
     response.body(Body::from(body)).unwrap()
+}
+
+/// Attempt to reconstruct a chunk from locally stored erasure-coded shards
+fn reconstruct_chunk_from_shards(
+    chunk_id: &crate::types::ChunkId,
+    shard_store: &ShardStore,
+) -> anyhow::Result<Vec<u8>> {
+    use crate::erasure::ShardId;
+
+    // Get the first available shard to read its erasure config
+    let local_indices = shard_store.local_shard_indices(chunk_id);
+    if local_indices.is_empty() {
+        anyhow::bail!("No shards available for chunk");
+    }
+
+    let first_id = ShardId {
+        chunk_id: *chunk_id,
+        shard_index: local_indices[0],
+    };
+    let first_shard = shard_store
+        .get_full(&first_id)?
+        .ok_or_else(|| anyhow::anyhow!("Shard metadata missing"))?;
+
+    let config = first_shard.erasure_config;
+    let original_size = first_shard.original_chunk_size as usize;
+
+    if local_indices.len() < config.data_shards {
+        anyhow::bail!(
+            "Not enough shards to reconstruct: have {}, need {}",
+            local_indices.len(),
+            config.data_shards
+        );
+    }
+
+    let codec = ErasureCodec::new(config)?;
+
+    // Build the shard vector expected by the codec (None for missing)
+    let total = config.total_shards();
+    let mut shards: Vec<Option<Vec<u8>>> = vec![None; total];
+
+    for idx in &local_indices {
+        let id = ShardId {
+            chunk_id: *chunk_id,
+            shard_index: *idx,
+        };
+        if let Some(data) = shard_store.get(&id)? {
+            shards[*idx as usize] = Some(data);
+        }
+    }
+
+    codec.decode(&mut shards, original_size)
 }
 
 // ============================================================================

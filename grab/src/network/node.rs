@@ -19,6 +19,7 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 
 use super::behaviour::{GrabBehaviour, GrabBehaviourEvent};
 use crate::crypto::SiteIdExt;
+use crate::erasure::ShardStore;
 use crate::storage::{BundleStore, ChunkStore, KeyStore};
 use crate::types::{ChunkId, Config, GrabRequest, GrabResponse, PeerRecord, SiteId, WebBundle};
 
@@ -88,6 +89,7 @@ impl GrabNetwork {
         chunk_store: Arc<ChunkStore>,
         bundle_store: Arc<BundleStore>,
         key_store: Arc<KeyStore>,
+        shard_store: Arc<ShardStore>,
     ) -> Result<Self> {
         // Get or create persistent identity
         let (public_key, private_key) = key_store.get_or_create("node")?;
@@ -126,6 +128,7 @@ impl GrabNetwork {
         // Clone stores for the event loop
         let chunk_store_clone = chunk_store.clone();
         let bundle_store_clone = bundle_store.clone();
+        let shard_store_clone = shard_store.clone();
         let announced_sites = Arc::new(RwLock::new(HashMap::new()));
         let announced_sites_clone = announced_sites.clone();
         let connected_peers = Arc::new(RwLock::new(HashSet::new()));
@@ -135,6 +138,7 @@ impl GrabNetwork {
         // Start event loop
         let listen_addrs = config.network.listen_addresses.clone();
         let bootstrap_peers = config.network.bootstrap_peers.clone();
+        let erasure_config = config.storage.erasure;
 
         let task = tokio::spawn(async move {
             run_swarm(
@@ -144,9 +148,11 @@ impl GrabNetwork {
                 bootstrap_peers,
                 chunk_store_clone,
                 bundle_store_clone,
+                shard_store_clone,
                 announced_sites_clone,
                 connected_peers_clone,
                 event_tx_clone,
+                erasure_config,
             )
             .await;
         });
@@ -366,9 +372,11 @@ async fn run_swarm(
     bootstrap_peers: Vec<String>,
     chunk_store: Arc<ChunkStore>,
     bundle_store: Arc<BundleStore>,
+    shard_store: Arc<ShardStore>,
     announced_sites: Arc<RwLock<HashMap<SiteId, u64>>>,
     connected_peers: Arc<RwLock<HashSet<PeerId>>>,
     event_tx: broadcast::Sender<NetworkEvent>,
+    erasure_config: Option<crate::erasure::ErasureConfig>,
 ) {
     // Start listening
     for addr in listen_addrs {
@@ -404,6 +412,13 @@ async fn run_swarm(
     // Pending bundle replications - waiting for chunks (request_id -> bundle to save after chunks arrive)
     let mut pending_bundle_replications: HashMap<request_response::OutboundRequestId, WebBundle> =
         HashMap::new();
+
+    // Pending shard replications - waiting for shards (request_id -> bundle to save after shards arrive)
+    let mut pending_shard_replications: HashMap<request_response::OutboundRequestId, WebBundle> =
+        HashMap::new();
+
+    // Check if erasure mode is enabled from config
+    let erasure_mode = erasure_config.is_some();
 
     // Pending DHT queries
     let mut pending_site_queries: HashMap<QueryId, (SiteId, oneshot::Sender<Vec<PeerRecord>>)> =
@@ -505,6 +520,7 @@ async fn run_swarm(
                                     request,
                                     &chunk_store,
                                     &bundle_store,
+                                    &shard_store,
                                     &announced_sites,
                                     swarm.local_peer_id(),
                                 ).await;
@@ -531,14 +547,40 @@ async fn run_swarm(
                                             }
                                         }
 
-                                        // Request chunks in a single batch (or could be multiple)
                                         if !all_chunks.is_empty() {
-                                            let chunk_request_id = swarm.behaviour_mut().request_response.send_request(
-                                                &peer_id,
-                                                GrabRequest::GetChunks { chunk_ids: all_chunks },
-                                            );
-                                            // Store bundle for when chunks arrive
-                                            pending_bundle_replications.insert(chunk_request_id, *bundle);
+                                            if erasure_mode {
+                                                // In erasure mode, request specific shards instead of full chunks.
+                                                // Request 1 shard per chunk to participate in distributed storage.
+                                                let shard_requests: Vec<(ChunkId, Vec<u8>)> = all_chunks
+                                                    .iter()
+                                                    .map(|cid| {
+                                                        // Request shard indices we don't already have
+                                                        let local = shard_store.local_shard_indices(cid);
+                                                        // Request up to 2 shards per chunk that we're missing
+                                                        let mut wanted: Vec<u8> = (0..6u8)
+                                                            .filter(|i| !local.contains(i))
+                                                            .take(2)
+                                                            .collect();
+                                                        if wanted.is_empty() {
+                                                            wanted = vec![0]; // Fallback
+                                                        }
+                                                        (*cid, wanted)
+                                                    })
+                                                    .collect();
+
+                                                let shard_request_id = swarm.behaviour_mut().request_response.send_request(
+                                                    &peer_id,
+                                                    GrabRequest::GetShards { requests: shard_requests },
+                                                );
+                                                pending_shard_replications.insert(shard_request_id, *bundle);
+                                            } else {
+                                                // Full chunk replication mode
+                                                let chunk_request_id = swarm.behaviour_mut().request_response.send_request(
+                                                    &peer_id,
+                                                    GrabRequest::GetChunks { chunk_ids: all_chunks },
+                                                );
+                                                pending_bundle_replications.insert(chunk_request_id, *bundle);
+                                            }
                                         } else {
                                             // No chunks needed, just save the bundle
                                             if let Err(e) = bundle_store.save_hosted_site(&bundle) {
@@ -578,6 +620,50 @@ async fn run_swarm(
                                         } else {
                                             tracing::info!(
                                                 "Successfully replicated site {} rev {}",
+                                                bundle.site_id.to_base58(), bundle.revision
+                                            );
+                                        }
+                                    }
+                                } else if let Some(bundle) = pending_shard_replications.remove(&request_id) {
+                                    // Handle erasure-coded shard replication response
+                                    if let GrabResponse::Shards { shards } = response {
+                                        tracing::info!(
+                                            "Received {} shards for erasure replication of {}",
+                                            shards.len(), bundle.site_id.to_base58()
+                                        );
+
+                                        let mut stored = 0usize;
+                                        for (chunk_id, shard_index, data) in shards {
+                                            // Look up erasure config from any shard metadata we already have,
+                                            // or fall back to the config default
+                                            let erasure_cfg = erasure_config.unwrap_or_default();
+                                            let shard_hash = crate::crypto::hash(&data);
+                                            let shard = crate::erasure::Shard {
+                                                id: crate::erasure::ShardId {
+                                                    chunk_id,
+                                                    shard_index,
+                                                },
+                                                data,
+                                                shard_hash,
+                                                is_parity: (shard_index as usize) >= erasure_cfg.data_shards,
+                                                original_chunk_size: 0, // Will be filled by reconstruction
+                                                erasure_config: erasure_cfg,
+                                            };
+                                            if let Err(e) = shard_store.put(&shard) {
+                                                tracing::warn!("Failed to store replicated shard: {}", e);
+                                            } else {
+                                                stored += 1;
+                                            }
+                                        }
+
+                                        tracing::info!("Stored {} shards for site {}", stored, bundle.site_id.to_base58());
+
+                                        // Save the bundle (manifest) so we know what chunks are needed
+                                        if let Err(e) = bundle_store.save_hosted_site(&bundle) {
+                                            tracing::warn!("Failed to save replicated bundle: {}", e);
+                                        } else {
+                                            tracing::info!(
+                                                "Successfully replicated site {} rev {} (erasure mode)",
                                                 bundle.site_id.to_base58(), bundle.revision
                                             );
                                         }
@@ -702,6 +788,7 @@ async fn handle_request(
     request: GrabRequest,
     chunk_store: &ChunkStore,
     bundle_store: &BundleStore,
+    shard_store: &ShardStore,
     announced_sites: &RwLock<HashMap<SiteId, u64>>,
     local_peer_id: &PeerId,
 ) -> GrabResponse {
@@ -759,6 +846,31 @@ async fn handle_request(
                 bundle.revision
             );
             GrabResponse::Ack
+        }
+        GrabRequest::GetShards { requests } => {
+            let mut shards = Vec::new();
+            for (chunk_id, indices) in requests {
+                for idx in indices {
+                    let shard_id = crate::erasure::ShardId {
+                        chunk_id,
+                        shard_index: idx,
+                    };
+                    if let Ok(Some(data)) = shard_store.get(&shard_id) {
+                        shards.push((chunk_id, idx, data));
+                    }
+                }
+            }
+            GrabResponse::Shards { shards }
+        }
+        GrabRequest::QueryShards { chunk_ids } => {
+            let mut availability = Vec::new();
+            for chunk_id in chunk_ids {
+                let indices = shard_store.local_shard_indices(&chunk_id);
+                if !indices.is_empty() {
+                    availability.push((chunk_id, indices));
+                }
+            }
+            GrabResponse::ShardMap { availability }
         }
     }
 }

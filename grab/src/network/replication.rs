@@ -11,6 +11,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 
 use crate::crypto::SiteIdExt;
+use crate::erasure::ErasureConfig;
 use crate::types::{ChunkId, SiteId};
 
 /// Replication policy for a site
@@ -26,6 +27,8 @@ pub struct ReplicationPolicy {
     pub announce_interval_secs: u64,
     /// Whether to actively seek more replicas if below minimum
     pub auto_replicate: bool,
+    /// Erasure coding mode: if Some, use sharded storage instead of full replication
+    pub erasure: Option<ErasureConfig>,
 }
 
 impl Default for ReplicationPolicy {
@@ -36,6 +39,7 @@ impl Default for ReplicationPolicy {
             priority: 5,
             announce_interval_secs: 3600, // 1 hour
             auto_replicate: true,
+            erasure: None, // Full replication by default for backwards compat
         }
     }
 }

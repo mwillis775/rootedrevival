@@ -690,6 +690,23 @@
             statusEl.title = m.desc;
         }
 
+        // Determine thumbnail HTML for a content item
+        function getThumbnailHtml(item) {
+            const fileId = item.primaryFileId;
+            const mime = item.primaryMimeType || '';
+
+            if (fileId && mime.startsWith('image/')) {
+                return `<img src="${API_BASE}/files/${fileId}/stream" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('${typeIcons[item.paper_type] || '📄'}'))">`;
+            }
+            if (fileId && mime.startsWith('video/')) {
+                return `<video src="${API_BASE}/files/${fileId}/stream" muted preload="metadata" onloadeddata="this.currentTime=1" style="width:100%;height:100%;object-fit:cover;pointer-events:none"></video>`;
+            }
+            if (mime.startsWith('audio/')) {
+                return `<span style="display:flex;flex-direction:column;align-items:center;gap:4px">🎵<span style="font-size:0.7rem;font-family:var(--font-mono);color:var(--text-muted)">AUDIO</span></span>`;
+            }
+            return typeIcons[item.paper_type] || '📄';
+        }
+
         function renderContent() {
             const grid = document.getElementById('contentGrid');
             const list = document.getElementById('contentList');
@@ -702,7 +719,7 @@
             grid.innerHTML = filtered.map(item => `
                 <a href="view.html?id=${escapeHtml(item.uuid)}" class="content-card">
                     <div class="card-thumb">
-                        ${typeIcons[item.paper_type] || '📄'}
+                        ${getThumbnailHtml(item)}
                         <span class="card-badge">${escapeHtml(item.paper_type?.toUpperCase() || 'PAPER')}</span>
                     </div>
                     <div class="card-body">
@@ -719,7 +736,7 @@
             // List view
             list.innerHTML = filtered.map(item => `
                 <a href="view.html?id=${escapeHtml(item.uuid)}" class="list-item">
-                    <div class="list-thumb">${typeIcons[item.paper_type] || '📄'}</div>
+                    <div class="list-thumb">${getThumbnailHtml(item)}</div>
                     <div class="list-content">
                         <h3 class="list-title">${escapeHtml(item.title)}</h3>
                         <p class="list-desc">${escapeHtml(item.abstract || item.description || 'No description available.')}</p>

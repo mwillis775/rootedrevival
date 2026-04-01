@@ -376,6 +376,76 @@
 
         .hidden { display: none !important; }
 
+        /* Media Preview */
+        .media-preview {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .media-preview img {
+            max-width: 100%;
+            max-height: 70vh;
+            display: block;
+            object-fit: contain;
+        }
+
+        .media-preview video {
+            max-width: 100%;
+            max-height: 70vh;
+            display: block;
+        }
+
+        .media-preview .audio-player {
+            width: 100%;
+            padding: 30px;
+        }
+
+        .media-preview .audio-player audio {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .media-preview .waveform-container {
+            width: 100%;
+            height: 120px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .media-preview .waveform-container canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .media-preview .audio-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0 0;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .media-preview .audio-icon {
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .media-preview .pdf-preview {
+            width: 100%;
+            height: 70vh;
+            border: none;
+        }
+
         @media (max-width: 768px) {
             .content-grid { grid-template-columns: 1fr; }
             .sidebar { order: -1; }
@@ -425,8 +495,10 @@
                 </div>
             </section>
 
+            <!-- Media Preview (populated by JS based on file type) -->
             <section class="content-body">
                 <div class="container">
+                    <div id="mediaPreview" class="media-preview hidden"></div>
                     <div class="content-grid">
                         <div class="main-content">
                             <h2>📝 Abstract</h2>
@@ -607,9 +679,9 @@
                     }
                 }
                 
-                // Fall back to API with progress
+                // Fall back to API with progress (use /download to track count)
                 if (!blob) {
-                    const response = await fetch(`${API_BASE}/files/${fileId}/stream`);
+                    const response = await fetch(`${API_BASE}/files/${fileId}/download`);
                     if (!response.ok) throw new Error('Download failed');
                     
                     const contentLength = +response.headers.get('Content-Length') || 0;
@@ -655,6 +727,151 @@
             }
         }
 
+        // Render media preview based on file MIME type
+        function renderMediaPreview(file) {
+            const container = document.getElementById('mediaPreview');
+            const mime = file.mime_type || '';
+            const streamUrl = `${API_BASE}/files/${file.id}/stream`;
+
+            if (mime.startsWith('image/')) {
+                // Images (including animated GIF/WebP)
+                const img = document.createElement('img');
+                img.src = streamUrl;
+                img.alt = file.original_filename || 'Image preview';
+                img.loading = 'lazy';
+                container.appendChild(img);
+                container.classList.remove('hidden');
+
+            } else if (mime.startsWith('video/')) {
+                // Video player with controls
+                const video = document.createElement('video');
+                video.controls = true;
+                video.preload = 'metadata';
+                video.src = streamUrl;
+                container.appendChild(video);
+                container.classList.remove('hidden');
+
+            } else if (mime.startsWith('audio/')) {
+                // Audio player with waveform visualization
+                const wrapper = document.createElement('div');
+                wrapper.className = 'audio-player';
+
+                wrapper.innerHTML = `
+                    <div class="audio-icon">🎵</div>
+                    <div class="waveform-container">
+                        <canvas id="waveformCanvas"></canvas>
+                    </div>
+                    <audio id="audioPreview" controls preload="metadata"></audio>
+                    <div class="audio-meta">
+                        <span id="audioDuration"></span>
+                        <span>${escapeHtml(file.original_filename)}</span>
+                    </div>
+                `;
+                container.appendChild(wrapper);
+                container.classList.remove('hidden');
+
+                const audio = wrapper.querySelector('#audioPreview');
+                audio.src = streamUrl;
+
+                // Draw waveform once audio loads
+                drawWaveform(streamUrl, wrapper.querySelector('#waveformCanvas'), audio);
+
+            } else if (mime === 'application/pdf') {
+                // PDF embed
+                const iframe = document.createElement('iframe');
+                iframe.className = 'pdf-preview';
+                iframe.src = streamUrl;
+                iframe.title = 'PDF preview';
+                container.appendChild(iframe);
+                container.classList.remove('hidden');
+            }
+        }
+
+        // Draw audio waveform on canvas using Web Audio API
+        async function drawWaveform(url, canvas, audioEl) {
+            try {
+                const response = await fetch(url);
+                const arrayBuffer = await response.arrayBuffer();
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+                const channelData = audioBuffer.getChannelData(0);
+                const ctx = canvas.getContext('2d');
+
+                // Set canvas resolution
+                const dpr = window.devicePixelRatio || 1;
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                ctx.scale(dpr, dpr);
+
+                const width = rect.width;
+                const height = rect.height;
+                const barCount = Math.min(channelData.length, Math.floor(width / 3));
+                const samplesPerBar = Math.floor(channelData.length / barCount);
+                const barWidth = width / barCount;
+                const midY = height / 2;
+
+                // Compute bar amplitudes
+                const bars = [];
+                let maxAmp = 0;
+                for (let i = 0; i < barCount; i++) {
+                    let sum = 0;
+                    const start = i * samplesPerBar;
+                    for (let j = start; j < start + samplesPerBar && j < channelData.length; j++) {
+                        sum += Math.abs(channelData[j]);
+                    }
+                    const amp = sum / samplesPerBar;
+                    if (amp > maxAmp) maxAmp = amp;
+                    bars.push(amp);
+                }
+
+                function draw(progress) {
+                    ctx.clearRect(0, 0, width, height);
+                    for (let i = 0; i < bars.length; i++) {
+                        const amp = maxAmp > 0 ? bars[i] / maxAmp : 0;
+                        const barH = Math.max(2, amp * (height * 0.9));
+                        const x = i * barWidth;
+
+                        const style = getComputedStyle(document.documentElement);
+                        const played = i / bars.length <= progress;
+                        ctx.fillStyle = played
+                            ? (style.getPropertyValue('--accent').trim() || '#33ff33')
+                            : (style.getPropertyValue('--text-muted').trim() || '#888');
+                        ctx.fillRect(x + 0.5, midY - barH / 2, barWidth - 1, barH);
+                    }
+                }
+
+                draw(0);
+
+                // Update waveform coloring as audio plays
+                audioEl.addEventListener('timeupdate', () => {
+                    const progress = audioEl.duration ? audioEl.currentTime / audioEl.duration : 0;
+                    draw(progress);
+                });
+
+                // Allow clicking on waveform to seek
+                canvas.addEventListener('click', (e) => {
+                    if (!audioEl.duration) return;
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    audioEl.currentTime = (x / rect.width) * audioEl.duration;
+                });
+
+                // Show duration once known
+                audioEl.addEventListener('loadedmetadata', () => {
+                    const mins = Math.floor(audioEl.duration / 60);
+                    const secs = Math.floor(audioEl.duration % 60).toString().padStart(2, '0');
+                    const el = document.getElementById('audioDuration');
+                    if (el) el.textContent = `${mins}:${secs}`;
+                });
+
+                audioCtx.close();
+            } catch (e) {
+                console.warn('Waveform rendering failed:', e);
+            }
+        }
+
         function renderContent(paper, citations) {
             document.getElementById('notFound').classList.add('hidden');
             document.getElementById('contentView').classList.remove('hidden');
@@ -682,6 +899,11 @@
             
             if (paper.keywords?.length) {
                 document.getElementById('contentKeywords').textContent = paper.keywords.join(', ');
+            }
+
+            // Render media preview for primary file
+            if (paper.files?.length) {
+                renderMediaPreview(paper.files[0]);
             }
 
             // Files - now with P2P download support

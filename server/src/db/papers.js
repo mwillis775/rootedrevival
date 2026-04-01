@@ -344,8 +344,17 @@ function searchPapers({
         'SELECT author_name FROM paper_authors WHERE paper_id = ? ORDER BY author_order'
     );
     
+    const getFile = db.prepare(
+        'SELECT id, mime_type FROM paper_files WHERE paper_id = ? ORDER BY id LIMIT 1'
+    );
+    
     for (const paper of papers) {
         paper.authors = getAuthors.all(paper.id).map(a => a.author_name);
+        const file = getFile.get(paper.id);
+        if (file) {
+            paper.primaryFileId = file.id;
+            paper.primaryMimeType = file.mime_type;
+        }
     }
     
     return papers;

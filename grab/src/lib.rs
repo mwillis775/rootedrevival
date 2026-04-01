@@ -34,6 +34,7 @@
 
 pub mod content;
 pub mod crypto;
+pub mod erasure;
 pub mod gateway;
 pub mod network;
 pub mod publisher;
@@ -43,6 +44,7 @@ pub mod types;
 // Re-export main types
 pub use content::UserContentManager;
 pub use crypto::{decode_base58, encode_base58, generate_keypair, hash, sign, verify, SiteIdExt};
+pub use erasure::{ErasureCodec, ErasureConfig, Shard, ShardId, ShardStore};
 pub use gateway::Gateway;
 pub use network::{GrabNetwork, NetworkEvent};
 pub use publisher::{PublishOptions, PublishResult, Publisher};
@@ -61,6 +63,7 @@ pub struct Grab {
     chunk_store: Arc<ChunkStore>,
     bundle_store: Arc<BundleStore>,
     key_store: Arc<KeyStore>,
+    shard_store: Arc<ShardStore>,
     publisher: Publisher,
     network: Arc<RwLock<Option<GrabNetwork>>>,
     gateway: Arc<RwLock<Option<Gateway>>>,
@@ -82,6 +85,7 @@ impl Grab {
         let chunk_store = Arc::new(ChunkStore::new(&data_dir)?);
         let bundle_store = Arc::new(BundleStore::new(&data_dir)?);
         let key_store = Arc::new(KeyStore::new(&data_dir)?);
+        let shard_store = Arc::new(ShardStore::new(&data_dir)?);
 
         let publisher =
             Publisher::new(chunk_store.clone(), bundle_store.clone(), key_store.clone());
@@ -92,6 +96,7 @@ impl Grab {
             chunk_store,
             bundle_store,
             key_store,
+            shard_store,
             publisher,
             network: Arc::new(RwLock::new(None)),
             gateway: Arc::new(RwLock::new(None)),
@@ -208,6 +213,7 @@ impl Grab {
             self.chunk_store.clone(),
             self.bundle_store.clone(),
             self.key_store.clone(),
+            self.shard_store.clone(),
         )
         .await?;
 
@@ -407,6 +413,11 @@ impl Grab {
     /// Get bundle store reference
     pub fn bundle_store(&self) -> &Arc<BundleStore> {
         &self.bundle_store
+    }
+
+    /// Get shard store reference
+    pub fn shard_store(&self) -> &Arc<ShardStore> {
+        &self.shard_store
     }
 
     /// Get network reference (if running)

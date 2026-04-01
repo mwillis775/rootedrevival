@@ -10,6 +10,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use walkdir::WalkDir;
 
 use crate::crypto::{encode_base58, hash, sign_bundle, MerkleTree, SiteIdExt};
+use crate::erasure::{ErasureCodec, ErasureConfig, ShardStore};
 use crate::storage::{BundleStore, ChunkStore, KeyStore};
 use crate::types::{
     ChunkId, Compression, FileEntry, PublishedSite, RouteConfig, SiteId, SiteManifest, WebBundle,
@@ -36,6 +37,8 @@ pub struct PublishOptions {
     pub pre_hook: Option<String>,
     /// Command to run after publishing (post-deploy hook)
     pub post_hook: Option<String>,
+    /// Erasure coding configuration (None = store full chunks only)
+    pub erasure: Option<ErasureConfig>,
 }
 
 /// Result of publishing a website
@@ -60,6 +63,7 @@ pub struct Publisher {
     chunk_store: Arc<ChunkStore>,
     bundle_store: Arc<BundleStore>,
     key_store: Arc<KeyStore>,
+    shard_store: Option<Arc<ShardStore>>,
 }
 
 impl Publisher {
@@ -73,7 +77,14 @@ impl Publisher {
             chunk_store,
             bundle_store,
             key_store,
+            shard_store: None,
         }
+    }
+
+    /// Create a publisher with shard store for erasure coding
+    pub fn with_shard_store(mut self, shard_store: Arc<ShardStore>) -> Self {
+        self.shard_store = Some(shard_store);
+        self
     }
 
     /// Publish a website directory
@@ -116,9 +127,10 @@ impl Publisher {
         // Scan and bundle files
         let chunk_size = options.chunk_size.unwrap_or(256 * 1024);
         let compress = options.compress;
+        let erasure_config = options.erasure;
 
         let (files, stats) = self
-            .bundle_directory(&root_path, chunk_size, compress)
+            .bundle_directory(&root_path, chunk_size, compress, erasure_config)
             .await?;
 
         // Determine entry point
@@ -211,6 +223,7 @@ impl Publisher {
         root: &Path,
         chunk_size: usize,
         compress: bool,
+        erasure_config: Option<ErasureConfig>,
     ) -> Result<(Vec<FileEntry>, BundleStats)> {
         let mut files = Vec::new();
         let mut stats = BundleStats::default();
@@ -279,6 +292,18 @@ impl Publisher {
                     stats.new_chunks += 1;
                 }
 
+                // Erasure-encode the chunk into shards if configured
+                if let (Some(erasure_config), Some(shard_store)) =
+                    (erasure_config, &self.shard_store)
+                {
+                    let codec = ErasureCodec::new(erasure_config)?;
+                    let shards = codec.encode(&chunk_id, chunk_data)?;
+                    for shard in &shards {
+                        shard_store.put(shard)?;
+                    }
+                    stats.shards_created += shards.len();
+                }
+
                 chunks.push(chunk_id);
                 stats.chunk_count += 1;
             }
@@ -309,6 +334,7 @@ struct BundleStats {
     compressed_size: u64,
     chunk_count: usize,
     new_chunks: usize,
+    shards_created: usize,
 }
 
 /// Check if a MIME type benefits from compression
