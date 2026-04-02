@@ -13,10 +13,20 @@ const SHOP_IMAGES_DIR = path.resolve(config.rootDir, '..', 'site', 'shop');
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif']);
 
 /**
- * Ensure site/shop/<productId>/ directory exists.
+ * Turn a product name into a filesystem-safe slug.
  */
-function ensureProductDir(productId) {
-    const dir = path.join(SHOP_IMAGES_DIR, String(productId));
+function slugify(name) {
+    return String(name).toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 80) || 'product';
+}
+
+/**
+ * Ensure site/shop/<slug>/ directory exists.
+ */
+function ensureProductDir(name) {
+    const dir = path.join(SHOP_IMAGES_DIR, slugify(name));
     try {
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
@@ -27,11 +37,12 @@ function ensureProductDir(productId) {
 }
 
 /**
- * Scan site/shop/<productId>/ for local product images.
+ * Scan site/shop/<slug>/ for local product images.
  * Returns array of { filename, url } sorted alphabetically.
  */
-function getLocalImages(productId) {
-    const dir = path.join(SHOP_IMAGES_DIR, String(productId));
+function getLocalImages(name) {
+    const slug = slugify(name);
+    const dir = path.join(SHOP_IMAGES_DIR, slug);
     try {
         if (!fs.existsSync(dir)) return [];
         return fs.readdirSync(dir)
@@ -39,7 +50,7 @@ function getLocalImages(productId) {
             .sort()
             .map(f => ({
                 filename: f,
-                url: `/shop/${productId}/${f}`
+                url: `/shop/${slug}/${f}`
             }));
     } catch {
         return [];
@@ -153,7 +164,7 @@ function registerShopRoutes(app) {
                         const syncVariants = detail.result.sync_variants || [];
 
                         // Auto-create local image folder
-                        ensureProductDir(sp.id);
+                        ensureProductDir(sp.name);
 
                         // Collect all images from first variant
                         const images = [];
@@ -189,7 +200,7 @@ function registerShopRoutes(app) {
                             thumbnail_url: sp.thumbnail_url,
                             images,
                             color_images,
-                            local_images: getLocalImages(sp.id),
+                            local_images: getLocalImages(sp.name),
                             variants
                         };
                     } catch {
@@ -215,7 +226,7 @@ function registerShopRoutes(app) {
             const sp = detail.result.sync_product;
             const syncVariants = detail.result.sync_variants || [];
 
-            ensureProductDir(sp.id);
+            ensureProductDir(sp.name);
 
             // Collect all images from first variant
             const images = [];
@@ -250,7 +261,7 @@ function registerShopRoutes(app) {
                     thumbnail_url: sp.thumbnail_url,
                     images,
                     color_images,
-                    local_images: getLocalImages(sp.id),
+                    local_images: getLocalImages(sp.name),
                     variants
                 }
             });
