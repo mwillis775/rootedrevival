@@ -69,3 +69,4 @@ coverage/
 # Misc
 *.bak
 *.backup
+/api
