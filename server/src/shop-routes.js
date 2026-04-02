@@ -92,8 +92,21 @@ function registerShopRoutes(app) {
                     try {
                         const detail = await printfulRequest(`/store/products/${p.id}`);
                         const sp = detail.result.sync_product;
-                        const variants = (detail.result.sync_variants || []).map(sv => {
-                            const preview = (sv.files || []).find(f => f.type === 'preview');
+                        const syncVariants = detail.result.sync_variants || [];
+                        // Collect all images from first variant (same print across sizes)
+                        const images = [];
+                        if (syncVariants.length > 0) {
+                            for (const file of (syncVariants[0].files || [])) {
+                                if (file.preview_url) {
+                                    images.push({
+                                        type: file.type,
+                                        preview_url: file.preview_url,
+                                        thumbnail_url: file.thumbnail_url || file.preview_url
+                                    });
+                                }
+                            }
+                        }
+                        const variants = syncVariants.map(sv => {
                             return {
                                 id: sv.id,
                                 name: sv.name,
@@ -101,7 +114,6 @@ function registerShopRoutes(app) {
                                 color: sv.color,
                                 retail_price: sv.retail_price,
                                 currency: sv.currency || 'USD',
-                                preview_url: preview ? preview.preview_url : null,
                                 variant_id: sv.variant_id,
                                 availability_status: sv.availability_status
                             };
@@ -110,6 +122,7 @@ function registerShopRoutes(app) {
                             id: sp.id,
                             name: sp.name,
                             thumbnail_url: sp.thumbnail_url,
+                            images,
                             variants
                         };
                     } catch {
@@ -133,8 +146,21 @@ function registerShopRoutes(app) {
         try {
             const detail = await printfulRequest(`/store/products/${req.params.id}`);
             const sp = detail.result.sync_product;
-            const variants = (detail.result.sync_variants || []).map(sv => {
-                const preview = (sv.files || []).find(f => f.type === 'preview');
+            const syncVariants = detail.result.sync_variants || [];
+            // Collect all images from first variant
+            const images = [];
+            if (syncVariants.length > 0) {
+                for (const file of (syncVariants[0].files || [])) {
+                    if (file.preview_url) {
+                        images.push({
+                            type: file.type,
+                            preview_url: file.preview_url,
+                            thumbnail_url: file.thumbnail_url || file.preview_url
+                        });
+                    }
+                }
+            }
+            const variants = syncVariants.map(sv => {
                 return {
                     id: sv.id,
                     name: sv.name,
@@ -142,7 +168,6 @@ function registerShopRoutes(app) {
                     color: sv.color,
                     retail_price: sv.retail_price,
                     currency: sv.currency || 'USD',
-                    preview_url: preview ? preview.preview_url : null,
                     variant_id: sv.variant_id,
                     availability_status: sv.availability_status
                 };
@@ -152,6 +177,7 @@ function registerShopRoutes(app) {
                     id: sp.id,
                     name: sp.name,
                     thumbnail_url: sp.thumbnail_url,
+                    images,
                     variants
                 }
             });

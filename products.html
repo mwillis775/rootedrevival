@@ -197,6 +197,37 @@
             object-fit: cover;
             background: var(--bg-surface);
             display: block;
+            cursor: zoom-in;
+        }
+
+        .product-gallery {
+            position: relative;
+        }
+
+        .product-thumbs {
+            display: flex;
+            gap: 6px;
+            padding: 8px 10px;
+            background: var(--bg-surface);
+            overflow-x: auto;
+        }
+
+        .product-thumbs img {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border: 2px solid transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .product-thumbs img:hover { opacity: 0.9; }
+        .product-thumbs img.active {
+            border-color: var(--accent);
+            opacity: 1;
         }
 
         .product-info {
@@ -681,12 +712,27 @@
 
             container.innerHTML = '<div class="products-grid">' + products.map(product => {
                 const priceRange = getPriceRange(product.variants);
+                const images = product.images || [];
+                const mainImg = images.length > 0 ? images.find(i => i.type === 'preview') || images[0] : null;
+                const mainSrc = mainImg ? mainImg.preview_url : (product.thumbnail_url || '');
                 return `
                     <div class="product-card" data-product-id="${product.id}">
-                        <img class="product-image"
-                             src="${product.thumbnail_url || product.variants[0]?.preview_url || ''}"
-                             alt="${escapeHtml(product.name)}"
-                             loading="lazy">
+                        <div class="product-gallery">
+                            <img class="product-image" id="main-img-${product.id}"
+                                 src="${mainSrc}"
+                                 alt="${escapeHtml(product.name)}"
+                                 loading="lazy">
+                            ${images.length > 1 ? `
+                            <div class="product-thumbs">
+                                ${images.map((img, i) => `
+                                    <img src="${img.thumbnail_url}"
+                                         alt="${img.type}"
+                                         class="${img === mainImg ? 'active' : ''}"
+                                         onclick="switchImage(this, ${product.id}, '${img.preview_url}')"
+                                         loading="lazy">
+                                `).join('')}
+                            </div>` : ''}
+                        </div>
                         <div class="product-info">
                             <h3 class="product-name">${escapeHtml(product.name)}</h3>
                             <div class="product-price">${priceRange}</div>
@@ -717,6 +763,13 @@
             const max = Math.max(...prices);
             if (min === max) return `$${min.toFixed(2)}`;
             return `$${min.toFixed(2)} – $${max.toFixed(2)}`;
+        }
+
+        function switchImage(thumb, productId, previewUrl) {
+            const mainImg = document.getElementById('main-img-' + productId);
+            if (mainImg) mainImg.src = previewUrl;
+            thumb.closest('.product-thumbs').querySelectorAll('img').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
         }
 
         function selectSize(btn, productId) {
