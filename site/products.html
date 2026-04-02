@@ -606,8 +606,8 @@
 
     <script>
         const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? `http://${window.location.hostname}:3000`
-            : 'https://rootedrevival.com';
+            ? `http://${window.location.hostname}:3000/api`
+            : 'https://scholar.rootedrevival.us/api';
 
         let shopConfig = {};
         let selectedVariant = null;
@@ -618,8 +618,8 @@
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const [configRes, productsRes] = await Promise.all([
-                    fetch(`${API_BASE}/api/shop/config`).then(r => r.json()),
-                    fetch(`${API_BASE}/api/shop/products`).then(r => r.json())
+                    fetch(`${API_BASE}/shop/config`).then(r => r.json()),
+                    fetch(`${API_BASE}/shop/products`).then(r => r.json())
                 ]);
 
                 shopConfig = configRes;
@@ -746,7 +746,7 @@
                     throw new Error(tokenResult.errors?.[0]?.message || 'Card tokenization failed');
                 }
 
-                const res = await fetch(`${API_BASE}/api/shop/checkout`, {
+                const res = await fetch(`${API_BASE}/shop/checkout`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
