@@ -74,7 +74,7 @@
   header.innerHTML =
     '<div class="header-inner">' +
       '<a href="index.html" class="logo">' +
-        '<img src="/logo.png" alt="Rooted Revival" class="rr-logo-img">' +
+        '<img src="/favi.png" alt="Rooted Revival" class="rr-logo-img">' +
         '<span>ROOTED_REVIVAL</span>' +
       '</a>' +
       '<nav class="nav" id="mainNav">' +
