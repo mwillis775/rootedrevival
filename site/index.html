@@ -87,6 +87,20 @@
         }
         .nav a:hover { color: var(--accent); }
 
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--accent);
+            font-size: 1.5rem;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            line-height: 1;
+        }
+        .menu-toggle:hover { border-color: var(--accent); }
+
         /* Hero */
         .hero {
             padding: 180px 0 100px;
@@ -567,7 +581,26 @@
         }
 
         @media (max-width: 768px) {
-            .nav { display: none; }
+            .menu-toggle { display: block; }
+            .nav {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: rgba(10, 10, 10, 0.98);
+                border-bottom: 1px solid var(--border);
+                flex-direction: column;
+                padding: 15px 20px;
+                gap: 0;
+            }
+            .nav.open { display: flex; }
+            .nav a {
+                padding: 10px 0;
+                border-bottom: 1px solid var(--border);
+                font-size: 1rem;
+            }
+            .nav a:last-child { border-bottom: none; }
             
             .philosophy-content,
             .about-content,
@@ -595,7 +628,7 @@
                 <span class="logo-icon">🌱</span>
                 <span>ROOTED_REVIVAL</span>
             </div>
-            <nav class="nav">
+            <nav class="nav" id="mainNav">
                 <a href="services.html">Services</a>
                 <a href="products.html">Shop</a>
                 <a href="about.html">About</a>
@@ -605,6 +638,7 @@
                 <a href="browse.html">Browse</a>
                 <a href="login.html" id="authLink">Log In</a>
             </nav>
+            <button class="menu-toggle" id="menuToggle" aria-label="Menu">☰</button>
         </div>
     </header>
 
@@ -817,6 +851,13 @@
     <script src="static/js/site-nav.js"></script>
     <script src="static/js/e2e.js"></script>
     <script>
+        // Mobile menu toggle
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            const nav = document.getElementById('mainNav');
+            nav.classList.toggle('open');
+            this.textContent = nav.classList.contains('open') ? '✕' : '☰';
+        });
+
         // Smooth scroll for nav links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {

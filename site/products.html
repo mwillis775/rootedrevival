@@ -76,6 +76,19 @@
         .nav { display: flex; gap: 25px; }
         .nav a { color: var(--text); font-size: 0.9rem; transition: all 0.2s; }
         .nav a:hover { color: var(--accent); }
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--accent);
+            font-size: 1.5rem;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            line-height: 1;
+        }
+        .menu-toggle:hover { border-color: var(--accent); }
         .nav a.active { color: var(--accent); }
 
         /* Hero */
@@ -473,7 +486,26 @@
         }
 
         @media (max-width: 768px) {
-            .nav { display: none; }
+            .menu-toggle { display: block; }
+            .nav {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: rgba(10, 10, 10, 0.98);
+                border-bottom: 1px solid var(--border);
+                flex-direction: column;
+                padding: 15px 20px;
+                gap: 0;
+            }
+            .nav.open { display: flex; }
+            .nav a {
+                padding: 10px 0;
+                border-bottom: 1px solid var(--border);
+                font-size: 1rem;
+            }
+            .nav a:last-child { border-bottom: none; }
             .products-grid { grid-template-columns: 1fr; }
             .form-row { grid-template-columns: 1fr; }
         }
@@ -486,13 +518,14 @@
                 <span class="logo-icon">🌱</span>
                 <span>ROOTED_REVIVAL</span>
             </a>
-            <nav class="nav">
+            <nav class="nav" id="mainNav">
                 <a href="index.html">Home</a>
                 <a href="services.html">Services</a>
                 <a href="products.html" class="active">Shop</a>
                 <a href="about.html">About</a>
                 <a href="index.html#contact">Contact</a>
             </nav>
+            <button class="menu-toggle" id="menuToggle" aria-label="Menu">&#9776;</button>
         </div>
     </header>
 
@@ -603,6 +636,13 @@
             </div>
         </div>
     </footer>
+    <script>
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            var nav = document.getElementById('mainNav');
+            nav.classList.toggle('open');
+            this.textContent = nav.classList.contains('open') ? '✕' : '☰';
+        });
+    </script>
 
     <script>
         const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'

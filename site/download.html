@@ -120,6 +120,19 @@
 
         .nav a:hover { background: var(--accent-dim); color: var(--accent); }
         .nav a.active { background: var(--accent); color: var(--bg); }
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--accent);
+            font-size: 1.5rem;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            line-height: 1;
+        }
+        .menu-toggle:hover { border-color: var(--accent); }
 
         .btn {
             padding: 10px 20px;
@@ -440,6 +453,30 @@
         .theme-option:hover { background: var(--accent-dim); }
 
         @media (max-width: 768px) {
+            .menu-toggle { display: block; }
+            .nav {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: rgba(10, 10, 10, 0.98);
+                border-bottom: 1px solid var(--border);
+                flex-direction: column;
+                padding: 15px 20px;
+                gap: 0;
+            }
+            .nav.open { display: flex; }
+            .nav a {
+                padding: 10px 0;
+                border-bottom: 1px solid var(--border);
+                font-size: 1rem;
+                border-radius: 0;
+                background: none;
+            }
+            .nav a:last-child { border-bottom: none; }
+            .nav a.active { background: none; color: var(--accent); }
+
             .download-meta { flex-direction: column; gap: 10px; }
             .platform-grid { grid-template-columns: 1fr; }
         }
@@ -452,13 +489,14 @@
                 <span>🌱</span>
                 <span>ROOTED_REVIVAL</span>
             </a>
-            <nav class="nav">
+            <nav class="nav" id="mainNav">
                 <a href="index.html">Home</a>
                 <a href="products.html">Shop</a>
                 <a href="browse.html">Browse</a>
                 <a href="about.html">About</a>
                 <a href="download.html" class="active">Download</a>
             </nav>
+            <button class="menu-toggle" id="menuToggle" aria-label="Menu">&#9776;</button>
         </div>
     </header>
 
@@ -670,6 +708,13 @@
             <button class="theme-option" data-theme="paper">Paper</button>
         </div>
     </div>
+    <script>
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            var nav = document.getElementById('mainNav');
+            nav.classList.toggle('open');
+            this.textContent = nav.classList.contains('open') ? '✕' : '☰';
+        });
+    </script>
 
     <script src="static/js/site-nav.js"></script>
     <script>
