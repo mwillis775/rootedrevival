@@ -569,6 +569,7 @@
     </div>
 
     <script src="static/js/site-nav.js"></script>
+    <script src="static/js/e2e.js"></script>
     <!-- GrabNet P2P Integration -->
     <script type="module">
         import { initGrabNet } from './static/js/grabnet-p2p.js';
@@ -651,8 +652,8 @@
             }
         }
         
-        // P2P-aware file download with progress
-        async function downloadFile(fileId, filename, cid) {
+        // P2P-aware file download with progress and E2E decryption
+        async function downloadFile(fileId, filename, cid, encryptionMetadata) {
             const btn = event.target.closest('.download-btn');
             const originalContent = btn.innerHTML;
             
@@ -706,6 +707,23 @@
                     if (p2pNode && cid) {
                         const arrayBuffer = await blob.arrayBuffer();
                         p2pNode.store?.storeChunk?.(cid, arrayBuffer);
+                    }
+                }
+
+                // Decrypt if the file was E2E encrypted
+                if (encryptionMetadata) {
+                    const meta = typeof encryptionMetadata === 'string' ? JSON.parse(encryptionMetadata) : encryptionMetadata;
+                    if (typeof E2E === 'undefined') throw new Error('Encryption module not loaded.');
+
+                    const password = prompt('This file is encrypted. Enter the decryption password:');
+                    if (!password) { btn.innerHTML = originalContent; return; }
+
+                    btn.innerHTML = '<span class="icon">🔓</span><div class="info"><div class="name">Decrypting...</div></div>';
+                    try {
+                        const decrypted = await E2E.decryptFileWithPassword(blob, meta, password);
+                        blob = new Blob([decrypted]);
+                    } catch (decErr) {
+                        throw new Error('Decryption failed — wrong password or corrupted file.');
                     }
                 }
                 
@@ -906,17 +924,32 @@
                 renderMediaPreview(paper.files[0]);
             }
 
-            // Files - now with P2P download support
+            // Files - now with P2P download support and E2E decryption
             if (paper.files?.length) {
-                document.getElementById('downloadLinks').innerHTML = paper.files.map(file => `
-                    <a href="#" class="download-btn" onclick="downloadFile('${escapeHtml(file.id)}', '${escapeHtml(file.original_filename)}', '${escapeHtml(file.ipfs_cid || file.grabnet_cid || '')}'); return false;">
-                        <span class="icon">📄</span>
+                // Store encryption metadata in a lookup so we don't need to embed JSON in onclick
+                window._fileEncMeta = {};
+                paper.files.forEach(file => {
+                    if (file.encrypted && file.encryption_metadata) {
+                        const meta = typeof file.encryption_metadata === 'string'
+                            ? JSON.parse(file.encryption_metadata) : file.encryption_metadata;
+                        window._fileEncMeta[file.id] = meta;
+                    }
+                });
+
+                document.getElementById('downloadLinks').innerHTML = paper.files.map(file => {
+                    const isEnc = file.encrypted;
+                    const encIcon = isEnc ? '🔒 ' : '';
+                    const encLabel = isEnc ? ' • Encrypted' : '';
+                    return `
+                    <a href="#" class="download-btn" onclick="downloadFile('${escapeHtml(file.id)}', '${escapeHtml(file.original_filename)}', '${escapeHtml(file.ipfs_cid || file.grabnet_cid || '')}', ${isEnc ? 'window._fileEncMeta[' + escapeHtml(file.id) + ']' : 'null'}); return false;">
+                        <span class="icon">${encIcon}📄</span>
                         <div class="info">
                             <div class="name">${escapeHtml(file.original_filename)}</div>
-                            <div class="size">${formatSize(file.file_size)}${file.grabnet_cid ? ' • P2P' : ''}</div>
+                            <div class="size">${formatSize(file.file_size)}${file.grabnet_cid ? ' • P2P' : ''}${encLabel}</div>
                         </div>
                     </a>
-                `).join('');
+                `;
+                }).join('');
             }
 
             // Citations

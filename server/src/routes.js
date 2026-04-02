@@ -411,9 +411,24 @@ function registerRoutes(app) {
         
         const file = req.files[0];
         
-        // Validate mime type
-        if (!config.allowedMimeTypes.includes(file.mimeType)) {
+        // Validate mime type (encrypted files arrive as application/octet-stream — allow that too)
+        const isEncrypted = req.body?.encrypted === '1';
+        if (!isEncrypted && !config.allowedMimeTypes.includes(file.mimeType)) {
             return res.error(`File type not allowed: ${file.mimeType}`);
+        }
+        
+        // Validate encryption metadata if present
+        let encryptionMetadata = null;
+        if (isEncrypted && req.body?.encryption_metadata) {
+            try {
+                const meta = JSON.parse(req.body.encryption_metadata);
+                if (!meta.v || !meta.salt || !meta.iv) {
+                    return res.error('Invalid encryption metadata');
+                }
+                encryptionMetadata = req.body.encryption_metadata;
+            } catch {
+                return res.error('Malformed encryption metadata');
+            }
         }
         
         try {
@@ -423,7 +438,9 @@ function registerRoutes(app) {
                 originalFilename: file.filename,
                 mimeType: file.mimeType,
                 fileType: req.body?.fileType || 'main',
-                versionNote: req.body?.versionNote
+                versionNote: req.body?.versionNote,
+                encrypted: isEncrypted,
+                encryptionMetadata
             });
             
             res.json({ success: true, file: result }, 201);

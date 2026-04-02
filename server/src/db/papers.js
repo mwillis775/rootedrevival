@@ -116,7 +116,9 @@ function addPaperFile({
     originalFilename,
     mimeType,
     fileType = 'main',
-    versionNote = null
+    versionNote = null,
+    encrypted = false,
+    encryptionMetadata = null
 }) {
     const db = getDb();
     
@@ -149,16 +151,17 @@ function addPaperFile({
     
     // Insert record
     const result = db.prepare(`
-        INSERT INTO paper_files (paper_id, filename, original_filename, mime_type, file_size, file_hash, version, version_note, file_type)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(paperId, filename, originalFilename, mimeType, fileBuffer.length, fileHash, version, versionNote, fileType);
+        INSERT INTO paper_files (paper_id, filename, original_filename, mime_type, file_size, file_hash, version, version_note, file_type, encrypted, encryption_metadata)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(paperId, filename, originalFilename, mimeType, fileBuffer.length, fileHash, version, versionNote, fileType, encrypted ? 1 : 0, encryptionMetadata || null);
     
     return {
         id: result.lastInsertRowid,
         filename,
         version,
         fileHash,
-        size: fileBuffer.length
+        size: fileBuffer.length,
+        encrypted: !!encrypted
     };
 }
 
@@ -205,7 +208,7 @@ function getPaperByUuid(uuid, includePrivate = false) {
     
     // Get files
     paper.files = db.prepare(`
-        SELECT id, filename, original_filename, mime_type, file_size, version, version_note, file_type, ipfs_cid, created_at
+        SELECT id, filename, original_filename, mime_type, file_size, version, version_note, file_type, ipfs_cid, encrypted, encryption_metadata, created_at
         FROM paper_files WHERE paper_id = ?
         ORDER BY file_type, version DESC
     `).all(paper.id);

@@ -630,9 +630,32 @@
                         <div class="file-list" id="fileList"></div>
                     </div>
 
+                    <!-- Encryption -->
+                    <div class="form-section">
+                        <h3>5. END-TO-END ENCRYPTION</h3>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none;">
+                                <input type="checkbox" id="encryptToggle" style="width: auto; accent-color: var(--accent);">
+                                <span>🔒 Encrypt files before upload</span>
+                            </label>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">
+                                Files are encrypted in your browser before leaving your device. The server never sees the plaintext. Anyone with the password can decrypt.
+                            </p>
+                        </div>
+                        <div class="form-group hidden" id="encryptPasswordGroup">
+                            <label>Encryption Password <span class="required">*</span></label>
+                            <input type="password" id="encryptPassword" placeholder="Choose a strong password to protect these files" autocomplete="new-password">
+                            <label style="margin-top: 10px;">Confirm Password <span class="required">*</span></label>
+                            <input type="password" id="encryptPasswordConfirm" placeholder="Confirm password" autocomplete="new-password">
+                            <p style="color: var(--amber); font-size: 0.85rem; margin-top: 8px; font-family: var(--font-mono);">
+                                ⚠ This password is never sent to the server. If you lose it, the files cannot be recovered.
+                            </p>
+                        </div>
+                    </div>
+
                     <!-- Tags -->
                     <div class="form-section">
-                        <h3>5. TAGS</h3>
+                        <h3>6. TAGS</h3>
                         <div class="form-group">
                             <label>Add tags to help people find your content</label>
                             <div class="tags-input" id="tagsInput">
@@ -700,6 +723,7 @@
     </div>
 
     <script src="static/js/site-nav.js"></script>
+    <script src="static/js/e2e.js"></script>
     <!-- GrabNet P2P Integration -->
     <script type="module">
         import { initGrabNet, ContentHash } from './static/js/grabnet-p2p.js';
@@ -751,6 +775,11 @@
                 }
             }
         }
+
+        // Show/hide password fields when encrypt toggle changes
+        document.getElementById('encryptToggle')?.addEventListener('change', (e) => {
+            document.getElementById('encryptPasswordGroup').classList.toggle('hidden', !e.target.checked);
+        });
 
         // Content type switcher
         document.querySelectorAll('.type-option').forEach(opt => {
@@ -931,6 +960,26 @@
                     console.log('[Upload] P2P announcement sent');
                 }
                 
+                // Encrypt files client-side if toggle is on
+                const shouldEncrypt = document.getElementById('encryptToggle')?.checked;
+                const encryptionMetadataMap = new Map(); // file index -> metadata
+
+                if (shouldEncrypt) {
+                    const pw = document.getElementById('encryptPassword').value;
+                    const pwConfirm = document.getElementById('encryptPasswordConfirm').value;
+                    if (!pw) { alert('Enter an encryption password.'); submitBtn.disabled = false; submitBtn.innerHTML = originalText; return; }
+                    if (pw !== pwConfirm) { alert('Passwords do not match.'); submitBtn.disabled = false; submitBtn.innerHTML = originalText; return; }
+                    if (typeof E2E === 'undefined') { alert('Encryption module failed to load.'); submitBtn.disabled = false; submitBtn.innerHTML = originalText; return; }
+
+                    submitBtn.innerHTML = '🔐 Encrypting files...';
+                    for (let i = 0; i < uploadedFiles.length; i++) {
+                        const { encryptedBlob, metadata: encMeta } = await E2E.encryptFileWithPassword(uploadedFiles[i], pw);
+                        const encFile = new File([encryptedBlob], uploadedFiles[i].name, { type: 'application/octet-stream' });
+                        encryptionMetadataMap.set(i, encMeta);
+                        uploadedFiles[i] = encFile;
+                    }
+                }
+
                 submitBtn.innerHTML = '☁️ Syncing to API...';
                 
                 // Step 1: Create paper record via JSON
@@ -964,9 +1013,16 @@
                 // Step 2: Upload files to the paper
                 let filesUploaded = 0;
                 const fileErrors = [];
-                for (const file of uploadedFiles) {
+                for (let fi = 0; fi < uploadedFiles.length; fi++) {
+                    const file = uploadedFiles[fi];
                     const formData = new FormData();
                     formData.append('file', file);
+
+                    // Attach encryption metadata if this file was encrypted
+                    if (shouldEncrypt && encryptionMetadataMap.has(fi)) {
+                        formData.append('encrypted', '1');
+                        formData.append('encryption_metadata', JSON.stringify(encryptionMetadataMap.get(fi)));
+                    }
                     
                     const fileRes = await fetch(`${API_BASE}/papers/${paperUuid}/files`, {
                         method: 'POST',

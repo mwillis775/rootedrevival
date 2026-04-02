@@ -183,6 +183,10 @@ CREATE TABLE IF NOT EXISTS paper_files (
     -- Type
     file_type TEXT DEFAULT 'main', -- main, supplementary, data, cover
     
+    -- E2E encryption (password-based, client-side)
+    encrypted INTEGER DEFAULT 0,
+    encryption_metadata TEXT, -- JSON: { v, salt, iv, originalSize }
+    
     -- Timestamps
     created_at TEXT DEFAULT (datetime('now'))
 );
