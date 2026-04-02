@@ -13,6 +13,20 @@ const SHOP_IMAGES_DIR = path.resolve(config.rootDir, '..', 'site', 'shop');
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif']);
 
 /**
+ * Ensure site/shop/<productId>/ directory exists.
+ */
+function ensureProductDir(productId) {
+    const dir = path.join(SHOP_IMAGES_DIR, String(productId));
+    try {
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+    } catch (err) {
+        console.error(`Failed to create product dir ${dir}:`, err.message);
+    }
+}
+
+/**
  * Scan site/shop/<productId>/ for local product images.
  * Returns array of { filename, url } sorted alphabetically.
  */
@@ -30,6 +44,26 @@ function getLocalImages(productId) {
     } catch {
         return [];
     }
+}
+
+/**
+ * Extract per-color preview images from all variants.
+ * Returns { "Black": { preview_url, thumbnail_url }, "White": { ... } }
+ */
+function getColorImages(syncVariants) {
+    const colorImages = {};
+    for (const sv of syncVariants) {
+        const color = sv.color;
+        if (!color || colorImages[color]) continue;
+        const previewFile = (sv.files || []).find(f => f.type === 'preview' && f.preview_url);
+        if (previewFile) {
+            colorImages[color] = {
+                preview_url: previewFile.preview_url,
+                thumbnail_url: previewFile.thumbnail_url || previewFile.preview_url
+            };
+        }
+    }
+    return colorImages;
 }
 
 function printfulRequest(path) {
@@ -117,7 +151,11 @@ function registerShopRoutes(app) {
                         const detail = await printfulRequest(`/store/products/${p.id}`);
                         const sp = detail.result.sync_product;
                         const syncVariants = detail.result.sync_variants || [];
-                        // Collect all images from first variant (same print across sizes)
+
+                        // Auto-create local image folder
+                        ensureProductDir(sp.id);
+
+                        // Collect all images from first variant
                         const images = [];
                         if (syncVariants.length > 0) {
                             for (const file of (syncVariants[0].files || [])) {
@@ -130,6 +168,9 @@ function registerShopRoutes(app) {
                                 }
                             }
                         }
+                        // Per-color preview images
+                        const color_images = getColorImages(syncVariants);
+
                         const variants = syncVariants.map(sv => {
                             return {
                                 id: sv.id,
@@ -147,6 +188,7 @@ function registerShopRoutes(app) {
                             name: sp.name,
                             thumbnail_url: sp.thumbnail_url,
                             images,
+                            color_images,
                             local_images: getLocalImages(sp.id),
                             variants
                         };
@@ -172,6 +214,9 @@ function registerShopRoutes(app) {
             const detail = await printfulRequest(`/store/products/${req.params.id}`);
             const sp = detail.result.sync_product;
             const syncVariants = detail.result.sync_variants || [];
+
+            ensureProductDir(sp.id);
+
             // Collect all images from first variant
             const images = [];
             if (syncVariants.length > 0) {
@@ -185,6 +230,7 @@ function registerShopRoutes(app) {
                     }
                 }
             }
+            const color_images = getColorImages(syncVariants);
             const variants = syncVariants.map(sv => {
                 return {
                     id: sv.id,
@@ -203,6 +249,7 @@ function registerShopRoutes(app) {
                     name: sp.name,
                     thumbnail_url: sp.thumbnail_url,
                     images,
+                    color_images,
                     local_images: getLocalImages(sp.id),
                     variants
                 }
@@ -213,19 +260,36 @@ function registerShopRoutes(app) {
         }
     });
 
-    // Create payment + Printful order
+    // Create payment + Printful order (supports single item or cart)
     app.post('/api/shop/checkout', async (req, res) => {
         if (!config.squareAccessToken || !config.printfulApiToken) {
             return res.error('Shop not configured', 503);
         }
 
-        const { source_id, variant_id, quantity, shipping } = req.body || {};
-
-        if (!source_id || !variant_id || !shipping) {
-            return res.error('Missing required fields: source_id, variant_id, shipping', 400);
+        const { source_id, shipping } = req.body || {};
+        // Support both: { items: [{variant_id, quantity}] } and legacy { variant_id, quantity }
+        let items = req.body.items;
+        if (!items && req.body.variant_id) {
+            items = [{ variant_id: req.body.variant_id, quantity: req.body.quantity || 1 }];
         }
 
-        const qty = Math.min(Math.max(parseInt(quantity) || 1, 1), 10);
+        if (!source_id || !items || !items.length || !shipping) {
+            return res.error('Missing required fields: source_id, items, shipping', 400);
+        }
+
+        if (items.length > 20) {
+            return res.error('Too many items', 400);
+        }
+
+        // Validate & sanitize items
+        const sanitizedItems = items.map(it => ({
+            variant_id: parseInt(it.variant_id),
+            quantity: Math.min(Math.max(parseInt(it.quantity) || 1, 1), 10)
+        })).filter(it => it.variant_id > 0);
+
+        if (!sanitizedItems.length) {
+            return res.error('No valid items', 400);
+        }
 
         // Validate shipping address
         if (!shipping.name || !shipping.address1 || !shipping.city ||
@@ -241,16 +305,21 @@ function registerShopRoutes(app) {
         }
 
         try {
-            // 1. Look up variant price from Printful
-            const variantData = await printfulRequest(`/store/variants/${variant_id}`);
-            const variant = variantData.result;
-            const price = parseFloat(variant.retail_price);
-            if (!price || price <= 0) {
-                return res.error('Invalid product price', 400);
-            }
+            // 1. Look up prices for all variants from Printful
+            const variantDetails = await Promise.all(
+                sanitizedItems.map(async (it) => {
+                    const vd = await printfulRequest(`/store/variants/${it.variant_id}`);
+                    const v = vd.result;
+                    const price = parseFloat(v.retail_price);
+                    if (!price || price <= 0) throw new Error(`Invalid price for variant ${it.variant_id}`);
+                    return { ...it, price, currency: v.currency || 'USD', name: v.name };
+                })
+            );
 
-            const totalCents = Math.round(price * qty * 100);
-            const idempotencyKey = `${Date.now()}-${variant_id}-${Math.random().toString(36).slice(2, 10)}`;
+            const totalCents = variantDetails.reduce((sum, v) => sum + Math.round(v.price * v.quantity * 100), 0);
+            const totalDollars = (totalCents / 100).toFixed(2);
+            const noteItems = variantDetails.map(v => `${v.name} x${v.quantity}`).join(', ');
+            const idempotencyKey = `${Date.now()}-cart-${Math.random().toString(36).slice(2, 10)}`;
 
             // 2. Charge via Square
             const payment = await squareRequest('POST', '/v2/payments', {
@@ -258,10 +327,10 @@ function registerShopRoutes(app) {
                 idempotency_key: idempotencyKey,
                 amount_money: {
                     amount: totalCents,
-                    currency: variant.currency || 'USD'
+                    currency: variantDetails[0].currency
                 },
                 location_id: config.squareLocationId,
-                note: `Rooted Revival: ${variant.name} x${qty}`
+                note: `Rooted Revival: ${noteItems}`.slice(0, 500)
             });
 
             if (payment.errors) {
@@ -272,7 +341,7 @@ function registerShopRoutes(app) {
 
             const paymentId = payment.payment?.id;
 
-            // 3. Create Printful order (draft — auto-confirm with Printful billing)
+            // 3. Create Printful order with all items
             const pfOrderBody = {
                 recipient: {
                     name: shipping.name,
@@ -284,13 +353,13 @@ function registerShopRoutes(app) {
                     zip: shipping.zip,
                     email: shipping.email || ''
                 },
-                items: [{
-                    sync_variant_id: variant_id,
-                    quantity: qty
-                }],
+                items: variantDetails.map(v => ({
+                    sync_variant_id: v.variant_id,
+                    quantity: v.quantity
+                })),
                 retail_costs: {
-                    subtotal: (price * qty).toFixed(2),
-                    total: (price * qty).toFixed(2)
+                    subtotal: totalDollars,
+                    total: totalDollars
                 }
             };
 
@@ -319,13 +388,12 @@ function registerShopRoutes(app) {
 
             if (pfOrder.code !== 200) {
                 console.error('Printful order error:', pfOrder.result || pfOrder.error);
-                // Payment succeeded but order failed — log for manual resolution
-                console.error(`ALERT: Payment ${paymentId} succeeded but Printful order failed. Variant: ${variant_id}, Qty: ${qty}`);
+                console.error(`ALERT: Payment ${paymentId} succeeded but Printful order failed. Items: ${JSON.stringify(sanitizedItems)}`);
                 return res.json({
                     success: true,
                     payment_id: paymentId,
                     order_warning: 'Payment processed. Order is being fulfilled manually — you will receive a confirmation email.',
-                    amount: (price * qty).toFixed(2)
+                    amount: totalDollars
                 });
             }
 
@@ -334,7 +402,7 @@ function registerShopRoutes(app) {
                 payment_id: paymentId,
                 order_id: pfOrder.result?.id,
                 order_status: pfOrder.result?.status,
-                amount: (price * qty).toFixed(2),
+                amount: totalDollars,
                 message: 'Order placed successfully! You will receive shipping updates via email.'
             });
 
