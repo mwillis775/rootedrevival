@@ -9,6 +9,8 @@
 
   const links = [
     { label: 'Home',     href: 'index.html',    page: 'index.html' },
+    { label: 'Services', href: 'services.html', page: 'services.html' },
+    { label: 'Shop',     href: 'products.html', page: 'products.html' },
     { label: 'Browse',   href: 'browse.html',   page: 'browse.html' },
     { label: 'Upload',   href: 'upload.html',   page: 'upload.html' },
     { label: 'Search',   href: 'search.html',   page: 'search.html' },
@@ -34,11 +36,22 @@
         '<span class="logo-icon">🌱</span>' +
         '<span>ROOTED_REVIVAL</span>' +
       '</a>' +
-      '<nav class="nav">' +
+      '<nav class="nav" id="mainNav">' +
         navLinks +
         '<a href="login.html" id="authLink">Log In</a>' +
       '</nav>' +
+      '<button class="menu-toggle" id="menuToggle" aria-label="Menu">&#9776;</button>' +
     '</div>';
+
+  // Mobile menu toggle
+  var toggleBtn = document.getElementById('menuToggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', function() {
+      var nav = document.getElementById('mainNav');
+      nav.classList.toggle('open');
+      this.textContent = nav.classList.contains('open') ? '\u2715' : '\u2630';
+    });
+  }
 
   // Auth-aware nav: swap Login → username/Profile
   var API_BASE = location.hostname === 'localhost'
