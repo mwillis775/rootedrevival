@@ -712,9 +712,26 @@
 
             container.innerHTML = '<div class="products-grid">' + products.map(product => {
                 const priceRange = getPriceRange(product.variants);
-                const images = product.images || [];
-                const mainImg = images.length > 0 ? images.find(i => i.type === 'preview') || images[0] : null;
-                const mainSrc = mainImg ? mainImg.preview_url : (product.thumbnail_url || '');
+                const localImgs = product.local_images || [];
+                const printfulImgs = product.images || [];
+                // Build gallery: local images first, then Printful preview mockup
+                const allImages = [];
+                localImgs.forEach(img => allImages.push({
+                    src: img.url,
+                    thumb: img.url,
+                    label: img.filename
+                }));
+                // Add Printful preview mockup if available
+                const mockup = printfulImgs.find(i => i.type === 'preview');
+                if (mockup) {
+                    allImages.push({
+                        src: mockup.preview_url,
+                        thumb: mockup.thumbnail_url,
+                        label: 'Mockup'
+                    });
+                }
+                // Fallback to thumbnail if no images at all
+                const mainSrc = allImages.length > 0 ? allImages[0].src : (product.thumbnail_url || '');
                 return `
                     <div class="product-card" data-product-id="${product.id}">
                         <div class="product-gallery">
@@ -722,13 +739,13 @@
                                  src="${mainSrc}"
                                  alt="${escapeHtml(product.name)}"
                                  loading="lazy">
-                            ${images.length > 1 ? `
+                            ${allImages.length > 1 ? `
                             <div class="product-thumbs">
-                                ${images.map((img, i) => `
-                                    <img src="${img.thumbnail_url}"
-                                         alt="${img.type}"
-                                         class="${img === mainImg ? 'active' : ''}"
-                                         onclick="switchImage(this, ${product.id}, '${img.preview_url}')"
+                                ${allImages.map((img, i) => `
+                                    <img src="${img.thumb}"
+                                         alt="${escapeHtml(img.label)}"
+                                         class="${i === 0 ? 'active' : ''}"
+                                         onclick="switchImage(this, ${product.id}, '${img.src}')"
                                          loading="lazy">
                                 `).join('')}
                             </div>` : ''}

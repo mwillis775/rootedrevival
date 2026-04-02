@@ -3,10 +3,34 @@
  */
 
 const https = require('https');
+const fs = require('fs');
+const path = require('path');
 const config = require('./config');
 
 const PRINTFUL_API = 'https://api.printful.com';
 const SQUARE_API = 'https://connect.squareup.com';
+const SHOP_IMAGES_DIR = path.resolve(config.rootDir, '..', 'site', 'shop');
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif']);
+
+/**
+ * Scan site/shop/<productId>/ for local product images.
+ * Returns array of { filename, url } sorted alphabetically.
+ */
+function getLocalImages(productId) {
+    const dir = path.join(SHOP_IMAGES_DIR, String(productId));
+    try {
+        if (!fs.existsSync(dir)) return [];
+        return fs.readdirSync(dir)
+            .filter(f => IMAGE_EXTENSIONS.has(path.extname(f).toLowerCase()))
+            .sort()
+            .map(f => ({
+                filename: f,
+                url: `/shop/${productId}/${f}`
+            }));
+    } catch {
+        return [];
+    }
+}
 
 function printfulRequest(path) {
     return new Promise((resolve, reject) => {
@@ -123,6 +147,7 @@ function registerShopRoutes(app) {
                             name: sp.name,
                             thumbnail_url: sp.thumbnail_url,
                             images,
+                            local_images: getLocalImages(sp.id),
                             variants
                         };
                     } catch {
@@ -178,6 +203,7 @@ function registerShopRoutes(app) {
                     name: sp.name,
                     thumbnail_url: sp.thumbnail_url,
                     images,
+                    local_images: getLocalImages(sp.id),
                     variants
                 }
             });
