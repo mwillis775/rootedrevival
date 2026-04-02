@@ -89,7 +89,14 @@ const config = {
     
     // Features
     registrationEnabled: process.env.REGISTRATION_ENABLED !== 'false',
-    requireEmailVerification: process.env.REQUIRE_EMAIL_VERIFICATION === 'true'
+    requireEmailVerification: process.env.REQUIRE_EMAIL_VERIFICATION === 'true',
+
+    // Shop / Payments
+    printfulApiToken: process.env.PRINTFUL_API_TOKEN || '',
+    squareAccessToken: process.env.SQUARE_ACCESS_TOKEN || '',
+    squareApplicationId: process.env.SQUARE_APPLICATION_ID || '',
+    squareLocationId: process.env.SQUARE_LOCATION_ID || '',
+    squareEnvironment: process.env.SQUARE_ENVIRONMENT || 'production',
 };
 
 module.exports = config;

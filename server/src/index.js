@@ -14,6 +14,7 @@ const { registerRoutes } = require('./routes');
 const { registerAdminRoutes } = require('./admin-routes');
 const { registerGrabRoutes } = require('./grab-routes');
 const { registerCmsRoutes } = require('./cms-routes');
+const { registerShopRoutes } = require('./shop-routes');
 const { closeDb } = require('./db');
 const users = require('./db/users');
 const grab = require('./grab');
@@ -87,6 +88,7 @@ registerRoutes(app);
 registerAdminRoutes(app);
 registerGrabRoutes(app);
 registerCmsRoutes(app);
+registerShopRoutes(app);
 
 // Cleanup expired sessions periodically
 setInterval(() => {

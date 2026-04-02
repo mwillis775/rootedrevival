@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="terminal">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <title>Shop — Rooted Revival</title>
+    <meta name="description" content="Rooted Revival merch — limited-run prints, apparel, and more. Powered by Printful + Square.">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --bg-surface: #111;
+            --bg-elevated: #1a1a1a;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --accent: #33ff33;
+            --accent-dim: rgba(51, 255, 51, 0.15);
+            --accent-glow: rgba(51, 255, 51, 0.4);
+            --amber: #ffb000;
+            --cyan: #00ffff;
+            --red: #ff4444;
+            --border: #333;
+            --radius: 6px;
+            --font-mono: 'Share Tech Mono', monospace;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-shadow: 0 0 10px var(--accent-glow); }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 0;
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-size: 1.3rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon { font-size: 1.5rem; }
+
+        .nav { display: flex; gap: 25px; }
+        .nav a { color: var(--text); font-size: 0.9rem; transition: all 0.2s; }
+        .nav a:hover { color: var(--accent); }
+        .nav a.active { color: var(--accent); }
+
+        /* Hero */
+        .hero {
+            padding: 120px 0 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 50% 0%, var(--accent-dim) 0%, transparent 50%),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(51, 255, 51, 0.03) 2px, rgba(51, 255, 51, 0.03) 4px);
+            pointer-events: none;
+        }
+
+        .terminal-prompt {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-size: 1rem;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        .hero h1 {
+            font-family: var(--font-mono);
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 400;
+            margin-bottom: 20px;
+            color: var(--accent);
+            text-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .hero p {
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 0 auto;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 1.2em;
+            background: var(--accent);
+            animation: blink 1s step-end infinite;
+            vertical-align: text-bottom;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Section styles */
+        section { padding: 80px 0; }
+
+        .section-header { text-align: center; margin-bottom: 60px; }
+
+        .section-label {
+            font-family: var(--font-mono);
+            color: var(--amber);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .section-title {
+            font-family: var(--font-mono);
+            font-size: 2rem;
+            color: var(--accent);
+            font-weight: 400;
+        }
+
+        /* Products grid */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .product-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .product-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 30px var(--accent-dim);
+            transform: translateY(-3px);
+        }
+
+        .product-image {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            background: var(--bg-surface);
+            display: block;
+        }
+
+        .product-info {
+            padding: 20px;
+        }
+
+        .product-name {
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            color: var(--text);
+            margin-bottom: 8px;
+            font-weight: 400;
+        }
+
+        .product-name::before {
+            content: "▸ ";
+            color: var(--accent);
+        }
+
+        .product-price {
+            font-family: var(--font-mono);
+            font-size: 1.3rem;
+            color: var(--accent);
+            margin-bottom: 15px;
+        }
+
+        .product-sizes {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .size-btn {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text-muted);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .size-btn:hover {
+            border-color: var(--accent);
+            color: var(--text);
+        }
+
+        .size-btn.selected {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+            color: var(--accent);
+        }
+
+        .buy-btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--accent);
+            background: var(--accent);
+            color: var(--bg);
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .buy-btn:hover {
+            box-shadow: 0 0 30px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .buy-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 60px 0;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+        }
+
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(3, end) infinite;
+        }
+
+        @keyframes dots {
+            0% { content: ''; }
+            33% { content: '.'; }
+            66% { content: '..'; }
+            100% { content: '...'; }
+        }
+
+        .error-msg {
+            text-align: center;
+            color: var(--red);
+            font-family: var(--font-mono);
+            padding: 40px 0;
+        }
+
+        /* Checkout modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        .modal h2 {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-size: 1.3rem;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            float: right;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-close:hover { color: var(--text); }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-family: var(--font-sans);
+            font-size: 0.95rem;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .order-summary {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .order-summary .item-name {
+            font-family: var(--font-mono);
+            color: var(--text);
+        }
+
+        .order-summary .item-total {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-size: 1.2rem;
+            margin-top: 8px;
+        }
+
+        #card-container {
+            min-height: 50px;
+            margin-bottom: 15px;
+        }
+
+        .checkout-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--accent);
+            background: var(--accent);
+            color: var(--bg);
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .checkout-btn:hover {
+            box-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .checkout-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .checkout-status {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .checkout-status.success { color: var(--accent); }
+        .checkout-status.error { color: var(--red); }
+
+        /* Footer */
+        .footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .footer-logo {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-tagline {
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .footer-copy {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .nav { display: none; }
+            .products-grid { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">🌱</span>
+                <span>ROOTED_REVIVAL</span>
+            </a>
+            <nav class="nav">
+                <a href="index.html">Home</a>
+                <a href="services.html">Services</a>
+                <a href="products.html" class="active">Shop</a>
+                <a href="about.html">About</a>
+                <a href="index.html#contact">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <p class="terminal-prompt">$ ./shop --browse --merch</p>
+                <h1>ROOTED REVIVAL SHOP<span class="cursor"></span></h1>
+                <p>Limited-run apparel and prints. Designed with intention, printed on demand, shipped direct.</p>
+            </div>
+        </section>
+
+        <section id="products">
+            <div class="container">
+                <div class="section-header">
+                    <p class="section-label">// catalog</p>
+                    <h2 class="section-title">PRODUCTS</h2>
+                </div>
+
+                <div id="products-container">
+                    <div class="loading">
+                        <p>Loading products<span class="loading-dots"></span></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Checkout modal -->
+    <div class="modal-overlay" id="checkoutModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeCheckout()">&times;</button>
+            <h2>// CHECKOUT</h2>
+
+            <div class="order-summary" id="orderSummary">
+                <div class="item-name" id="summaryItem"></div>
+                <div class="item-total" id="summaryTotal"></div>
+            </div>
+
+            <form id="checkoutForm" onsubmit="return false;">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="shipName" required autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="shipEmail" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label>Address Line 1 *</label>
+                    <input type="text" id="shipAddress1" required autocomplete="address-line1">
+                </div>
+                <div class="form-group">
+                    <label>Address Line 2</label>
+                    <input type="text" id="shipAddress2" autocomplete="address-line2">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>City *</label>
+                        <input type="text" id="shipCity" required autocomplete="address-level2">
+                    </div>
+                    <div class="form-group">
+                        <label>State</label>
+                        <input type="text" id="shipState" autocomplete="address-level1" placeholder="e.g. OK">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ZIP / Postal *</label>
+                        <input type="text" id="shipZip" required autocomplete="postal-code">
+                    </div>
+                    <div class="form-group">
+                        <label>Country *</label>
+                        <select id="shipCountry" required>
+                            <option value="US" selected>United States</option>
+                            <option value="CA">Canada</option>
+                            <option value="GB">United Kingdom</option>
+                            <option value="AU">Australia</option>
+                            <option value="DE">Germany</option>
+                            <option value="FR">France</option>
+                            <option value="JP">Japan</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Card Details</label>
+                    <div id="card-container"></div>
+                </div>
+
+                <button type="button" class="checkout-btn" id="checkoutBtn" onclick="processPayment()" disabled>
+                    PLACE ORDER
+                </button>
+                <div class="checkout-status" id="checkoutStatus"></div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <span>🌱</span>
+                    <span>ROOTED_REVIVAL</span>
+                </div>
+                <p class="footer-tagline">// Working with nature, not against it</p>
+                <p class="footer-copy">&copy; 2026 Rooted Revival &bull; Tulsa, OK</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? `http://${window.location.hostname}:3000`
+            : 'https://rootedrevival.com';
+
+        let shopConfig = {};
+        let selectedVariant = null;
+        let selectedProduct = null;
+        let card = null;
+
+        // Load products on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const [configRes, productsRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/shop/config`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/shop/products`).then(r => r.json())
+                ]);
+
+                shopConfig = configRes;
+                renderProducts(productsRes.products || []);
+            } catch (err) {
+                document.getElementById('products-container').innerHTML =
+                    '<div class="error-msg">Failed to load products. Please try again later.</div>';
+                console.error('Load error:', err);
+            }
+        });
+
+        function renderProducts(products) {
+            const container = document.getElementById('products-container');
+
+            if (!products.length) {
+                container.innerHTML = '<div class="loading"><p>No products available yet. Check back soon!</p></div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="products-grid">' + products.map(product => {
+                const priceRange = getPriceRange(product.variants);
+                return `
+                    <div class="product-card" data-product-id="${product.id}">
+                        <img class="product-image"
+                             src="${product.thumbnail_url || product.variants[0]?.preview_url || ''}"
+                             alt="${escapeHtml(product.name)}"
+                             loading="lazy">
+                        <div class="product-info">
+                            <h3 class="product-name">${escapeHtml(product.name)}</h3>
+                            <div class="product-price">${priceRange}</div>
+                            <div class="product-sizes">
+                                ${product.variants.map(v => `
+                                    <button class="size-btn"
+                                            data-variant-id="${v.id}"
+                                            data-price="${v.retail_price}"
+                                            data-name="${escapeHtml(v.name)}"
+                                            onclick="selectSize(this, ${product.id})">
+                                        ${escapeHtml(v.size || v.color || 'One Size')}
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <button class="buy-btn" id="buy-${product.id}" disabled onclick="openCheckout(${product.id})">
+                                SELECT A SIZE
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('') + '</div>';
+        }
+
+        function getPriceRange(variants) {
+            const prices = variants.map(v => parseFloat(v.retail_price)).filter(p => p > 0);
+            if (!prices.length) return '';
+            const min = Math.min(...prices);
+            const max = Math.max(...prices);
+            if (min === max) return `$${min.toFixed(2)}`;
+            return `$${min.toFixed(2)} – $${max.toFixed(2)}`;
+        }
+
+        function selectSize(btn, productId) {
+            // Deselect others in same product
+            btn.closest('.product-card').querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+
+            selectedVariant = {
+                id: parseInt(btn.dataset.variantId),
+                price: btn.dataset.price,
+                name: btn.dataset.name
+            };
+            selectedProduct = productId;
+
+            const buyBtn = document.getElementById(`buy-${productId}`);
+            buyBtn.disabled = false;
+            buyBtn.textContent = `BUY — $${parseFloat(btn.dataset.price).toFixed(2)}`;
+        }
+
+        async function openCheckout(productId) {
+            if (!selectedVariant || selectedProduct !== productId) return;
+
+            document.getElementById('summaryItem').textContent = selectedVariant.name;
+            document.getElementById('summaryTotal').textContent = `$${parseFloat(selectedVariant.price).toFixed(2)}`;
+            document.getElementById('checkoutStatus').textContent = '';
+            document.getElementById('checkoutBtn').disabled = false;
+            document.getElementById('checkoutBtn').textContent = 'PLACE ORDER';
+
+            document.getElementById('checkoutModal').classList.add('active');
+
+            // Initialize Square card form
+            if (!card && shopConfig.squareApplicationId) {
+                try {
+                    const payments = window.Square.payments(shopConfig.squareApplicationId, shopConfig.squareLocationId);
+                    card = await payments.card();
+                    await card.attach('#card-container');
+                } catch (err) {
+                    console.error('Square init error:', err);
+                    document.getElementById('checkoutStatus').textContent = 'Failed to load payment form';
+                    document.getElementById('checkoutStatus').className = 'checkout-status error';
+                }
+            }
+        }
+
+        function closeCheckout() {
+            document.getElementById('checkoutModal').classList.remove('active');
+        }
+
+        // Close modal on overlay click
+        document.getElementById('checkoutModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeCheckout();
+        });
+
+        async function processPayment() {
+            if (!selectedVariant || !card) return;
+
+            const btn = document.getElementById('checkoutBtn');
+            const status = document.getElementById('checkoutStatus');
+            btn.disabled = true;
+            btn.textContent = 'PROCESSING...';
+            status.textContent = '';
+            status.className = 'checkout-status';
+
+            try {
+                const tokenResult = await card.tokenize();
+                if (tokenResult.status !== 'OK') {
+                    throw new Error(tokenResult.errors?.[0]?.message || 'Card tokenization failed');
+                }
+
+                const res = await fetch(`${API_BASE}/api/shop/checkout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source_id: tokenResult.token,
+                        variant_id: selectedVariant.id,
+                        quantity: 1,
+                        shipping: {
+                            name: document.getElementById('shipName').value.trim(),
+                            email: document.getElementById('shipEmail').value.trim(),
+                            address1: document.getElementById('shipAddress1').value.trim(),
+                            address2: document.getElementById('shipAddress2').value.trim(),
+                            city: document.getElementById('shipCity').value.trim(),
+                            state_code: document.getElementById('shipState').value.trim().toUpperCase(),
+                            country_code: document.getElementById('shipCountry').value,
+                            zip: document.getElementById('shipZip').value.trim()
+                        }
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    status.textContent = data.message || 'Order placed successfully!';
+                    status.className = 'checkout-status success';
+                    btn.textContent = 'ORDER PLACED ✓';
+                } else {
+                    throw new Error(data.error || 'Checkout failed');
+                }
+            } catch (err) {
+                status.textContent = err.message || 'Payment failed — please try again';
+                status.className = 'checkout-status error';
+                btn.disabled = false;
+                btn.textContent = 'PLACE ORDER';
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+    <!-- Square Web Payments SDK -->
+    <script src="https://web.squarecdn.com/v1/square.js"></script>
+</body>
+</html>
