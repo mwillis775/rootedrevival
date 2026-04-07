@@ -10,6 +10,7 @@ const papers = require('./db/papers');
 const citations = require('./citations');
 const grab = require('./grab');
 const config = require('./config');
+const cms = require('./db/cms');
 const fs = require('fs');
 const path = require('path');
 const mime = require('mime-types');
@@ -55,6 +56,21 @@ function registerRoutes(app) {
         
         try {
             const user = await users.createUser({ username, email: email || null, password, displayName });
+            
+            // Send welcome message from theboss
+            try {
+                const boss = users.getUserByUsername('theboss');
+                if (boss) {
+                    cms.sendUserMessage({
+                        fromUserId: boss.id,
+                        toUserId: user.id,
+                        subject: 'Welcome to Rooted Revival! 🌱',
+                        body: `Hey ${displayName || username}!\n\nWelcome to the Rooted Revival community. I'm Michael — the one behind all this.\n\nWhether you're here to browse the archive, share your own work, or just explore what we're building — glad to have you.\n\nA few things you might want to check out:\n• Your profile page — set up your bio and encryption keys\n• The Scholar archive — upload or browse research, art, music, and more\n• Our services — we do regenerative landscaping, greenhouse builds, automation, consulting, CAD drafting, and more in the Tulsa area and beyond\n• GrabNet — our decentralized hosting network that powers this whole site\n\nIf you have any questions, just reply to this message or use the chat widget on any page. I read everything.\n\nLet's grow something.\n— Michael / theboss`
+                    });
+                }
+            } catch (e) {
+                console.warn('Failed to send welcome message:', e.message);
+            }
             
             // Auto-login
             const session = await users.authenticateUser(username, password, {

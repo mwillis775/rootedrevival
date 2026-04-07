@@ -10,7 +10,7 @@
  * - Component/block management
  */
 
-const { auth, parseMultipart } = require('./http');
+const { auth, parseMultipart, rateLimit } = require('./http');
 const webauthn = require('./webauthn');
 const cms = require('./db/cms');
 const users = require('./db/users');
@@ -19,6 +19,7 @@ const config = require('./config');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const assistant = require('./assistant');
 
 /**
  * Middleware: require admin (password auth OR verified U2F key)
@@ -915,6 +916,36 @@ function registerCmsRoutes(app) {
                 res.end(JSON.stringify(data, null, 2));
             });
         });
+    });
+
+    // ========================================
+    // AI ASSISTANT (PUBLIC — rate limited)
+    // ========================================
+
+    app.get('/api/assistant/status', async (req, res) => {
+        const available = await assistant.isAvailable();
+        res.json({ available, model: assistant.OLLAMA_MODEL });
+    });
+
+    app.post('/api/assistant/chat', rateLimit(20, 60000), async (req, res) => {
+        const { message, history } = req.body || {};
+
+        if (!message || typeof message !== 'string' || message.length > 2000) {
+            return res.error('Message required (max 2000 chars)');
+        }
+
+        // Validate history format if provided
+        const safeHistory = Array.isArray(history)
+            ? history.filter(h => h && typeof h.role === 'string' && typeof h.content === 'string'
+                && ['user', 'assistant'].includes(h.role) && h.content.length <= 2000).slice(-10)
+            : [];
+
+        try {
+            const reply = await assistant.chat(message, safeHistory);
+            res.json({ reply });
+        } catch (e) {
+            res.json({ reply: "I'm having trouble connecting right now. Please try the contact form or message theboss directly for help!", fallback: true });
+        }
     });
 }
 
