@@ -748,6 +748,25 @@
         .checkout-status.success { color: var(--accent); }
         .checkout-status.error { color: var(--red); }
 
+        .checkout-section-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            color: var(--accent);
+            margin: 16px 0 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border);
+        }
+        .checkout-section-label:first-child { margin-top: 0; }
+
+        .ship-toggle input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 16px;
+            height: 16px;
+        }
+
+        .hidden { display: none !important; }
+
         /* Footer */
         .footer {
             padding: 40px 0;
@@ -886,40 +905,42 @@
             </div>
 
             <form id="checkoutForm" onsubmit="return false;">
+                <!-- Billing Address -->
+                <h3 class="checkout-section-label">BILLING ADDRESS</h3>
                 <div class="form-group">
                     <label>Full Name *</label>
-                    <input type="text" id="shipName" required autocomplete="name">
+                    <input type="text" id="billName" required autocomplete="billing name">
                 </div>
                 <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="shipEmail" autocomplete="email">
+                    <label>Email *</label>
+                    <input type="email" id="billEmail" required autocomplete="billing email">
                 </div>
                 <div class="form-group">
                     <label>Address Line 1 *</label>
-                    <input type="text" id="shipAddress1" required autocomplete="address-line1">
+                    <input type="text" id="billAddress1" required autocomplete="billing address-line1">
                 </div>
                 <div class="form-group">
                     <label>Address Line 2</label>
-                    <input type="text" id="shipAddress2" autocomplete="address-line2">
+                    <input type="text" id="billAddress2" autocomplete="billing address-line2">
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>City *</label>
-                        <input type="text" id="shipCity" required autocomplete="address-level2">
+                        <input type="text" id="billCity" required autocomplete="billing address-level2">
                     </div>
                     <div class="form-group">
                         <label>State</label>
-                        <input type="text" id="shipState" autocomplete="address-level1" placeholder="e.g. OK">
+                        <input type="text" id="billState" autocomplete="billing address-level1" placeholder="e.g. OK">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>ZIP / Postal *</label>
-                        <input type="text" id="shipZip" required autocomplete="postal-code">
+                        <input type="text" id="billZip" required autocomplete="billing postal-code">
                     </div>
                     <div class="form-group">
                         <label>Country *</label>
-                        <select id="shipCountry" required>
+                        <select id="billCountry" required>
                             <option value="US" selected>United States</option>
                             <option value="CA">Canada</option>
                             <option value="GB">United Kingdom</option>
@@ -931,7 +952,58 @@
                     </div>
                 </div>
 
-                <div class="form-group">
+                <!-- Shipping Address -->
+                <div class="ship-toggle" style="margin:16px 0 8px">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.9rem;color:var(--tx)">
+                        <input type="checkbox" id="sameAsBilling" checked onchange="toggleShippingFields()">
+                        Shipping address same as billing
+                    </label>
+                </div>
+                <div id="shippingFields" class="hidden">
+                    <h3 class="checkout-section-label">SHIPPING ADDRESS</h3>
+                    <div class="form-group">
+                        <label>Full Name *</label>
+                        <input type="text" id="shipName" autocomplete="shipping name">
+                    </div>
+                    <div class="form-group">
+                        <label>Address Line 1 *</label>
+                        <input type="text" id="shipAddress1" autocomplete="shipping address-line1">
+                    </div>
+                    <div class="form-group">
+                        <label>Address Line 2</label>
+                        <input type="text" id="shipAddress2" autocomplete="shipping address-line2">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>City *</label>
+                            <input type="text" id="shipCity" autocomplete="shipping address-level2">
+                        </div>
+                        <div class="form-group">
+                            <label>State</label>
+                            <input type="text" id="shipState" autocomplete="shipping address-level1" placeholder="e.g. OK">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>ZIP / Postal *</label>
+                            <input type="text" id="shipZip" autocomplete="shipping postal-code">
+                        </div>
+                        <div class="form-group">
+                            <label>Country *</label>
+                            <select id="shipCountry">
+                                <option value="US" selected>United States</option>
+                                <option value="CA">Canada</option>
+                                <option value="GB">United Kingdom</option>
+                                <option value="AU">Australia</option>
+                                <option value="DE">Germany</option>
+                                <option value="FR">France</option>
+                                <option value="JP">Japan</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:16px">
                     <label>Card Details</label>
                     <div id="card-container"></div>
                 </div>
@@ -983,14 +1055,17 @@
             badge.textContent = count || '';
             badge.dataset.count = count;
         }
+        function findProduct(productId) {
+            return allProducts.find(p => String(p.id) === String(productId));
+        }
         function addToCart(productId) {
-            const product = allProducts.find(p => p.id === productId);
+            const product = findProduct(productId);
             if (!product) return;
             const state = productStates[productId];
             if (!state || !state.selectedVariant) return;
             const v = state.selectedVariant;
             const cart = getCart();
-            const existing = cart.find(i => i.variant_id === v.id);
+            const existing = cart.find(i => i.variant_id === v.id && i.source === (product.source || 'printful'));
             if (existing) {
                 existing.quantity = Math.min(existing.quantity + state.quantity, 10);
             } else {
@@ -1010,7 +1085,9 @@
                     size: v.size,
                     price: v.retail_price,
                     quantity: state.quantity,
-                    thumbnail: thumb
+                    thumbnail: thumb,
+                    source: product.source || 'printful',
+                    custom_product_id: product.custom_id || null
                 });
             }
             saveCart(cart);
@@ -1085,28 +1162,31 @@
 
         function initProductState(product) {
             const colors = [...new Set(product.variants.map(v => v.color).filter(Boolean))];
+            const sizes = [...new Set(product.variants.map(v => v.size).filter(Boolean))];
             const firstColor = colors[0] || null;
+            const noOptions = !colors.length && !sizes.length;
             productStates[product.id] = {
                 selectedColor: firstColor,
-                selectedVariant: null,
+                selectedVariant: (noOptions && product.variants.length === 1) ? product.variants[0] : null,
                 quantity: 1
             };
         }
 
         function selectColor(productId, color) {
-            const product = allProducts.find(p => p.id === productId);
+            const product = findProduct(productId);
             if (!product) return;
             const state = productStates[productId];
             state.selectedColor = color;
             state.selectedVariant = null;
 
             // Update color button highlights
-            const card = document.querySelector(`.product-card[data-product-id="${productId}"]`);
+            const card = document.querySelector(`[data-product-id="${productId}"]`);
+            if (!card) return;
             card.querySelectorAll('.color-btn').forEach(b => {
                 b.classList.toggle('selected', b.dataset.color === color);
             });
 
-            // Swap main image to this color's Printful preview
+            // Swap main image to this color's preview
             const colorImgs = product.color_images || {};
             if (colorImgs[color]) {
                 const mainImg = document.getElementById('main-img-' + productId);
@@ -1115,23 +1195,31 @@
 
             // Re-render size buttons for this color
             renderSizeButtons(productId);
+
+            // Auto-select if only one variant matches this color
+            const colorVariants = product.variants.filter(v => v.color === color);
+            if (colorVariants.length === 1) {
+                state.selectedVariant = colorVariants[0];
+                const sizesEl = document.getElementById('sizes-' + productId);
+                if (sizesEl) sizesEl.querySelectorAll('.size-btn').forEach(b => b.classList.add('selected'));
+            }
             updateBuyButton(productId);
         }
 
         function renderSizeButtons(productId) {
-            const product = allProducts.find(p => p.id === productId);
+            const product = findProduct(productId);
             if (!product) return;
             const state = productStates[productId];
             const sizesEl = document.getElementById('sizes-' + productId);
             if (!sizesEl) return;
-            const colorVariants = product.variants.filter(v => v.color === state.selectedColor);
+            const colorVariants = product.variants.filter(v => !state.selectedColor || v.color === state.selectedColor);
             sizesEl.innerHTML = colorVariants.map(v => `
                 <button class="size-btn"
                         data-variant-id="${v.id}"
                         data-price="${v.retail_price}"
                         data-name="${escapeAttr(v.name)}"
-                        onclick="selectSize(this, ${productId})">
-                    ${escapeHtml(v.size || 'One Size')}
+                        onclick="selectSize(this, '${productId}')">
+                    ${escapeHtml(v.size || v.name || 'One Size')}
                 </button>
             `).join('');
         }
@@ -1140,8 +1228,9 @@
             const card = btn.closest('.product-card');
             card.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
-            const product = allProducts.find(p => p.id === productId);
-            const variant = product.variants.find(v => v.id === parseInt(btn.dataset.variantId));
+            const product = findProduct(productId);
+            const vid = btn.dataset.variantId;
+            const variant = product.variants.find(v => String(v.id) === vid);
             productStates[productId].selectedVariant = variant || null;
             updateBuyButton(productId);
         }
@@ -1195,12 +1284,16 @@
 
             container.innerHTML = '<div class="products-grid">' + products.map(product => {
                 initProductState(product);
-                const state = productStates[product.id];
+                const pid = product.id;
+                const state = productStates[pid];
                 const priceRange = getPriceRange(product.variants);
                 const localImgs = product.local_images || [];
                 const printfulImgs = product.images || [];
                 const colorImgs = product.color_images || {};
                 const colors = [...new Set(product.variants.map(v => v.color).filter(Boolean))];
+                const sizes = [...new Set(product.variants.map(v => v.size).filter(Boolean))];
+                const hasColors = colors.length > 0;
+                const hasSizes = sizes.length > 0;
 
                 // Build gallery: local images first, then per-color previews
                 const allImages = [];
@@ -1229,13 +1322,23 @@
                 }
                 const mainSrc = allImages.length > 0 ? allImages[0].src : (product.thumbnail_url || '');
 
-                // Determine initial sizes from first color
-                const initialColorVariants = product.variants.filter(v => v.color === state.selectedColor);
+                // Determine initial variants to show
+                const initialColorVariants = hasColors
+                    ? product.variants.filter(v => v.color === state.selectedColor)
+                    : product.variants;
+
+                // For single-variant products (no options), auto-select the variant
+                if (product.variants.length === 1 && !hasColors && !hasSizes) {
+                    state.selectedVariant = product.variants[0];
+                }
+
+                // Figure out variant picker label
+                const sizeLabel = hasSizes ? 'Size' : (hasColors ? 'Select' : 'Option');
 
                 return `
-                    <div class="product-card" data-product-id="${product.id}">
+                    <div class="product-card" data-product-id="${pid}">
                         <div class="product-gallery">
-                            <img class="product-image" id="main-img-${product.id}"
+                            <img class="product-image" id="main-img-${pid}"
                                  src="${mainSrc}"
                                  alt="${escapeAttr(product.name)}"
                                  loading="lazy">
@@ -1245,49 +1348,52 @@
                                     <img src="${img.thumb}"
                                          alt="${escapeAttr(img.label)}"
                                          class="${i === 0 ? 'active' : ''}"
-                                         onclick="switchImage(this, ${product.id}, '${escapeAttr(img.src)}')"
+                                         onclick="switchImage(this, '${pid}', '${escapeAttr(img.src)}')"
                                          loading="lazy">
                                 `).join('')}
                             </div>` : ''}
                         </div>
                         <div class="product-info">
                             <h3 class="product-name">${escapeHtml(product.name)}</h3>
+                            ${product.description ? `<p class="product-desc" style="color:var(--text-dim);font-size:.85rem;margin:4px 0 8px;line-height:1.4">${escapeHtml(product.description).substring(0, 120)}${product.description.length > 120 ? '...' : ''}</p>` : ''}
                             <div class="product-price">${priceRange}</div>
 
-                            ${colors.length > 1 ? `
+                            ${hasColors ? `
                             <div class="variant-section-label">Color</div>
                             <div class="color-options">
                                 ${colors.map(c => `
                                     <button class="color-btn${c === state.selectedColor ? ' selected' : ''}"
                                             data-color="${escapeAttr(c)}"
-                                            onclick="selectColor(${product.id}, '${escapeAttr(c)}')">
+                                            onclick="selectColor('${pid}', '${escapeAttr(c)}')">
                                         ${escapeHtml(c)}
                                     </button>
                                 `).join('')}
                             </div>` : ''}
 
-                            <div class="variant-section-label">Size</div>
-                            <div class="product-sizes" id="sizes-${product.id}">
+                            ${(hasSizes || (hasColors && initialColorVariants.length > 0)) ? `
+                            <div class="variant-section-label">${sizeLabel}</div>
+                            <div class="product-sizes" id="sizes-${pid}">
                                 ${initialColorVariants.map(v => `
                                     <button class="size-btn"
                                             data-variant-id="${v.id}"
                                             data-price="${v.retail_price}"
                                             data-name="${escapeAttr(v.name)}"
-                                            onclick="selectSize(this, ${product.id})">
-                                        ${escapeHtml(v.size || 'One Size')}
+                                            onclick="selectSize(this, '${pid}')">
+                                        ${escapeHtml(v.size || v.color || 'One Size')}
                                     </button>
                                 `).join('')}
-                            </div>
+                            </div>` : `
+                            <div class="product-sizes" id="sizes-${pid}" style="display:none"></div>`}
 
                             <div class="qty-row">
                                 <span class="variant-section-label" style="margin-bottom:0">Qty</span>
-                                <button class="qty-btn" onclick="updateQuantity(${product.id}, -1)">−</button>
-                                <span class="qty-value" id="qty-${product.id}">1</span>
-                                <button class="qty-btn" onclick="updateQuantity(${product.id}, 1)">+</button>
+                                <button class="qty-btn" onclick="updateQuantity('${pid}', -1)">−</button>
+                                <span class="qty-value" id="qty-${pid}">1</span>
+                                <button class="qty-btn" onclick="updateQuantity('${pid}', 1)">+</button>
                             </div>
 
-                            <button class="buy-btn" id="buy-${product.id}" disabled onclick="addToCart(${product.id})">
-                                SELECT OPTIONS
+                            <button class="buy-btn" id="buy-${pid}" ${state.selectedVariant ? '' : 'disabled'} onclick="addToCart('${pid}')">
+                                ${state.selectedVariant ? 'ADD TO CART' : 'SELECT OPTIONS'}
                             </button>
                         </div>
                     </div>
@@ -1340,6 +1446,11 @@
             }
         }
 
+        function toggleShippingFields() {
+            const same = document.getElementById('sameAsBilling').checked;
+            document.getElementById('shippingFields').classList.toggle('hidden', same);
+        }
+
         function closeCheckout() {
             document.getElementById('checkoutModal').classList.remove('active');
         }
@@ -1348,9 +1459,54 @@
             if (e.target === e.currentTarget) closeCheckout();
         });
 
+        function getBillingAddress() {
+            return {
+                name: document.getElementById('billName').value.trim(),
+                email: document.getElementById('billEmail').value.trim(),
+                address1: document.getElementById('billAddress1').value.trim(),
+                address2: document.getElementById('billAddress2').value.trim(),
+                city: document.getElementById('billCity').value.trim(),
+                state_code: document.getElementById('billState').value.trim().toUpperCase(),
+                country_code: document.getElementById('billCountry').value,
+                zip: document.getElementById('billZip').value.trim()
+            };
+        }
+
+        function getShippingAddress() {
+            if (document.getElementById('sameAsBilling').checked) {
+                return getBillingAddress();
+            }
+            return {
+                name: document.getElementById('shipName').value.trim(),
+                email: document.getElementById('billEmail').value.trim(),
+                address1: document.getElementById('shipAddress1').value.trim(),
+                address2: document.getElementById('shipAddress2').value.trim(),
+                city: document.getElementById('shipCity').value.trim(),
+                state_code: document.getElementById('shipState').value.trim().toUpperCase(),
+                country_code: document.getElementById('shipCountry').value,
+                zip: document.getElementById('shipZip').value.trim()
+            };
+        }
+
         async function processPayment() {
             const cart = getCart();
             if (!cart.length || !card) return;
+
+            const billing = getBillingAddress();
+            const shipping = getShippingAddress();
+
+            // Validate billing
+            if (!billing.name || !billing.address1 || !billing.city || !billing.zip) {
+                document.getElementById('checkoutStatus').textContent = 'Please fill in all required billing fields';
+                document.getElementById('checkoutStatus').className = 'checkout-status error';
+                return;
+            }
+            // Validate shipping
+            if (!shipping.name || !shipping.address1 || !shipping.city || !shipping.zip) {
+                document.getElementById('checkoutStatus').textContent = 'Please fill in all required shipping fields';
+                document.getElementById('checkoutStatus').className = 'checkout-status error';
+                return;
+            }
 
             const btn = document.getElementById('checkoutBtn');
             const status = document.getElementById('checkoutStatus');
@@ -1370,27 +1526,25 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         source_id: tokenResult.token,
-                        items: cart.map(i => ({ variant_id: i.variant_id, quantity: i.quantity })),
-                        shipping: {
-                            name: document.getElementById('shipName').value.trim(),
-                            email: document.getElementById('shipEmail').value.trim(),
-                            address1: document.getElementById('shipAddress1').value.trim(),
-                            address2: document.getElementById('shipAddress2').value.trim(),
-                            city: document.getElementById('shipCity').value.trim(),
-                            state_code: document.getElementById('shipState').value.trim().toUpperCase(),
-                            country_code: document.getElementById('shipCountry').value,
-                            zip: document.getElementById('shipZip').value.trim()
-                        }
+                        items: cart.map(i => ({
+                            variant_id: i.variant_id,
+                            quantity: i.quantity,
+                            source: i.source || 'printful',
+                            custom_product_id: i.custom_product_id || undefined
+                        })),
+                        billing,
+                        shipping
                     })
                 });
 
                 const data = await res.json();
 
                 if (data.success) {
-                    status.textContent = data.message || 'Order placed successfully!';
+                    let msg = data.message || 'Order placed successfully!';
+                    if (data.order_number) msg += ` Order #${data.order_number}`;
+                    status.textContent = msg;
                     status.className = 'checkout-status success';
                     btn.textContent = 'ORDER PLACED ✓';
-                    // Clear cart
                     saveCart([]);
                     renderCartDrawer();
                 } else {

@@ -10,17 +10,24 @@
     "db:seed": "node src/db/seed.js",
     "test": "node --test src/**/*.test.js"
   },
-  "keywords": ["academia", "research", "open-access", "grabnet", "p2p", "citations"],
+  "keywords": [
+    "academia",
+    "research",
+    "open-access",
+    "grabnet",
+    "p2p",
+    "citations"
+  ],
   "author": "OpenSource Scholar Community",
   "license": "AGPL-3.0",
   "dependencies": {
-    "better-sqlite3": "^9.4.0",
     "bcrypt": "^5.1.1",
+    "better-sqlite3": "^9.4.0",
     "busboy": "^1.6.0",
     "cookie": "^0.6.0",
-    "mime-types": "^2.1.35"
+    "mime-types": "^2.1.35",
+    "ws": "^8.20.0"
   },
-  "devDependencies": {},
   "engines": {
     "node": ">=18.0.0"
   }

@@ -16,8 +16,10 @@ const { registerGrabRoutes } = require('./grab-routes');
 const { registerCmsRoutes } = require('./cms-routes');
 const { registerShopRoutes } = require('./shop-routes');
 const { closeDb } = require('./db');
+const { initShopTables } = require('./db/shop');
 const users = require('./db/users');
 const grab = require('./grab');
+const { attachCallSignaling } = require('./call-signaling');
 
 console.log('📚 OpenSource Scholar');
 console.log('━'.repeat(50));
@@ -38,6 +40,9 @@ if (!fs.existsSync(config.dbPath)) {
     console.error('❌ Database not found. Run: npm run db:init');
     process.exit(1);
 }
+
+// Initialize shop tables
+initShopTables();
 
 // Create application
 const app = createApp();
@@ -113,11 +118,15 @@ process.on('SIGTERM', () => {
 
 // Start server
 app.listen(config.port, () => {
+    // Attach WebSocket call signaling to the HTTP server
+    attachCallSignaling(app.server);
+
     console.log(`✓ Server running on http://localhost:${config.port}`);
     console.log(`✓ Data directory: ${config.dataDir}`);
     console.log(`✓ Sites directory: ${config.sitesDir}`);
     console.log(`✓ GrabNet: ${grab.isAvailable() ? 'available ✓' : 'not found'}`);
     console.log(`✓ Gateway: ${config.grabGatewayUrl}`);
+    console.log(`✓ Call signaling: ws://localhost:${config.port}/ws/calls`);
     console.log('━'.repeat(50));
     console.log('Ready to serve open knowledge! 🎓');
 });

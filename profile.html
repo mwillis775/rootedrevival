@@ -493,6 +493,40 @@
         .toast.err { background: var(--red); color: #fff; }
         @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+        /* Call Overlay */
+        .call-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .call-overlay.hidden { display: none; }
+        .call-container { background: var(--bg-surface, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 16px; padding: 30px; width: 400px; max-width: 95vw; text-align: center; }
+        .call-header { margin-bottom: 20px; }
+        .call-status { font-size: 1.1rem; color: var(--text, #e0e0e0); }
+        .call-timer { display: block; font-size: 0.9rem; color: var(--text-muted, #888); margin-top: 6px; font-variant-numeric: tabular-nums; }
+        .call-timer.hidden { display: none; }
+        .call-media { position: relative; margin-bottom: 24px; min-height: 120px; display: flex; align-items: center; justify-content: center; }
+        .call-media video { border-radius: 12px; background: #000; max-width: 100%; }
+        .call-media video.hidden { display: none; }
+        #callRemoteMedia { width: 100%; max-height: 50vh; object-fit: cover; }
+        .call-local-pip { position: absolute; bottom: 10px; right: 10px; width: 100px; height: 75px; border-radius: 8px; border: 2px solid var(--accent, #00ff88); object-fit: cover; z-index: 1; }
+        .call-avatar { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .call-avatar.hidden { display: none; }
+        .call-avatar-icon { font-size: 4rem; opacity: 0.6; }
+        .call-remote-name { font-size: 1.2rem; font-weight: 600; color: var(--text, #e0e0e0); }
+        .call-controls { display: flex; gap: 16px; justify-content: center; }
+        .call-controls.hidden { display: none; }
+        .call-btn { width: 56px; height: 56px; border-radius: 50%; border: none; font-size: 1.3rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .call-btn-mute { background: var(--bg, #0a0a1a); color: var(--text, #e0e0e0); border: 1px solid var(--border, #333); }
+        .call-btn-mute.active { background: var(--red, #e53e3e); color: #fff; border-color: var(--red, #e53e3e); }
+        .call-btn-video { background: var(--bg, #0a0a1a); color: var(--text, #e0e0e0); border: 1px solid var(--border, #333); }
+        .call-btn-video.active { background: var(--red, #e53e3e); color: #fff; border-color: var(--red, #e53e3e); }
+        .call-btn-hangup { background: var(--red, #e53e3e); color: #fff; }
+        .call-btn-hangup:hover { filter: brightness(1.2); }
+        .call-incoming-actions { display: flex; gap: 20px; justify-content: center; margin-top: 10px; }
+        .call-incoming-actions.hidden { display: none; }
+        .call-btn-answer { background: var(--accent, #00ff88); color: var(--bg, #0a0a1a); padding: 12px 28px; border-radius: 12px; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .call-btn-decline { background: var(--red, #e53e3e); color: #fff; padding: 12px 28px; border-radius: 12px; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .call-btn-answer:hover, .call-btn-decline:hover { filter: brightness(1.1); }
+        .call-user-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--bg-surface, #1a1a2e); border: 1px solid var(--border, #333); border-radius: var(--radius, 8px); color: var(--text, #e0e0e0); cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+        .call-user-btn:hover { border-color: var(--accent, #00ff88); color: var(--accent, #00ff88); }
+
         @media (max-width: 768px) {
             .menu-toggle { display: block; }
             .nav {
@@ -609,7 +643,11 @@
                         <form class="compose-form" onsubmit="sendMessage(event)">
                             <div class="form-group">
                                 <label>To (username)</label>
-                                <input type="text" id="composeTo" placeholder="username" required>
+                                <div style="display:flex;gap:8px;align-items:center;">
+                                    <input type="text" id="composeTo" placeholder="username" required style="flex:1">
+                                    <button type="button" class="call-user-btn" onclick="callFromCompose('audio')" title="Audio call">📞 Call</button>
+                                    <button type="button" class="call-user-btn" onclick="callFromCompose('video')" title="Video call">📹 Video</button>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Subject</label>
@@ -770,6 +808,7 @@
 
     <script src="static/js/site-nav.js"></script>
     <script src="static/js/e2e.js"></script>
+    <script src="static/js/calls.js"></script>
     <script>
         const API = window.location.hostname === 'localhost'
             ? `http://localhost:3000`
@@ -821,6 +860,8 @@
                     // Check E2E key status (keys are set up at login)
                     updateKeyStatus();
                     loadInbox();
+                    // Connect to call signaling server
+                    CallManager.connect();
                 }
             } catch (e) {
                 // Not logged in — show login prompt
@@ -980,6 +1021,12 @@
                 ? `From: <strong>${esc(fromName)}</strong>${!m.from_user_id ? ' <span style="color:var(--text-muted)">(visitor)</span>' : ''}`
                 : `To: <strong>${esc(m.to_display_name || m.to_username)}</strong>`;
             const replyTo = context === 'inbox' ? (m.from_username) : null;
+            const callTarget = context === 'inbox' ? m.from_username : m.to_username;
+            const callButtons = callTarget ? `
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                    <button class="call-user-btn" onclick="CallManager.call('${esc(callTarget)}','audio')">📞 Audio Call</button>
+                    <button class="call-user-btn" onclick="CallManager.call('${esc(callTarget)}','video')">📹 Video Call</button>
+                </div>` : '';
             el.innerHTML = `
                 <div class="msg-detail">
                     <div class="msg-detail-header">
@@ -988,6 +1035,7 @@
                             ${emailLine}
                             ${m.subject ? `<div style="font-size:1.1rem;margin-top:5px;font-weight:600">${esc(m.subject)}</div>` : ''}
                             <div style="color:var(--text-muted);font-size:0.85rem;margin-top:5px">${timeAgo(m.created_at)}</div>
+                            ${callButtons}
                         </div>
                         <div style="display:flex;gap:8px">
                             <button class="btn btn-ghost" onclick="backToList()" style="padding:6px 12px;font-size:0.85rem">← Back</button>
@@ -1076,6 +1124,12 @@
                 toast('All marked as read');
                 loadInbox();
             } catch (e) { toast(e.message, 'err'); }
+        }
+
+        function callFromCompose(mediaType) {
+            const target = document.getElementById('composeTo').value.trim();
+            if (!target) { toast('Enter a username first', 'err'); return; }
+            CallManager.call(target, mediaType);
         }
 
         // ========== TABS ==========
@@ -1168,6 +1222,7 @@
         document.getElementById('logoutBtn')?.addEventListener('click', async () => {
             try { await api('/auth/logout', { method: 'POST' }); } catch (e) {}
             E2E.clearKeys();
+            CallManager.disconnect();
             localStorage.removeItem('user');
             window.location.href = 'index.html';
         });

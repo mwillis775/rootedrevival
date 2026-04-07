@@ -21,7 +21,10 @@ const E2E = (function () {
     /* ── helpers ─────────────────────────────────────────────── */
 
     function b64encode(buf) {
-        return btoa(String.fromCharCode(...new Uint8Array(buf)));
+        const bytes = new Uint8Array(buf);
+        let str = '';
+        for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
+        return btoa(str);
     }
 
     function b64decode(str) {
@@ -232,6 +235,53 @@ const E2E = (function () {
         localStorage.removeItem(PUB_KEY);
     }
 
+    /* ── password-based file encryption / decryption ───────── */
+
+    /**
+     * Encrypt a File or ArrayBuffer with a user-supplied password.
+     * Uses PBKDF2 to derive an AES-256-GCM key. No RSA, no login needed.
+     * Returns { encryptedBlob, metadata } where metadata holds the salt
+     * and IV (no secrets — password is the only secret).
+     */
+    async function encryptFileWithPassword(fileData, password) {
+        const salt = crypto.getRandomValues(new Uint8Array(32));
+        const saltB64 = b64encode(salt);
+        const aesKey = await deriveWrappingKey(password, saltB64);
+
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const plainBuf = fileData instanceof ArrayBuffer ? fileData : await fileData.arrayBuffer();
+        const cipherBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, plainBuf);
+
+        return {
+            encryptedBlob: new Blob([cipherBuf]),
+            metadata: {
+                v: 'pw1',
+                salt: saltB64,
+                iv: b64encode(iv),
+                originalSize: plainBuf.byteLength,
+            }
+        };
+    }
+
+    /**
+     * Decrypt an encrypted file blob using a password + stored metadata.
+     * @param {Blob|ArrayBuffer} encryptedData
+     * @param {object} metadata - { v:'pw1', salt, iv, originalSize }
+     * @param {string} password
+     * @returns {ArrayBuffer}
+     */
+    async function decryptFileWithPassword(encryptedData, metadata, password) {
+        const aesKey = await deriveWrappingKey(password, metadata.salt);
+
+        const cipherBuf = encryptedData instanceof ArrayBuffer
+            ? encryptedData
+            : await encryptedData.arrayBuffer();
+
+        return crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv: b64decode(metadata.iv) }, aesKey, cipherBuf
+        );
+    }
+
     return {
         generateAndWrapKeys,
         migrateExistingKey,
@@ -239,6 +289,8 @@ const E2E = (function () {
         rewrapWithNewPassword,
         encrypt,
         decrypt,
+        encryptFileWithPassword,
+        decryptFileWithPassword,
         isEncrypted,
         hasPrivateKey,
         getPublicKey,

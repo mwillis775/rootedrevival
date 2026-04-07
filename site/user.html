@@ -830,6 +830,38 @@
             .effects-grid { grid-template-columns: 1fr; }
             .banner-grid { grid-template-columns: repeat(2, 1fr); }
         }
+
+        /* Call Overlay */
+        .call-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .call-overlay.hidden { display: none; }
+        .call-container { background: var(--bg-surface, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 16px; padding: 30px; width: 400px; max-width: 95vw; text-align: center; }
+        .call-header { margin-bottom: 20px; }
+        .call-status { font-size: 1.1rem; color: var(--text, #e0e0e0); }
+        .call-timer { display: block; font-size: 0.9rem; color: var(--text-muted, #888); margin-top: 6px; font-variant-numeric: tabular-nums; }
+        .call-timer.hidden { display: none; }
+        .call-media { position: relative; margin-bottom: 24px; min-height: 120px; display: flex; align-items: center; justify-content: center; }
+        .call-media video { border-radius: 12px; background: #000; max-width: 100%; }
+        .call-media video.hidden { display: none; }
+        #callRemoteMedia { width: 100%; max-height: 50vh; object-fit: cover; }
+        .call-local-pip { position: absolute; bottom: 10px; right: 10px; width: 100px; height: 75px; border-radius: 8px; border: 2px solid var(--accent, #00ff88); object-fit: cover; z-index: 1; }
+        .call-avatar { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .call-avatar.hidden { display: none; }
+        .call-avatar-icon { font-size: 4rem; opacity: 0.6; }
+        .call-remote-name { font-size: 1.2rem; font-weight: 600; color: var(--text, #e0e0e0); }
+        .call-controls { display: flex; gap: 16px; justify-content: center; }
+        .call-controls.hidden { display: none; }
+        .call-btn { width: 56px; height: 56px; border-radius: 50%; border: none; font-size: 1.3rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .call-btn-mute { background: var(--bg, #0a0a1a); color: var(--text, #e0e0e0); border: 1px solid var(--border, #333); }
+        .call-btn-mute.active { background: var(--red, #e53e3e); color: #fff; border-color: var(--red, #e53e3e); }
+        .call-btn-video { background: var(--bg, #0a0a1a); color: var(--text, #e0e0e0); border: 1px solid var(--border, #333); }
+        .call-btn-video.active { background: var(--red, #e53e3e); color: #fff; border-color: var(--red, #e53e3e); }
+        .call-btn-hangup { background: var(--red, #e53e3e); color: #fff; }
+        .call-btn-hangup:hover { filter: brightness(1.2); }
+        .call-incoming-actions { display: flex; gap: 20px; justify-content: center; margin-top: 10px; }
+        .call-incoming-actions.hidden { display: none; }
+        .call-btn-answer { background: var(--accent, #00ff88); color: var(--bg, #0a0a1a); padding: 12px 28px; border-radius: 12px; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .call-btn-decline { background: var(--red, #e53e3e); color: #fff; padding: 12px 28px; border-radius: 12px; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .call-btn-answer:hover, .call-btn-decline:hover { filter: brightness(1.1); }
     </style>
 </head>
 <body>
@@ -900,6 +932,12 @@
                     <div class="profile-actions" id="profileActions">
                         <button class="btn btn-primary" id="followBtn" style="display: none;">
                             <span>➕ Follow</span>
+                        </button>
+                        <button class="btn btn-ghost" id="audioCallBtn" style="display: none;" onclick="callUser('audio')">
+                            <span>📞 Call</span>
+                        </button>
+                        <button class="btn btn-ghost" id="videoCallBtn" style="display: none;" onclick="callUser('video')">
+                            <span>📹 Video</span>
                         </button>
                         <button class="btn btn-ghost" id="editProfileBtn" style="display: none;">
                             <span>✏️ Edit Profile</span>
@@ -1086,6 +1124,7 @@
     </script>
 
     <script src="static/js/site-nav.js"></script>
+    <script src="static/js/calls.js"></script>
     <script>
         const API_BASE = 'https://scholar.rootedrevival.us/api';
         
@@ -1218,9 +1257,15 @@
             if (isOwnProfile) {
                 document.getElementById('editProfileBtn').style.display = 'inline-flex';
                 document.getElementById('followBtn').style.display = 'none';
+                document.getElementById('audioCallBtn').style.display = 'none';
+                document.getElementById('videoCallBtn').style.display = 'none';
             } else if (getAuthToken()) {
                 document.getElementById('editProfileBtn').style.display = 'none';
                 document.getElementById('followBtn').style.display = 'inline-flex';
+                document.getElementById('audioCallBtn').style.display = 'inline-flex';
+                document.getElementById('videoCallBtn').style.display = 'inline-flex';
+                // Connect to call signaling
+                CallManager.connect();
             }
 
             // Show guestbook form if logged in
@@ -1609,6 +1654,11 @@
             showToast('Message sent! 📨');
             input.value = '';
         });
+
+        function callUser(mediaType) {
+            if (!currentProfile || !currentProfile.username) return;
+            CallManager.call(currentProfile.username, mediaType);
+        }
 
         // Init
         document.addEventListener('DOMContentLoaded', () => {

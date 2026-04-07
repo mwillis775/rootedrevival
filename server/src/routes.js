@@ -468,10 +468,15 @@ function registerRoutes(app) {
         
         const stat = fs.statSync(filePath);
         
+        // For encrypted files, serve as octet-stream so browsers don't
+        // attempt content-type-specific processing that corrupts ciphertext
+        const contentType = file.encrypted ? 'application/octet-stream' : file.mime_type;
+        
         res.writeHead(200, {
-            'Content-Type': file.mime_type,
+            'Content-Type': contentType,
             'Content-Length': stat.size,
-            'Content-Disposition': `attachment; filename="${file.original_filename}"`
+            'Content-Disposition': `attachment; filename="${file.original_filename}"`,
+            'X-Content-Type-Options': 'nosniff'
         });
         
         fs.createReadStream(filePath).pipe(res);

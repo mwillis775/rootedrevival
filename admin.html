@@ -67,6 +67,7 @@ tr:hover{background:var(--el)}
 .st-badge{padding:2px 8px;border-radius:12px;font-size:.72rem;font-family:var(--fm)}
 .st-active{background:rgba(51,255,51,.15);color:var(--ac)}
 .st-draft{background:rgba(255,176,0,.15);color:var(--am)}
+.drag-over{border-top:2px solid var(--ac) !important}
 .st-published{background:rgba(51,255,51,.15);color:var(--ac)}
 .st-banned{background:rgba(255,68,68,.15);color:var(--rd)}
 .st-pending{background:rgba(255,176,0,.15);color:var(--am)}
@@ -132,6 +133,27 @@ tr:hover{background:var(--el)}
 
 /* Responsive */
 @media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{display:none}}
+
+/* Product editor */
+.pe-tab{background:transparent!important;border:none!important;border-bottom:2px solid transparent!important;border-radius:0!important;color:var(--tm);padding:8px 16px!important;cursor:pointer}
+.pe-tab.active{color:var(--ac);border-bottom-color:var(--ac)!important}
+.pe-img-card{position:relative;border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;background:var(--bg)}
+.pe-img-card img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.pe-img-card .pe-img-actions{position:absolute;top:4px;right:4px;display:flex;gap:4px}
+.pe-img-card .pe-img-actions button{background:rgba(0,0,0,.7);color:#fff;border:none;border-radius:3px;padding:2px 6px;font-size:.75rem;cursor:pointer}
+.pe-img-card select{width:100%;border-top:1px solid var(--bd);border-radius:0;font-size:.75rem;padding:4px}
+.pe-og{background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:12px;margin-bottom:12px}
+.pe-og-hd{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.pe-og-hd input{flex:1;font-size:.9rem}
+.pe-og-vals{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pe-og-val{display:inline-flex;align-items:center;gap:4px;background:var(--ad);color:var(--ac);padding:4px 8px;border-radius:12px;font-size:.8rem}
+.pe-og-val button{background:none;border:none;color:var(--rd);cursor:pointer;font-size:.9rem;line-height:1}
+.order-status{padding:2px 8px;border-radius:12px;font-size:.72rem;font-family:var(--fm)}
+.order-pending{background:rgba(255,176,0,.15);color:var(--am)}
+.order-processing{background:rgba(0,255,255,.15);color:var(--cy)}
+.order-shipped{background:rgba(153,102,255,.15);color:var(--pr)}
+.order-delivered{background:rgba(51,255,51,.15);color:var(--ac)}
+.order-cancelled{background:rgba(255,68,68,.15);color:var(--rd)}
 </style>
 </head>
 <body>
@@ -221,6 +243,11 @@ tr:hover{background:var(--el)}
       <div class="sb-section">
         <h3>SECURITY</h3>
         <div class="sb-link" data-section="keys">🗝️ Hardware Keys</div>
+      </div>
+      <div class="sb-section">
+        <h3>SHOP</h3>
+        <div class="sb-link" data-section="shopProducts">🛒 Products</div>
+        <div class="sb-link" data-section="shopOrders">📦 Orders <span class="badge" id="ordersBadge">0</span></div>
       </div>
     </aside>
 
@@ -439,6 +466,49 @@ tr:hover{background:var(--el)}
         </div></div>
       </section>
 
+      <!-- ===== SHOP PRODUCTS ===== -->
+      <section id="sec-shopProducts" class="hidden">
+        <div class="page-hd"><h1>🛒 SHOP PRODUCTS</h1><p>Manage and reorder all products (Printful + custom).</p></div>
+        <div class="stats" id="shopStats">
+          <div class="stat"><div class="label">CUSTOM PRODUCTS</div><div class="val" id="sShopProducts">—</div></div>
+          <div class="stat"><div class="label">TOTAL ORDERS</div><div class="val" id="sShopOrders">—</div></div>
+          <div class="stat"><div class="label">PENDING ORDERS</div><div class="val" id="sShopPending">—</div></div>
+          <div class="stat"><div class="label">REVENUE</div><div class="val" id="sShopRevenue">—</div></div>
+        </div>
+
+        <!-- Display Order -->
+        <div class="card" style="margin-bottom:24px">
+          <div class="card-hd"><h3>Display Order</h3><button class="btn btn-p btn-s" id="btnSaveOrder" onclick="saveDisplayOrder()" style="display:none">💾 Save Order</button></div>
+          <p style="color:var(--tm);font-size:12px;margin-bottom:12px">Drag rows to reorder how products appear on the shop page.</p>
+          <table><thead><tr><th style="width:32px"></th><th style="width:56px">IMG</th><th>NAME</th><th style="width:80px">SOURCE</th><th style="width:80px">ACTIONS</th></tr></thead>
+          <tbody id="displayOrderTable"></tbody></table>
+        </div>
+
+        <!-- Custom Products CRUD -->
+        <div class="card">
+          <div class="card-hd"><h3>Custom Products</h3><button class="btn btn-p btn-s" onclick="openProductEditor()">+ New Product</button></div>
+          <table><thead><tr><th>IMAGE</th><th>NAME</th><th>PRICE</th><th>VARIANTS</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+          <tbody id="shopProductsTable"></tbody></table>
+        </div>
+      </section>
+
+      <!-- ===== SHOP ORDERS ===== -->
+      <section id="sec-shopOrders" class="hidden">
+        <div class="page-hd"><h1>📦 ORDERS</h1><p>View and manage all shop orders.</p></div>
+        <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-s" onclick="loadOrders()" style="background:var(--ac);color:var(--bg)">All</button>
+          <button class="btn btn-g btn-s" onclick="loadOrders('pending')">Pending</button>
+          <button class="btn btn-g btn-s" onclick="loadOrders('processing')">Processing</button>
+          <button class="btn btn-g btn-s" onclick="loadOrders('shipped')">Shipped</button>
+          <button class="btn btn-g btn-s" onclick="loadOrders('delivered')">Delivered</button>
+          <button class="btn btn-g btn-s" onclick="loadOrders('cancelled')">Cancelled</button>
+        </div>
+        <div class="card">
+          <table><thead><tr><th>ORDER #</th><th>DATE</th><th>CUSTOMER</th><th>ITEMS</th><th>TOTAL</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+          <tbody id="ordersTable"></tbody></table>
+        </div>
+      </section>
+
     </main>
   </div>
 </div>
@@ -587,6 +657,70 @@ tr:hover{background:var(--el)}
   </div>
 </div>
 
+<!-- ===== PRODUCT EDITOR MODAL ===== -->
+<div class="modal-overlay" id="productEditorModal">
+  <div class="modal" style="max-width:960px;max-height:92vh">
+    <div class="modal-hd"><h2 id="productEditorTitle">New Product</h2><button class="modal-close" onclick="closeModal('productEditorModal')">&times;</button></div>
+    <div class="modal-body">
+      <!-- Tab bar -->
+      <div style="display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid var(--bd)">
+        <button class="btn btn-s pe-tab active" data-petab="details" onclick="showPeTab('details')">Details</button>
+        <button class="btn btn-s pe-tab" data-petab="images" onclick="showPeTab('images')">Images</button>
+        <button class="btn btn-s pe-tab" data-petab="options" onclick="showPeTab('options')">Options</button>
+        <button class="btn btn-s pe-tab" data-petab="variants" onclick="showPeTab('variants')">Variants</button>
+      </div>
+      <!-- Details tab -->
+      <div id="pe-details">
+        <div class="form-row"><label>PRODUCT NAME *</label><input id="peName" placeholder="e.g. Hand-carved Garden Tool"></div>
+        <div class="form-row"><label>DESCRIPTION</label><textarea id="peDescription" rows="3" placeholder="Product description..."></textarea></div>
+        <div class="form-grid">
+          <div class="form-row"><label>BASE PRICE (USD) *</label><input id="peBasePrice" type="number" step="0.01" min="0" placeholder="29.99"></div>
+          <div class="form-row"><label>STATUS</label><select id="peActive"><option value="1">Active</option><option value="0">Draft</option></select></div>
+        </div>
+      </div>
+      <!-- Images tab -->
+      <div id="pe-images" class="hidden">
+        <div id="peDropZone" style="border:2px dashed var(--bd);border-radius:var(--r);padding:32px;text-align:center;cursor:pointer;margin-bottom:16px;transition:border-color .2s" ondragover="event.preventDefault();this.style.borderColor='var(--ac)'" ondragleave="this.style.borderColor='var(--bd)'" ondrop="handleImageDrop(event)" onclick="document.getElementById('peImageInput').click()">
+          <div style="font-size:2rem;margin-bottom:8px">📸</div>
+          <p style="color:var(--tm)">Drag & drop images here or click to browse</p>
+          <p style="color:var(--tm);font-size:.75rem;margin-top:4px">JPG, PNG, GIF, WebP — up to 10MB each</p>
+          <input type="file" id="peImageInput" multiple accept="image/*" style="display:none" onchange="handleImageSelect(event)">
+        </div>
+        <div id="peImageGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px"></div>
+      </div>
+      <!-- Options tab -->
+      <div id="pe-options" class="hidden">
+        <p style="color:var(--tm);font-size:.85rem;margin-bottom:12px">Define customization levels (e.g., Color, Size, Material). Each option group has values customers can choose from.</p>
+        <div id="peOptionGroups"></div>
+        <button class="btn btn-g btn-s" onclick="addOptionGroupUI()" style="margin-top:12px">+ Add Option Group</button>
+      </div>
+      <!-- Variants tab -->
+      <div id="pe-variants" class="hidden">
+        <p style="color:var(--tm);font-size:.85rem;margin-bottom:12px">Variants are specific combinations of your options. Each variant can have its own price and stock level.</p>
+        <div style="margin-bottom:12px;display:flex;gap:8px">
+          <button class="btn btn-p btn-s" onclick="generateVariantsUI()">⚡ Auto-Generate All Combinations</button>
+        </div>
+        <div id="peVariantsTable"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-g" onclick="closeModal('productEditorModal')">Cancel</button>
+      <button class="btn btn-p" id="peSaveBtn" onclick="saveProduct()">💾 Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ORDER DETAIL MODAL ===== -->
+<div class="modal-overlay" id="orderDetailModal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-hd"><h2>Order Details</h2><button class="modal-close" onclick="closeModal('orderDetailModal')">&times;</button></div>
+    <div class="modal-body" id="orderDetailBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-g" onclick="closeModal('orderDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <script src="static/js/e2e.js"></script>
 <script>
 // ========== CONFIG & STATE ==========
@@ -681,7 +815,7 @@ function showSection(name) {
     l.classList.toggle('active', l.dataset.section === name);
   });
   // Lazy load section data
-  const loaders = { dashboard: loadDashboard, sitefiles: loadSiteFiles, pages: loadPages, media: loadMedia, navigation: () => loadNavigation(currentNavMenu), components: loadComponents, themes: loadThemes, settings: loadSettings, grabnet: loadGrabNet, pending: loadPending, users: loadUsers, logs: loadLogs, keys: loadKeys, messages: loadMessages };
+  const loaders = { dashboard: loadDashboard, sitefiles: loadSiteFiles, pages: loadPages, media: loadMedia, navigation: () => loadNavigation(currentNavMenu), components: loadComponents, themes: loadThemes, settings: loadSettings, grabnet: loadGrabNet, pending: loadPending, users: loadUsers, logs: loadLogs, keys: loadKeys, messages: loadMessages, shopProducts: loadShopProducts, shopOrders: () => loadOrders() };
   if (loaders[name]) loaders[name]();
 }
 
@@ -1847,6 +1981,508 @@ async function deleteKey(id) {
     await api(`/webauthn/credentials/${id}`, { method: 'DELETE' });
     toast('Key removed', 'ok');
     loadKeys();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+// ========== SHOP: CUSTOM PRODUCTS ==========
+let _editingProductId = null;
+let _editingProduct = null;
+
+function showPeTab(tab) {
+  ['details','images','options','variants'].forEach(t => {
+    document.getElementById('pe-' + t).classList.toggle('hidden', t !== tab);
+  });
+  document.querySelectorAll('.pe-tab').forEach(b => b.classList.toggle('active', b.dataset.petab === tab));
+}
+
+async function loadShopProducts() {
+  try {
+    const [prodData, statsData, allData] = await Promise.all([
+      api('/shop/admin/products'),
+      api('/shop/admin/stats'),
+      api('/shop/admin/all-products')
+    ]);
+    const products = prodData.products || [];
+    const allProducts = allData.products || [];
+    document.getElementById('sShopProducts').textContent = statsData.custom_products || 0;
+    document.getElementById('sShopOrders').textContent = statsData.total || 0;
+    document.getElementById('sShopPending').textContent = statsData.pending || 0;
+    document.getElementById('sShopRevenue').textContent = '$' + (statsData.revenue || 0).toFixed(2);
+    const badge = document.getElementById('ordersBadge');
+    if (badge) badge.textContent = statsData.pending || 0;
+
+    // Render display order table (all products)
+    const dot = document.getElementById('displayOrderTable');
+    dot.innerHTML = allProducts.map(p => {
+      const srcBadge = p.source === 'printful'
+        ? '<span style="background:#5c6bc0;color:#fff;padding:2px 6px;border-radius:3px;font-size:10px">PRINTFUL</span>'
+        : '<span style="background:var(--ac);color:var(--bg);padding:2px 6px;border-radius:3px;font-size:10px">CUSTOM</span>';
+      const thumb = p.thumbnail_url ? `<img src="${esc(p.thumbnail_url)}" style="width:40px;height:40px;object-fit:cover;border-radius:4px" loading="lazy">` : '<span style="color:var(--tm)">—</span>';
+      const editBtn = p.source === 'custom' ? `<button class="btn btn-g btn-s" onclick="editProduct(${p.key.replace('custom-','')})">✏️</button>` : '';
+      return `<tr draggable="true" data-product-key="${esc(p.key)}" style="cursor:grab">
+        <td style="cursor:grab;color:var(--tm);font-size:18px">⠿</td>
+        <td>${thumb}</td>
+        <td><strong>${esc(p.name)}</strong></td>
+        <td>${srcBadge}</td>
+        <td>${editBtn}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('btnSaveOrder').style.display = 'none';
+    initDragReorder(dot);
+
+    // Render custom products CRUD table
+    const tb = document.getElementById('shopProductsTable');
+    if (!products.length) {
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="icon">🛒</div><h3>NO CUSTOM PRODUCTS YET</h3><p>Create your first custom product.</p></div></td></tr>';
+      return;
+    }
+    tb.innerHTML = products.map(p => {
+      const thumb = p.images?.[0] ? `/api/shop/images/${p.images[0].filename}` : '';
+      const st = p.active ? '<span class="st-badge st-active">Active</span>' : '<span class="st-badge st-draft">Draft</span>';
+      return `<tr>
+        <td>${thumb ? `<img src="${esc(thumb)}" style="width:48px;height:48px;object-fit:cover;border-radius:4px" loading="lazy">` : '<span style="color:var(--tm)">—</span>'}</td>
+        <td><strong>${esc(p.name)}</strong></td>
+        <td style="font-family:var(--fm)">$${parseFloat(p.base_price).toFixed(2)}</td>
+        <td>${p.variants?.length || 0}</td>
+        <td>${st}</td>
+        <td><button class="btn btn-g btn-s" onclick="editProduct(${p.id})">✏️ Edit</button> <button class="btn btn-d btn-s" onclick="deleteProduct(${p.id})">🗑️</button></td>
+      </tr>`;
+    }).join('');
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+// Drag-to-reorder for display order table
+function initDragReorder(tbody) {
+  let dragRow = null;
+  tbody.addEventListener('dragstart', e => {
+    dragRow = e.target.closest('tr');
+    if (!dragRow) return;
+    dragRow.style.opacity = '0.4';
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  tbody.addEventListener('dragend', e => {
+    if (dragRow) dragRow.style.opacity = '1';
+    dragRow = null;
+    tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+  });
+  tbody.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const target = e.target.closest('tr');
+    if (target && target !== dragRow) {
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+      target.classList.add('drag-over');
+    }
+  });
+  tbody.addEventListener('drop', e => {
+    e.preventDefault();
+    const target = e.target.closest('tr');
+    if (!target || !dragRow || target === dragRow) return;
+    const rows = [...tbody.querySelectorAll('tr')];
+    const dragIdx = rows.indexOf(dragRow);
+    const targetIdx = rows.indexOf(target);
+    if (dragIdx < targetIdx) {
+      target.after(dragRow);
+    } else {
+      target.before(dragRow);
+    }
+    tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+    document.getElementById('btnSaveOrder').style.display = '';
+  });
+}
+
+async function saveDisplayOrder() {
+  const rows = document.querySelectorAll('#displayOrderTable tr[data-product-key]');
+  const order = [...rows].map(r => r.dataset.productKey);
+  try {
+    await api('/shop/admin/display-order', { method: 'PUT', body: { order } });
+    toast('Display order saved!', 'ok');
+    document.getElementById('btnSaveOrder').style.display = 'none';
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+function openProductEditor(id) {
+  _editingProductId = id || null;
+  _editingProduct = null;
+  document.getElementById('productEditorTitle').textContent = id ? 'Edit Product' : 'New Product';
+  document.getElementById('peName').value = '';
+  document.getElementById('peDescription').value = '';
+  document.getElementById('peBasePrice').value = '';
+  document.getElementById('peActive').value = '1';
+  document.getElementById('peImageGrid').innerHTML = '';
+  document.getElementById('peOptionGroups').innerHTML = '';
+  document.getElementById('peVariantsTable').innerHTML = '';
+  showPeTab('details');
+  if (id) {
+    loadProductForEdit(id);
+  }
+  openModal('productEditorModal');
+}
+
+async function loadProductForEdit(id) {
+  try {
+    const data = await api(`/shop/admin/products/${id}`);
+    const p = data.product;
+    _editingProduct = p;
+    document.getElementById('peName').value = p.name || '';
+    document.getElementById('peDescription').value = p.description || '';
+    document.getElementById('peBasePrice').value = p.base_price || '';
+    document.getElementById('peActive').value = p.active ? '1' : '0';
+    renderProductImages(p);
+    renderOptionGroups(p);
+    renderVariants(p);
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+function editProduct(id) { openProductEditor(id); }
+
+async function saveProduct() {
+  const name = document.getElementById('peName').value.trim();
+  const description = document.getElementById('peDescription').value.trim();
+  const base_price = parseFloat(document.getElementById('peBasePrice').value);
+  const active = document.getElementById('peActive').value === '1';
+  if (!name) return toast('Product name required', 'err');
+  if (isNaN(base_price) || base_price < 0) return toast('Valid price required', 'err');
+  try {
+    if (_editingProductId) {
+      await api(`/shop/admin/products/${_editingProductId}`, { method: 'PUT', body: { name, description, base_price, active } });
+      toast('Product updated', 'ok');
+    } else {
+      const data = await api('/shop/admin/products', { method: 'POST', body: { name, description, base_price } });
+      _editingProductId = data.product.id;
+      _editingProduct = data.product;
+      document.getElementById('productEditorTitle').textContent = 'Edit Product';
+      toast('Product created! Add images and options.', 'ok');
+    }
+    loadShopProducts();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Delete this product and all its images/variants?')) return;
+  try {
+    await api(`/shop/admin/products/${id}`, { method: 'DELETE' });
+    toast('Product deleted', 'ok');
+    loadShopProducts();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+// ── Images ──
+function handleImageDrop(e) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = 'var(--bd)';
+  if (!_editingProductId) return toast('Save the product first before uploading images', 'err');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  if (files.length) uploadProductImages(files);
+}
+
+function handleImageSelect(e) {
+  if (!_editingProductId) return toast('Save the product first before uploading images', 'err');
+  const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+  if (files.length) uploadProductImages(files);
+  e.target.value = '';
+}
+
+async function uploadProductImages(files) {
+  const fd = new FormData();
+  for (const f of files) fd.append('images', f);
+  try {
+    const r = await fetch(`${API}/shop/admin/products/${_editingProductId}/images`, {
+      method: 'POST',
+      credentials: 'include',
+      body: fd
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Upload failed');
+    toast(`${data.images.length} image(s) uploaded`, 'ok');
+    const refreshed = await api(`/shop/admin/products/${_editingProductId}`);
+    _editingProduct = refreshed.product;
+    renderProductImages(_editingProduct);
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+function renderProductImages(p) {
+  const grid = document.getElementById('peImageGrid');
+  const dbImages = p.images || [];
+  const siteImages = p.site_images || [];
+  if (!dbImages.length && !siteImages.length) { grid.innerHTML = '<p style="color:var(--tm)">No images yet. Upload some above or place files in site/shop/&lt;slug&gt;/.</p>'; return; }
+  // Build option value list for tagging
+  const allValues = [];
+  for (const g of (p.option_groups || [])) {
+    for (const v of (g.values || [])) {
+      allValues.push({ id: v.id, label: g.name + ': ' + v.label });
+    }
+  }
+  let html = dbImages.map(img => `
+    <div class="pe-img-card" data-img-id="${img.id}">
+      <img src="${esc(img.url || '/api/shop/images/' + img.filename)}" loading="lazy" alt="">
+      <div class="pe-img-actions">
+        <button onclick="deleteImage(${img.id})" title="Delete">🗑️</button>
+      </div>
+      <select onchange="tagImage(${img.id}, this.value)" title="Link to option value">
+        <option value="">General (all variants)</option>
+        ${allValues.map(v => `<option value="${v.id}" ${img.option_value_id === v.id ? 'selected' : ''}>${esc(v.label)}</option>`).join('')}
+      </select>
+    </div>
+  `).join('');
+  if (siteImages.length) {
+    html += '<p style="color:var(--tm);width:100%;margin:8px 0 4px">📂 Site folder images:</p>';
+    html += siteImages.map(img => `
+      <div class="pe-img-card">
+        <img src="${esc(img.url)}" loading="lazy" alt="">
+        <div style="font-size:11px;color:var(--tm);padding:4px;word-break:break-all">${esc(img.filename)}</div>
+      </div>
+    `).join('');
+  }
+  grid.innerHTML = html;
+}
+
+async function deleteImage(imageId) {
+  try {
+    await api(`/shop/admin/images/${imageId}`, { method: 'DELETE' });
+    const refreshed = await api(`/shop/admin/products/${_editingProductId}`);
+    _editingProduct = refreshed.product;
+    renderProductImages(_editingProduct);
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function tagImage(imageId, valueId) {
+  try {
+    await api(`/shop/admin/images/${imageId}/tag`, { method: 'PUT', body: { option_value_id: valueId ? parseInt(valueId) : null } });
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+// ── Option Groups ──
+function renderOptionGroups(p) {
+  const container = document.getElementById('peOptionGroups');
+  const groups = p.option_groups || [];
+  if (!groups.length) { container.innerHTML = '<p style="color:var(--tm)">No option groups yet.</p>'; return; }
+  container.innerHTML = groups.map(g => `
+    <div class="pe-og" data-gid="${g.id}">
+      <div class="pe-og-hd">
+        <input value="${esc(g.name)}" onblur="renameOptionGroup(${g.id}, this.value)" style="font-weight:600;font-size:.95rem">
+        <button class="btn btn-d btn-s" onclick="deleteOptionGroup(${g.id})" title="Delete group">🗑️</button>
+      </div>
+      <div class="pe-og-vals" id="og-vals-${g.id}">
+        ${(g.values || []).map(v => `
+          <span class="pe-og-val">${esc(v.label)} <button onclick="deleteOptionValue(${v.id}, ${g.id})">&times;</button></span>
+        `).join('')}
+      </div>
+      <div style="margin-top:8px;display:flex;gap:6px">
+        <input id="og-new-val-${g.id}" placeholder="New value..." style="flex:1;padding:4px 8px;font-size:.85rem" onkeydown="if(event.key==='Enter')addOptionValueUI(${g.id})">
+        <button class="btn btn-g btn-s" onclick="addOptionValueUI(${g.id})">+ Add</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function addOptionGroupUI() {
+  if (!_editingProductId) return toast('Save the product first', 'err');
+  const name = prompt('Option group name (e.g., Color, Size, Material):');
+  if (!name?.trim()) return;
+  try {
+    await api(`/shop/admin/products/${_editingProductId}/options`, { method: 'POST', body: { name: name.trim() } });
+    const refreshed = await api(`/shop/admin/products/${_editingProductId}`);
+    _editingProduct = refreshed.product;
+    renderOptionGroups(_editingProduct);
+    renderProductImages(_editingProduct);
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function renameOptionGroup(gid, name) {
+  if (!name?.trim()) return;
+  try {
+    await api(`/shop/admin/options/${gid}`, { method: 'PUT', body: { name: name.trim() } });
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function deleteOptionGroup(gid) {
+  if (!confirm('Delete this option group and all its values?')) return;
+  try {
+    await api(`/shop/admin/options/${gid}`, { method: 'DELETE' });
+    const refreshed = await api(`/shop/admin/products/${_editingProductId}`);
+    _editingProduct = refreshed.product;
+    renderOptionGroups(_editingProduct);
+    renderVariants(_editingProduct);
+    renderProductImages(_editingProduct);
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function addOptionValueUI(gid) {
+  const input = document.getElementById('og-new-val-' + gid);
+  const label = input?.value?.trim();
+  if (!label) return;
+  try {
+    await api(`/shop/admin/options/${gid}/values`, { method: 'POST', body: { label } });
+    input.value = '';
+    // Auto-generate variant combinations after adding a value
+    await api(`/shop/admin/products/${_editingProductId}/variants/generate`, { method: 'POST' });
+    const refreshed = await api(`/shop/admin/products/${_editingProductId}`);
+    _editingProduct = refreshed.product;
+    renderOptionGroups(_editingProduct);
+    renderVariants(_editingProduct);
+    renderProductImages(_editingProduct);
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function deleteOptionValue(vid, gid) {
+  try {
+    await api(`/shop/admin/values/${vid}`, { method: 'DELETE' });
+    // Re-generate variants to clean up combos with deleted value
+    await api(`/shop/admin/products/${_editingProductId}/variants/generate`, { method: 'POST' });
+    const refreshed = await api(`/shop/admin/products/${_editingProductId}`);
+    _editingProduct = refreshed.product;
+    renderOptionGroups(_editingProduct);
+    renderVariants(_editingProduct);
+    renderProductImages(_editingProduct);
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+// ── Variants ──
+function renderVariants(p) {
+  const container = document.getElementById('peVariantsTable');
+  const variants = p.variants || [];
+  if (!variants.length) {
+    container.innerHTML = '<p style="color:var(--tm)">No variants yet. Add option groups and values first, then auto-generate.</p>';
+    return;
+  }
+  const groups = p.option_groups || [];
+  container.innerHTML = `<table style="font-size:.85rem"><thead><tr>
+    ${groups.map(g => `<th>${esc(g.name)}</th>`).join('')}
+    <th>PRICE OVERRIDE</th><th>STOCK</th><th>SKU</th><th>ACTIVE</th><th></th>
+  </tr></thead><tbody>
+    ${variants.map(v => {
+      const combo = v.option_combo || [];
+      return `<tr>
+        ${groups.map(g => {
+          const entry = combo.find(c => c.group_id === g.id);
+          return `<td>${entry ? esc(entry.value_label) : '—'}</td>`;
+        }).join('')}
+        <td><input type="number" step="0.01" value="${v.price != null ? v.price : ''}" placeholder="${p.base_price}" style="width:80px;padding:3px 6px;font-size:.83rem" onblur="updateVariant(${v.id}, 'price', this.value)"></td>
+        <td><input type="number" value="${v.stock >= 0 ? v.stock : ''}" placeholder="∞" style="width:60px;padding:3px 6px;font-size:.83rem" onblur="updateVariant(${v.id}, 'stock', this.value)"></td>
+        <td><input value="${v.sku || ''}" placeholder="—" style="width:80px;padding:3px 6px;font-size:.83rem" onblur="updateVariant(${v.id}, 'sku', this.value)"></td>
+        <td><input type="checkbox" ${v.active ? 'checked' : ''} onchange="updateVariant(${v.id}, 'active', this.checked)"></td>
+        <td><button class="btn btn-d btn-s" onclick="deleteVariantRow(${v.id})" style="padding:2px 6px">✕</button></td>
+      </tr>`;
+    }).join('')}
+  </tbody></table>`;
+}
+
+async function generateVariantsUI() {
+  if (!_editingProductId) return;
+  try {
+    const data = await api(`/shop/admin/products/${_editingProductId}/variants/generate`, { method: 'POST' });
+    toast(`${data.created} variant(s) generated`, 'ok');
+    const refreshed = await api(`/shop/admin/products/${_editingProductId}`);
+    _editingProduct = refreshed.product;
+    renderVariants(_editingProduct);
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function updateVariant(vid, field, value) {
+  const body = {};
+  if (field === 'price') body.price = value !== '' ? parseFloat(value) : null;
+  else if (field === 'stock') body.stock = value !== '' ? parseInt(value) : -1;
+  else if (field === 'active') body.active = !!value;
+  else if (field === 'sku') body.sku = value;
+  try {
+    await api(`/shop/admin/variants/${vid}`, { method: 'PUT', body });
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function deleteVariantRow(vid) {
+  try {
+    await api(`/shop/admin/variants/${vid}`, { method: 'DELETE' });
+    const refreshed = await api(`/shop/admin/products/${_editingProductId}`);
+    _editingProduct = refreshed.product;
+    renderVariants(_editingProduct);
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+// ========== SHOP: ORDERS ==========
+async function loadOrders(status) {
+  try {
+    const qs = status ? `?status=${status}` : '';
+    const data = await api(`/shop/admin/orders${qs}`);
+    const orders = data.orders || [];
+    const tb = document.getElementById('ordersTable');
+    if (!orders.length) {
+      tb.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="icon">📦</div><h3>NO ORDERS</h3></div></td></tr>';
+      return;
+    }
+    tb.innerHTML = orders.map(o => `<tr>
+      <td style="font-family:var(--fm);font-size:.85rem">${esc(o.order_number)}</td>
+      <td style="color:var(--tm);font-size:.85rem">${timeAgo(o.created_at)}</td>
+      <td>${esc(o.shipping_name)}<br><span style="color:var(--tm);font-size:.8rem">${esc(o.billing_email || '')}</span></td>
+      <td>${o.items?.length || '—'}</td>
+      <td style="font-family:var(--fm)">$${parseFloat(o.total).toFixed(2)}</td>
+      <td><span class="order-status order-${o.status}">${o.status}</span></td>
+      <td>
+        <button class="btn btn-g btn-s" onclick="viewOrder(${o.id})">👁️ View</button>
+        <select onchange="changeOrderStatus(${o.id}, this.value); this.value=''" style="padding:3px;font-size:.8rem">
+          <option value="">Status...</option>
+          <option value="pending">Pending</option>
+          <option value="processing">Processing</option>
+          <option value="shipped">Shipped</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </td>
+    </tr>`).join('');
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function viewOrder(id) {
+  try {
+    const data = await api(`/shop/admin/orders/${id}`);
+    const o = data.order;
+    document.getElementById('orderDetailBody').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div>
+          <h3 style="font-family:var(--fm);color:var(--ac);margin-bottom:8px">Order ${esc(o.order_number)}</h3>
+          <div style="font-size:.85rem;color:var(--tm)">Placed: ${new Date(o.created_at).toLocaleString()}</div>
+          <div style="margin:8px 0"><span class="order-status order-${o.status}">${o.status}</span></div>
+          <div style="font-family:var(--fm);font-size:1.2rem;color:var(--ac);margin-top:8px">$${parseFloat(o.total).toFixed(2)}</div>
+          ${o.payment_id ? `<div style="font-size:.8rem;color:var(--tm);margin-top:4px">Payment: ${esc(o.payment_id)}</div>` : ''}
+          ${o.printful_order_id ? `<div style="font-size:.8rem;color:var(--cy);margin-top:4px">Printful: #${esc(o.printful_order_id)}</div>` : ''}
+        </div>
+        <div>
+          <div style="margin-bottom:12px">
+            <h4 style="font-family:var(--fm);color:var(--tm);font-size:.8rem;margin-bottom:4px">BILLING ADDRESS</h4>
+            <div style="font-size:.9rem">${esc(o.billing_name)}</div>
+            <div style="font-size:.85rem;color:var(--tm)">${esc(o.billing_address1)}${o.billing_address2 ? ', ' + esc(o.billing_address2) : ''}</div>
+            <div style="font-size:.85rem;color:var(--tm)">${esc(o.billing_city)}, ${esc(o.billing_state || '')} ${esc(o.billing_zip)}</div>
+            <div style="font-size:.85rem;color:var(--tm)">${esc(o.billing_country)}</div>
+          </div>
+          <div>
+            <h4 style="font-family:var(--fm);color:var(--tm);font-size:.8rem;margin-bottom:4px">SHIPPING ADDRESS</h4>
+            <div style="font-size:.9rem">${esc(o.shipping_name)}</div>
+            <div style="font-size:.85rem;color:var(--tm)">${esc(o.shipping_address1)}${o.shipping_address2 ? ', ' + esc(o.shipping_address2) : ''}</div>
+            <div style="font-size:.85rem;color:var(--tm)">${esc(o.shipping_city)}, ${esc(o.shipping_state || '')} ${esc(o.shipping_zip)}</div>
+            <div style="font-size:.85rem;color:var(--tm)">${esc(o.shipping_country)}</div>
+          </div>
+        </div>
+      </div>
+      <h4 style="font-family:var(--fm);color:var(--tm);font-size:.8rem;margin-bottom:8px">ITEMS</h4>
+      <table style="font-size:.85rem"><thead><tr><th>PRODUCT</th><th>VARIANT</th><th>QTY</th><th>PRICE</th><th>SOURCE</th></tr></thead>
+      <tbody>${(o.items || []).map(it => `<tr>
+        <td>${esc(it.product_name)}</td>
+        <td style="color:var(--tm)">${esc(it.variant_desc || '—')}</td>
+        <td>${it.quantity}</td>
+        <td style="font-family:var(--fm)">$${parseFloat(it.price).toFixed(2)}</td>
+        <td><span class="st-badge ${it.source === 'printful' ? 'st-active' : 'st-draft'}">${it.source}</span></td>
+      </tr>`).join('')}</tbody></table>
+    `;
+    openModal('orderDetailModal');
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function changeOrderStatus(id, status) {
+  if (!status) return;
+  try {
+    await api(`/shop/admin/orders/${id}/status`, { method: 'PUT', body: { status } });
+    toast('Status updated', 'ok');
+    loadOrders();
   } catch(e) { toast(e.message, 'err'); }
 }
 
