@@ -26,7 +26,13 @@ CREATE TABLE IF NOT EXISTS users (
     email_verified INTEGER DEFAULT 0,
     is_admin INTEGER DEFAULT 0,
     is_moderator INTEGER DEFAULT 0,
-    is_banned INTEGER DEFAULT 0
+    is_banned INTEGER DEFAULT 0,
+    peer_id TEXT,
+    node_version TEXT,
+    node_last_seen TEXT,
+    node_grabnet_running INTEGER DEFAULT 0,
+    node_content_pinned INTEGER DEFAULT 0,
+    node_bytes_hosted INTEGER DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);

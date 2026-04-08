@@ -107,6 +107,7 @@ function registerRoutes(app) {
             
             res.json({
                 success: true,
+                token: session.token,
                 user: session.user
             });
             
@@ -621,6 +622,42 @@ function registerRoutes(app) {
         }
     });
     
+    // ========================================
+    // NODE / PEER TRACKING
+    // ========================================
+
+    // Desktop app sends heartbeat to register node with user account
+    app.post('/api/me/node/heartbeat', auth({ required: true }), async (req, res) => {
+        const { peer_id, version, grabnet_running, content_pinned, bytes_hosted } = req.body || {};
+        
+        try {
+            users.updateNodeStatus(req.user.id, {
+                peerId: peer_id || null,
+                version: version || null,
+                grabnetRunning: !!grabnet_running,
+                contentPinned: typeof content_pinned === 'number' ? content_pinned : 0,
+                bytesHosted: typeof bytes_hosted === 'number' ? bytes_hosted : 0,
+            });
+            
+            res.json({ success: true });
+        } catch (error) {
+            res.error(error.message);
+        }
+    });
+
+    // Public: get node status for a user (shown on profile page)
+    app.get('/api/users/:username/node', async (req, res) => {
+        try {
+            const status = users.getNodeStatus(req.params.username);
+            if (!status) {
+                return res.json({ online: false });
+            }
+            res.json(status);
+        } catch (error) {
+            res.error(error.message);
+        }
+    });
+
     // ========================================
     // MY CONTENT
     // ========================================

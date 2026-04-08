@@ -3,22 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rooted Revival — Open Scholar</title>
+  <title>Rooted Revival — Desktop Node</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="app">
-    <!-- ═══ Sidebar ═══ -->
+
+  <!-- ═══ LOGIN SCREEN ═══ -->
+  <div id="login-screen">
+    <div class="login-container">
+      <pre class="login-logo">
+ ╔═══════════════════════════════════════════╗
+ ║  ⌘  R O O T E D   R E V I V A L         ║
+ ║     ─────────────────────────────        ║
+ ║     Desktop Node  · v0.1.0               ║
+ ╚═══════════════════════════════════════════╝</pre>
+      <p class="login-subtitle">Connect to the decentralized knowledge network</p>
+
+      <form id="login-form" autocomplete="off">
+        <div class="form-group">
+          <label for="login-server">Server</label>
+          <input type="url" id="login-server" value="https://scholar.rootedrevival.us" placeholder="https://scholar.rootedrevival.us" required>
+        </div>
+        <div class="form-group">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" placeholder="your username" required autofocus>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="your password" required>
+        </div>
+        <div class="form-error" id="login-error"></div>
+        <button type="submit" class="btn-primary" id="login-btn">Connect</button>
+      </form>
+      <p class="login-hint">Log in with your rootedrevival.us account</p>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN APPLICATION ═══ -->
+  <div id="app" class="app-hidden">
+    <!-- Sidebar -->
     <aside id="sidebar">
       <div class="sidebar-header">
-        <div class="logo">
-          <span class="logo-icon">⌘</span>
-          <div class="logo-text">
-            <span class="logo-title">Rooted Revival</span>
-            <span class="logo-sub">Open Scholar Desktop</span>
-          </div>
+        <span class="logo-icon">⌘</span>
+        <div class="logo-text">
+          <span class="logo-title">Rooted Revival</span>
+          <span class="logo-sub">Desktop Node</span>
         </div>
       </div>
 
@@ -27,27 +58,13 @@
           <span class="nav-icon">◈</span>
           <span class="nav-label">Dashboard</span>
         </a>
-        <a href="#" class="nav-item" data-view="library">
+        <a href="#" class="nav-item" data-view="archive">
           <span class="nav-icon">◫</span>
-          <span class="nav-label">Library</span>
-          <span class="nav-badge" id="badge-library">0</span>
+          <span class="nav-label">Archive</span>
         </a>
-        <a href="#" class="nav-item" data-view="search">
-          <span class="nav-icon">⊕</span>
-          <span class="nav-label">Discover</span>
-        </a>
-        <a href="#" class="nav-item" data-view="publish">
-          <span class="nav-icon">▲</span>
-          <span class="nav-label">Publish</span>
-        </a>
-        <a href="#" class="nav-item" data-view="pinning">
-          <span class="nav-icon">⊛</span>
-          <span class="nav-label">Pinning</span>
-          <span class="nav-badge" id="badge-pinning">0</span>
-        </a>
-        <a href="#" class="nav-item" data-view="network">
+        <a href="#" class="nav-item" data-view="node">
           <span class="nav-icon">◎</span>
-          <span class="nav-label">Network</span>
+          <span class="nav-label">Node</span>
         </a>
         <a href="#" class="nav-item" data-view="settings">
           <span class="nav-icon">⚙</span>
@@ -56,105 +73,83 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="node-status" id="node-status">
-          <span class="status-dot offline"></span>
-          <span class="status-text">Offline</span>
+        <div class="node-status-indicator" id="sidebar-node-status">
+          <span class="status-dot offline" id="sidebar-dot"></span>
+          <span id="sidebar-status-text">Node Offline</span>
         </div>
-        <div class="peer-count">
-          <span id="peer-count-num">0</span> peers
-        </div>
+        <div class="sidebar-user" id="sidebar-user"></div>
+        <button class="btn-ghost btn-sm" id="btn-logout" title="Logout">Logout</button>
       </div>
     </aside>
 
-    <!-- ═══ Main Content ═══ -->
+    <!-- Main Content -->
     <main id="main">
-      <!-- Top bar -->
       <header id="topbar">
-        <div class="topbar-left">
-          <h1 id="view-title">Dashboard</h1>
-        </div>
-        <div class="topbar-right">
-          <div class="services-toggle">
-            <button class="svc-btn" id="btn-scholar" title="Toggle Scholar">
-              <span class="svc-dot" id="dot-scholar"></span>
-              Scholar
-            </button>
-            <button class="svc-btn" id="btn-grabnet" title="Toggle GrabNet">
-              <span class="svc-dot" id="dot-grabnet"></span>
-              GrabNet
-            </button>
-          </div>
-        </div>
+        <h1 id="view-title">Dashboard</h1>
       </header>
 
-      <!-- Views container -->
       <div id="views">
-
         <!-- ═══ DASHBOARD ═══ -->
         <section id="view-dashboard" class="view active">
           <div class="stats-grid">
-            <div class="stat-card glow-green">
-              <div class="stat-value" id="stat-peers">0</div>
-              <div class="stat-label">Connected Peers</div>
+            <div class="stat-card">
               <div class="stat-icon">◎</div>
+              <div class="stat-value" id="stat-node">Offline</div>
+              <div class="stat-label">Node Status</div>
             </div>
-            <div class="stat-card glow-cyan">
-              <div class="stat-value" id="stat-files">0</div>
-              <div class="stat-label">Works in Library</div>
-              <div class="stat-icon">◫</div>
-            </div>
-            <div class="stat-card glow-purple">
-              <div class="stat-value" id="stat-published">0</div>
-              <div class="stat-label">Published Sites</div>
-              <div class="stat-icon">▲</div>
-            </div>
-            <div class="stat-card glow-amber">
-              <div class="stat-value" id="stat-pinned">0</div>
-              <div class="stat-label">Pinned Sites</div>
+            <div class="stat-card">
               <div class="stat-icon">⊛</div>
+              <div class="stat-value" id="stat-pinned">0</div>
+              <div class="stat-label">Sites Pinned</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">◫</div>
+              <div class="stat-value" id="stat-my-files">—</div>
+              <div class="stat-label">My Files</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">▲</div>
+              <div class="stat-value" id="stat-archive">Pinning</div>
+              <div class="stat-label">Archive Status</div>
             </div>
           </div>
 
           <div class="dashboard-grid">
             <div class="card">
-              <div class="card-header">
-                <h3>Quick Actions</h3>
-              </div>
+              <div class="card-header"><h3>Quick Actions</h3></div>
               <div class="card-body">
                 <div class="quick-actions">
-                  <button class="action-btn" onclick="app.switchView('publish')">
-                    <span class="action-icon">▲</span>
-                    <span>Publish Work</span>
-                  </button>
-                  <button class="action-btn" onclick="app.switchView('search')">
-                    <span class="action-icon">⊕</span>
-                    <span>Discover Knowledge</span>
-                  </button>
-                  <button class="action-btn" onclick="app.switchView('pinning')">
-                    <span class="action-icon">⊛</span>
-                    <span>Pin a Site</span>
-                  </button>
-                  <button class="action-btn" onclick="app.switchView('network')">
+                  <button class="action-btn" id="btn-toggle-node">
                     <span class="action-icon">◎</span>
-                    <span>View Network</span>
+                    <span>Start Node</span>
+                  </button>
+                  <button class="action-btn" data-nav="archive">
+                    <span class="action-icon">◫</span>
+                    <span>Browse Archive</span>
+                  </button>
+                  <button class="action-btn" id="btn-pin-archive">
+                    <span class="action-icon">⊛</span>
+                    <span>Pin Archive</span>
+                  </button>
+                  <button class="action-btn" id="btn-open-site">
+                    <span class="action-icon">↗</span>
+                    <span>Open Site</span>
                   </button>
                 </div>
               </div>
             </div>
 
             <div class="card">
-              <div class="card-header">
-                <h3>System Status</h3>
-              </div>
+              <div class="card-header"><h3>System</h3></div>
               <div class="card-body">
                 <div class="status-list">
                   <div class="status-row">
-                    <span class="status-label">Scholar API</span>
-                    <span class="status-value" id="dash-scholar-status">—</span>
+                    <span class="status-label">Server</span>
+                    <span class="status-value mono" id="dash-server">—</span>
                   </div>
                   <div class="status-row">
                     <span class="status-label">GrabNet Node</span>
-                    <span class="status-value" id="dash-grabnet-status">—</span>
+                    <span class="status-value" id="dash-grabnet">Offline</span>
                   </div>
                   <div class="status-row">
                     <span class="status-label">Peer ID</span>
@@ -165,256 +160,113 @@
                     <span class="status-value mono" id="dash-data-dir">—</span>
                   </div>
                   <div class="status-row">
-                    <span class="status-label">Storage Used</span>
-                    <span class="status-value" id="dash-storage">—</span>
+                    <span class="status-label">App Version</span>
+                    <span class="status-value mono" id="dash-version">—</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="card">
+          <!-- Console -->
+          <div class="card console-card">
             <div class="card-header">
-              <h3>Recent Works</h3>
-              <button class="btn-ghost btn-sm" onclick="app.switchView('library')">View All →</button>
+              <h3>Activity Log</h3>
+              <button class="btn-ghost btn-sm" id="btn-clear-log">Clear</button>
             </div>
             <div class="card-body">
-              <div id="recent-works" class="works-list">
-                <div class="empty-state">
-                  <span class="empty-icon">◫</span>
-                  <p>No works yet. Start Scholar to browse the archive.</p>
-                </div>
+              <div id="activity-log" class="activity-log">
+                <div class="log-line dim">Waiting for activity...</div>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- ═══ LIBRARY ═══ -->
-        <section id="view-library" class="view">
+        <!-- ═══ ARCHIVE ═══ -->
+        <section id="view-archive" class="view">
           <div class="view-toolbar">
-            <div class="filter-group">
-              <select id="lib-type-filter" class="input-select">
-                <option value="">All Types</option>
-                <option value="empirical">Empirical</option>
-                <option value="theoretical">Theoretical</option>
-                <option value="methodological">Methodological</option>
-                <option value="artistic">Artistic</option>
-                <option value="speculative">Speculative</option>
-              </select>
-              <select id="lib-sort" class="input-select">
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="name">By Name</option>
-                <option value="size">By Size</option>
-              </select>
-            </div>
-            <div class="view-toggle">
-              <button class="toggle-btn active" data-mode="grid" title="Grid view">◫</button>
-              <button class="toggle-btn" data-mode="list" title="List view">☰</button>
-            </div>
+            <input type="text" id="archive-search" class="input-text" placeholder="Search the knowledge archive...">
+            <select id="archive-type" class="input-select">
+              <option value="">All Types</option>
+              <option value="pdf">PDF</option>
+              <option value="text">Text</option>
+              <option value="image">Image</option>
+              <option value="video">Video</option>
+              <option value="audio">Audio</option>
+            </select>
+            <button class="btn-primary btn-sm" id="btn-archive-search">Search</button>
           </div>
-          <div id="library-content" class="works-grid">
+          <div id="archive-results" class="files-grid">
             <div class="empty-state">
               <span class="empty-icon">◫</span>
-              <p>Your library is empty. Start Scholar and browse some works.</p>
+              <p>Browse the decentralized knowledge archive. Files are hosted by the Rooted Revival network.</p>
             </div>
           </div>
+          <div class="pagination" id="archive-pagination"></div>
         </section>
 
-        <!-- ═══ SEARCH / DISCOVER ═══ -->
-        <section id="view-search" class="view">
-          <div class="search-hero">
-            <h2 class="search-title">Discover Knowledge</h2>
-            <p class="search-subtitle">Search the decentralized Open Scholar network</p>
-            <div class="search-bar">
-              <input type="text" id="search-input" class="input-text search-input"
-                     placeholder="Search papers, datasets, creative works...">
-              <button class="btn-primary" id="btn-search" onclick="app.doSearch()">Search</button>
-            </div>
-            <div class="search-filters">
-              <button class="filter-chip active" data-type="">All</button>
-              <button class="filter-chip" data-type="empirical">Empirical</button>
-              <button class="filter-chip" data-type="theoretical">Theoretical</button>
-              <button class="filter-chip" data-type="methodological">Methodological</button>
-              <button class="filter-chip" data-type="artistic">Artistic</button>
-              <button class="filter-chip" data-type="speculative">Speculative</button>
-            </div>
-          </div>
-          <div id="search-results" class="works-grid">
-            <div class="empty-state">
-              <span class="empty-icon">⊕</span>
-              <p>Enter a search query to discover works on the network.</p>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══ PUBLISH ═══ -->
-        <section id="view-publish" class="view">
-          <div class="publish-container">
+        <!-- ═══ NODE MANAGEMENT ═══ -->
+        <section id="view-node" class="view">
+          <div class="node-panel">
             <div class="card">
-              <div class="card-header">
-                <h3>Publish to GrabNet</h3>
-              </div>
+              <div class="card-header"><h3>GrabNet Node</h3></div>
               <div class="card-body">
-                <div class="form-group">
-                  <label class="form-label">Work Title</label>
-                  <input type="text" id="pub-title" class="input-text" placeholder="Title of your work">
+                <div class="node-big-status">
+                  <span class="node-dot" id="node-dot"></span>
+                  <span class="node-text" id="node-status-text">Checking...</span>
                 </div>
-                <div class="form-group">
-                  <label class="form-label">Description</label>
-                  <textarea id="pub-description" class="input-textarea" rows="3"
-                            placeholder="Describe your work..."></textarea>
-                </div>
-                <div class="form-row">
-                  <div class="form-group flex-1">
-                    <label class="form-label">Work Type</label>
-                    <select id="pub-type" class="input-select">
-                      <option value="empirical">Empirical</option>
-                      <option value="theoretical">Theoretical</option>
-                      <option value="methodological">Methodological</option>
-                      <option value="artistic">Artistic</option>
-                      <option value="speculative">Speculative</option>
-                    </select>
-                  </div>
-                  <div class="form-group flex-1">
-                    <label class="form-label">Tags</label>
-                    <input type="text" id="pub-tags" class="input-text" placeholder="comma, separated, tags">
-                  </div>
+                <div class="node-controls">
+                  <button class="btn-primary" id="btn-start-node">Start Node</button>
+                  <button class="btn-danger" id="btn-stop-node" disabled>Stop Node</button>
                 </div>
 
-                <div class="upload-zone" id="upload-zone">
-                  <div class="upload-zone-inner">
-                    <span class="upload-icon">▲</span>
-                    <p class="upload-text">Drop files here or click to browse</p>
-                    <p class="upload-hint">PDF, HTML, images, datasets, code, video, audio — any knowledge</p>
-                    <input type="file" id="file-input" multiple hidden>
-                  </div>
-                </div>
-
-                <div id="upload-queue" class="upload-queue" hidden></div>
-
-                <div class="form-actions">
-                  <button class="btn-primary btn-lg" id="btn-publish" onclick="app.publishWork()">
-                    ▲ Publish to Network
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="card-header">
-                <h3>Published Works</h3>
-              </div>
-              <div class="card-body">
-                <div id="published-list" class="works-list">
-                  <div class="empty-state small">
-                    <p>No published works yet.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══ PINNING ═══ -->
-        <section id="view-pinning" class="view">
-          <div class="pin-header">
-            <div class="card">
-              <div class="card-header">
-                <h3>Pin a Site</h3>
-              </div>
-              <div class="card-body">
-                <p class="hint-text">Pin content from the GrabNet network to help keep knowledge alive. Every pin strengthens the archive.</p>
-                <div class="pin-form">
-                  <input type="text" id="pin-site-id" class="input-text"
-                         placeholder="Enter GrabNet site ID (base58)...">
-                  <button class="btn-primary" onclick="app.pinSite()">⊛ Pin Site</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <h3>Pinned Sites</h3>
-              <span class="badge" id="pinned-count">0</span>
-            </div>
-            <div class="card-body">
-              <div id="pinned-list" class="sites-list">
-                <div class="empty-state small">
-                  <p>No pinned sites. Pin content to help the network.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══ NETWORK ═══ -->
-        <section id="view-network" class="view">
-          <div class="stats-grid">
-            <div class="stat-card glow-green">
-              <div class="stat-value" id="net-peers">0</div>
-              <div class="stat-label">Connected Peers</div>
-            </div>
-            <div class="stat-card glow-cyan">
-              <div class="stat-value" id="net-published">0</div>
-              <div class="stat-label">Published</div>
-            </div>
-            <div class="stat-card glow-purple">
-              <div class="stat-value" id="net-hosted">0</div>
-              <div class="stat-label">Hosted</div>
-            </div>
-            <div class="stat-card glow-amber">
-              <div class="stat-value" id="net-bandwidth">0 B</div>
-              <div class="stat-label">Bandwidth</div>
-            </div>
-          </div>
-
-          <div class="dashboard-grid">
-            <div class="card">
-              <div class="card-header">
-                <h3>Peer Identity</h3>
-              </div>
-              <div class="card-body">
-                <div class="status-list">
+                <div class="status-list" style="margin-top: 1.5rem;">
                   <div class="status-row">
-                    <span class="status-label">Your Peer ID</span>
-                    <span class="status-value mono" id="net-peer-id">—</span>
+                    <span class="status-label">GrabNet Binary</span>
+                    <span class="status-value" id="node-bin">—</span>
                   </div>
                   <div class="status-row">
-                    <span class="status-label">Protocol</span>
-                    <span class="status-value mono">/grabnet/1.0.0</span>
+                    <span class="status-label">Gateway Reachable</span>
+                    <span class="status-value" id="node-gateway">—</span>
                   </div>
                   <div class="status-row">
-                    <span class="status-label">Transport</span>
-                    <span class="status-value">TCP + Noise + Yamux</span>
+                    <span class="status-label">Peer ID</span>
+                    <span class="status-value mono" id="node-peer-id">—</span>
+                  </div>
+                  <div class="status-row">
+                    <span class="status-label">Pinning Archive</span>
+                    <span class="status-value" id="node-pinning">—</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <div class="card">
-              <div class="card-header">
-                <h3>Connected Peers</h3>
-              </div>
+              <div class="card-header"><h3>Hosted Sites</h3></div>
               <div class="card-body">
-                <div id="peers-list" class="peers-list">
-                  <div class="empty-state small">
-                    <p>No peers connected. Start GrabNet to join the network.</p>
-                  </div>
+                <div id="hosted-sites-list" class="hosted-list">
+                  <div class="empty-state small">No sites pinned yet.</div>
+                </div>
+                <div class="pin-form" style="margin-top: 1rem;">
+                  <input type="text" id="pin-site-name" class="input-text" placeholder="Site name to pin...">
+                  <button class="btn-primary btn-sm" id="btn-pin-site">Pin</button>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="card">
-            <div class="card-header">
-              <h3>Network Activity</h3>
-            </div>
-            <div class="card-body">
-              <div id="net-activity" class="activity-log">
-                <div class="log-entry">
-                  <span class="log-time">--:--</span>
-                  <span class="log-msg">Waiting for network activity...</span>
+            <div class="card">
+              <div class="card-header"><h3>Network Contribution</h3></div>
+              <div class="card-body">
+                <p class="muted">By running a node, you help keep the knowledge archive alive and accessible. Your contribution is tracked on your <strong>profile page</strong> at rootedrevival.us.</p>
+                <div class="status-list" style="margin-top: 1rem;">
+                  <div class="status-row">
+                    <span class="status-label">Heartbeat</span>
+                    <span class="status-value" id="node-heartbeat">—</span>
+                  </div>
+                  <div class="status-row">
+                    <span class="status-label">Last Reported</span>
+                    <span class="status-value" id="node-last-heartbeat">Never</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -423,116 +275,72 @@
 
         <!-- ═══ SETTINGS ═══ -->
         <section id="view-settings" class="view">
-          <div class="settings-container">
+          <div class="settings-panel">
             <div class="card">
-              <div class="card-header">
-                <h3>General</h3>
-              </div>
+              <div class="card-header"><h3>Connection</h3></div>
               <div class="card-body">
-                <div class="setting-row">
-                  <div class="setting-info">
-                    <span class="setting-name">Offline Mode</span>
-                    <span class="setting-desc">Disable all network connections, use only local data</span>
-                  </div>
-                  <label class="toggle">
-                    <input type="checkbox" id="set-offline" onchange="app.toggleOffline(this.checked)">
-                    <span class="toggle-slider"></span>
-                  </label>
+                <div class="form-group">
+                  <label for="settings-server">Server URL</label>
+                  <input type="url" id="settings-server" class="input-text" placeholder="https://rootedrevival.us">
                 </div>
-                <div class="setting-row">
-                  <div class="setting-info">
-                    <span class="setting-name">Auto-start Services</span>
-                    <span class="setting-desc">Automatically start Scholar and GrabNet on launch</span>
-                  </div>
-                  <label class="toggle">
-                    <input type="checkbox" id="set-autostart" checked>
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
+                <button class="btn-primary btn-sm" id="btn-save-settings">Save</button>
               </div>
             </div>
 
             <div class="card">
-              <div class="card-header">
-                <h3>Services</h3>
+              <div class="card-header"><h3>Node Behavior</h3></div>
+              <div class="card-body">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="settings-auto-pin">
+                  <span>Automatically pin the knowledge archive on startup</span>
+                </label>
               </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h3>System Information</h3></div>
               <div class="card-body">
                 <div class="status-list">
                   <div class="status-row">
-                    <span class="status-label">Scholar Binary</span>
-                    <span class="status-value mono" id="set-scholar-bin">—</span>
+                    <span class="status-label">App Version</span>
+                    <span class="status-value mono" id="info-version">—</span>
+                  </div>
+                  <div class="status-row">
+                    <span class="status-label">OS</span>
+                    <span class="status-value" id="info-os">—</span>
                   </div>
                   <div class="status-row">
                     <span class="status-label">GrabNet Binary</span>
-                    <span class="status-value mono" id="set-grab-bin">—</span>
-                  </div>
-                  <div class="status-row">
-                    <span class="status-label">Scholar URL</span>
-                    <span class="status-value mono" id="set-scholar-url">—</span>
-                  </div>
-                  <div class="status-row">
-                    <span class="status-label">GrabNet URL</span>
-                    <span class="status-value mono" id="set-grabnet-url">—</span>
+                    <span class="status-value mono" id="info-grab-bin">—</span>
                   </div>
                   <div class="status-row">
                     <span class="status-label">Data Directory</span>
-                    <span class="status-value mono" id="set-data-dir">—</span>
+                    <span class="status-value mono" id="info-data-dir">—</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <div class="card">
-              <div class="card-header">
-                <h3>Identity</h3>
-              </div>
+              <div class="card-header"><h3>Account</h3></div>
               <div class="card-body">
-                <p class="hint-text">Export your identity to back up your keys, or import from a previous backup.</p>
-                <div class="form-actions" style="margin-top: var(--space-3)">
-                  <button class="btn-ghost" onclick="app.exportIdentity()">Export Identity</button>
-                  <button class="btn-ghost" onclick="app.importIdentity()">Import Identity</button>
+                <div class="status-list">
+                  <div class="status-row">
+                    <span class="status-label">Username</span>
+                    <span class="status-value" id="info-username">—</span>
+                  </div>
+                  <div class="status-row">
+                    <span class="status-label">Email</span>
+                    <span class="status-value" id="info-email">—</span>
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="card-header">
-                <h3>About</h3>
-              </div>
-              <div class="card-body">
-                <div class="about-info">
-                  <p><strong>Rooted Revival — Open Scholar</strong></p>
-                  <p>v0.1.0 · Built with Tauri + Rust</p>
-                  <p class="hint-text" style="margin-top: var(--space-2)">
-                    A decentralized archive for all forms of knowledge.
-                    Peer-to-peer. Censorship-resistant. Forever.
-                  </p>
-                  <p class="hint-text" style="margin-top: var(--space-2)">
-                    <a href="https://rootedrevival.us" class="link">rootedrevival.us</a>
-                  </p>
-                </div>
+                <button class="btn-danger btn-sm" id="btn-settings-logout" style="margin-top: 1rem;">Logout</button>
               </div>
             </div>
           </div>
         </section>
-
-      </div><!-- /views -->
-    </main>
-  </div><!-- /app -->
-
-  <!-- Toast container -->
-  <div id="toast-container"></div>
-
-  <!-- Work Detail Modal -->
-  <div id="modal-overlay" class="modal-overlay" hidden>
-    <div class="modal" id="work-modal">
-      <div class="modal-header">
-        <h3 id="modal-title">Work Details</h3>
-        <button class="modal-close" onclick="app.closeModal()">✕</button>
       </div>
-      <div class="modal-body" id="modal-body"></div>
-      <div class="modal-footer" id="modal-footer"></div>
-    </div>
+    </main>
   </div>
 
   <script src="app.js"></script>

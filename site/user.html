@@ -926,6 +926,10 @@
                                 <div class="stat-value" id="followingCount">0</div>
                                 <div class="stat-label">Following</div>
                             </div>
+                            <div class="stat" id="nodeStatBox" style="display:none;">
+                                <div class="stat-value" id="nodeStatusDot">⚪</div>
+                                <div class="stat-label" id="nodeStatusLabel">Node</div>
+                            </div>
                         </div>
                     </div>
 
@@ -1281,9 +1285,33 @@
             renderFollowing();
             renderFollowers();
             renderGuestbook();
+            loadPublicNodeStatus();
 
             // Update page title
             document.title = `@${currentProfile.username} — Rooted Revival`;
+        }
+
+        // Load public node status for the viewed user
+        async function loadPublicNodeStatus() {
+            if (!currentProfile) return;
+            try {
+                const res = await fetch(`${API_BASE}/users/${currentProfile.username}/node`);
+                if (!res.ok) return;
+                const data = await res.json();
+                const box = document.getElementById('nodeStatBox');
+                const dot = document.getElementById('nodeStatusDot');
+                const label = document.getElementById('nodeStatusLabel');
+                if (data && (data.online || data.last_seen)) {
+                    box.style.display = '';
+                    if (data.online) {
+                        dot.textContent = '🟢';
+                        label.textContent = 'Node Online';
+                    } else {
+                        dot.textContent = '🔴';
+                        label.textContent = 'Node Offline';
+                    }
+                }
+            } catch (e) { /* ignore */ }
         }
 
         // Render user's uploads

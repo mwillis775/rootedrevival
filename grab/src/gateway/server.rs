@@ -6,7 +6,7 @@ use axum::{
     extract::{Path, Query, State},
     http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{Html, IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use parking_lot::RwLock;
@@ -137,6 +137,8 @@ impl Gateway {
                 get(list_uploads_handler).post(upload_handler),
             )
             .route("/uploads/:upload_id", get(serve_upload_handler))
+            // Admin routes
+            .route("/api/admin/host", post(host_site_handler))
             // Site content
             .route("/site/:site_id", get(redirect_to_index))
             .route("/site/:site_id/", get(serve_site_index))
@@ -234,6 +236,65 @@ async fn list_sites_handler(State(state): State<AppState>) -> impl IntoResponse 
         .collect();
 
     Json(SitesResponse { published, hosted })
+}
+
+/// Host (pin) a site by name or ID via the running gateway.
+async fn host_site_handler(
+    State(state): State<AppState>,
+    Json(req): Json<HostRequest>,
+) -> impl IntoResponse {
+    let site_id_or_name = req.site.trim().to_string();
+    if site_id_or_name.is_empty() {
+        return (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "site is required"}))).into_response();
+    }
+
+    // Resolve name to SiteId
+    let site_id = match state.bundle_store.resolve_site_id(&site_id_or_name) {
+        Ok(Some(id)) => id,
+        Ok(None) => {
+            match SiteId::from_base58(&site_id_or_name) {
+                Some(id) => id,
+                None => return (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Unknown site"}))).into_response(),
+            }
+        }
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
+    };
+
+    // Try local bundle
+    let bundle = match state.bundle_store.get_bundle(&site_id) {
+        Ok(Some(b)) => b,
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Site not found locally. Publish or fetch it first."}))).into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
+    };
+
+    // Save as hosted
+    if let Err(e) = state.bundle_store.save_hosted_site(&bundle) {
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response();
+    }
+
+    // Announce to network if available
+    if let Some(ref net_lock) = state.network {
+        let guard = net_lock.read();
+        if let Some(ref network) = *guard {
+            let peer_id = network.peer_id().to_string();
+            drop(guard);
+            tracing::info!("Announced hosting from peer {}", peer_id);
+        }
+    }
+
+    tracing::info!("Now hosting site: {} ({})", bundle.name, site_id.to_base58());
+
+    Json(serde_json::json!({
+        "success": true,
+        "site_id": site_id.to_base58(),
+        "name": bundle.name,
+        "revision": bundle.revision,
+    })).into_response()
+}
+
+#[derive(Deserialize)]
+struct HostRequest {
+    site: String,
 }
 
 async fn get_site_handler(

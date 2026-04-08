@@ -1,7 +1,8 @@
 //! Rooted Revival Desktop Application
 //!
-//! Native desktop app built with Tauri that integrates
-//! Scholar and GrabNet for offline-first decentralized knowledge sharing.
+//! Native desktop app that connects to rootedrevival.us,
+//! runs a GrabNet node to pin the knowledge archive,
+//! and helps maintain the decentralized network.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -13,31 +14,30 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 fn main() {
+    let mut app_state = AppState::new();
+    app_state.load_settings();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .manage(Arc::new(Mutex::new(AppState::new())))
+        .manage(Arc::new(Mutex::new(app_state)))
         .invoke_handler(tauri::generate_handler![
-            commands::start_scholar,
-            commands::stop_scholar,
-            commands::start_grabnet,
-            commands::stop_grabnet,
-            commands::get_status,
-            commands::get_peer_id,
-            commands::get_connected_peers,
-            commands::get_published_sites,
-            commands::publish_site,
-            commands::pin_site,
-            commands::unpin_site,
-            commands::get_files,
-            commands::search_content,
-            commands::upload_file,
+            commands::login,
+            commands::logout,
+            commands::check_auth,
+            commands::browse_archive,
+            commands::search_archive,
+            commands::get_file_detail,
             commands::download_file,
-            commands::get_network_stats,
-            commands::get_storage_stats,
-            commands::export_identity,
-            commands::import_identity,
-            commands::get_config,
-            commands::set_offline_mode,
+            commands::get_tags,
+            commands::get_my_files,
+            commands::get_node_status,
+            commands::start_node,
+            commands::stop_node,
+            commands::pin_site,
+            commands::send_heartbeat,
+            commands::get_settings,
+            commands::update_settings,
+            commands::get_system_info,
         ])
         .run(tauri::generate_context!())
         .expect("Error running Tauri application");

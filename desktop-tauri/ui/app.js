@@ -1,728 +1,607 @@
 /* ═══════════════════════════════════════════════════════════════
-   Rooted Revival — Open Scholar Desktop
-   Frontend application logic · Tauri IPC bridge
+   Rooted Revival — Desktop Node
+   Frontend: login, archive browser, node management, heartbeat
    ═══════════════════════════════════════════════════════════════ */
 
-const { invoke } = window.__TAURI__.core;
+let invoke;
+try {
+  invoke = window.__TAURI__.core.invoke;
+} catch (_) {
+  invoke = async (cmd, args) => {
+    console.warn('[RR] Tauri not available, stub for:', cmd);
+    if (cmd === 'check_auth') return { logged_in: false, user: null, server_url: 'https://scholar.rootedrevival.us' };
+    if (cmd === 'get_node_status') return { grabnet_running: false, grabnet_available: false, grab_bin_found: false, peer_id: null, hosted_sites: [], pinning_archive: false };
+    if (cmd === 'get_settings') return { server_url: 'https://scholar.rootedrevival.us', auto_pin: false, data_dir: '' };
+    if (cmd === 'get_system_info') return { version: '0.1.0', grab_bin: null, data_dir: '', os: 'unknown' };
+    if (cmd === 'browse_archive') return [];
+    if (cmd === 'search_archive') return [];
+    if (cmd === 'get_my_files') return [];
+    if (cmd === 'get_tags') return [];
+    return {};
+  };
+}
 
-class OpenScholarApp {
-  constructor() {
-    this.currentView = 'dashboard';
-    this.status = {};
-    this.files = [];
-    this.searchType = '';
-    this.libraryMode = 'grid';
-    this.pollInterval = null;
+// ════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════
 
-    this.init();
+const state = {
+  user: null,
+  serverUrl: 'https://scholar.rootedrevival.us',
+  nodeRunning: false,
+  archivePage: 1,
+  heartbeatTimer: null,
+  refreshTimer: null,
+};
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', async () => {
+  bindEvents();
+  try {
+    const auth = await invoke('check_auth');
+    if (auth.logged_in && auth.user) {
+      state.user = auth.user;
+      state.serverUrl = auth.server_url;
+      showApp();
+    } else {
+      showLogin();
+    }
+  } catch (e) {
+    console.error('Auth check failed:', e);
+    showLogin();
   }
+});
 
-  async init() {
-    this.setupNavigation();
-    this.setupSearch();
-    this.setupUpload();
-    this.setupServiceButtons();
-    this.setupViewToggle();
-    this.setupFilterChips();
+// ════════════════════════════════════════════════════════════════
+// EVENTS
+// ════════════════════════════════════════════════════════════════
 
-    await this.refreshStatus();
-    await this.refreshAll();
+function bindEvents() {
+  // Login
+  document.getElementById('login-form').addEventListener('submit', handleLogin);
 
-    // Poll status every 5 seconds
-    this.pollInterval = setInterval(() => this.refreshStatus(), 5000);
-  }
-
-  // ════════════════════════════════════════════════════════════
   // Navigation
-  // ════════════════════════════════════════════════════════════
-
-  setupNavigation() {
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        const view = item.dataset.view;
-        if (view) this.switchView(view);
-      });
-    });
-  }
-
-  switchView(name) {
-    this.currentView = name;
-
-    // Update nav
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    const navItem = document.querySelector(`.nav-item[data-view="${name}"]`);
-    if (navItem) navItem.classList.add('active');
-
-    // Update views
-    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-    const view = document.getElementById(`view-${name}`);
-    if (view) view.classList.add('active');
-
-    // Update title
-    const titles = {
-      dashboard: 'Dashboard', library: 'Library', search: 'Discover',
-      publish: 'Publish', pinning: 'Pinning', network: 'Network', settings: 'Settings'
-    };
-    document.getElementById('view-title').textContent = titles[name] || name;
-
-    // Refresh data for the view
-    this.refreshViewData(name);
-  }
-
-  async refreshViewData(name) {
-    switch (name) {
-      case 'dashboard': await this.refreshDashboard(); break;
-      case 'library': await this.refreshLibrary(); break;
-      case 'network': await this.refreshNetwork(); break;
-      case 'settings': await this.refreshSettings(); break;
-      case 'pinning': await this.refreshPinning(); break;
-    }
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // Status & Polling
-  // ════════════════════════════════════════════════════════════
-
-  async refreshStatus() {
-    try {
-      this.status = await invoke('get_status');
-    } catch (e) {
-      this.status = {
-        scholar_running: false, grabnet_running: false,
-        offline_mode: false, peer_id: null, connected_peers: 0,
-        scholar_available: false, grabnet_available: false,
-      };
-    }
-    this.updateStatusUI();
-  }
-
-  updateStatusUI() {
-    const s = this.status;
-
-    // Sidebar node status
-    const dot = document.querySelector('#node-status .status-dot');
-    const text = document.querySelector('#node-status .status-text');
-    if (s.grabnet_running) {
-      dot.className = 'status-dot online';
-      text.textContent = 'Online';
-    } else if (s.offline_mode) {
-      dot.className = 'status-dot offline';
-      text.textContent = 'Offline Mode';
-    } else {
-      dot.className = 'status-dot offline';
-      text.textContent = 'Offline';
-    }
-
-    document.getElementById('peer-count-num').textContent = s.connected_peers || 0;
-
-    // Service dots
-    document.getElementById('dot-scholar').className =
-      'svc-dot' + (s.scholar_running ? ' running' : '');
-    document.getElementById('dot-grabnet').className =
-      'svc-dot' + (s.grabnet_running ? ' running' : '');
-
-    // Dashboard stats
-    document.getElementById('stat-peers').textContent = s.connected_peers || 0;
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // Service Controls
-  // ════════════════════════════════════════════════════════════
-
-  setupServiceButtons() {
-    document.getElementById('btn-scholar').addEventListener('click', () => this.toggleScholar());
-    document.getElementById('btn-grabnet').addEventListener('click', () => this.toggleGrabNet());
-  }
-
-  async toggleScholar() {
-    try {
-      if (this.status.scholar_running) {
-        await invoke('stop_scholar');
-        this.toast('Scholar stopped', 'info');
-      } else {
-        this.toast('Starting Scholar...', 'info');
-        await invoke('start_scholar');
-        this.toast('Scholar started', 'success');
-      }
-    } catch (e) {
-      this.toast(e, 'error');
-    }
-    await this.refreshStatus();
-  }
-
-  async toggleGrabNet() {
-    try {
-      if (this.status.grabnet_running) {
-        await invoke('stop_grabnet');
-        this.toast('GrabNet stopped', 'info');
-      } else {
-        this.toast('Starting GrabNet...', 'info');
-        await invoke('start_grabnet');
-        this.toast('GrabNet started', 'success');
-      }
-    } catch (e) {
-      this.toast(e, 'error');
-    }
-    await this.refreshStatus();
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // Dashboard
-  // ════════════════════════════════════════════════════════════
-
-  async refreshAll() {
-    await Promise.all([
-      this.refreshDashboard(),
-      this.loadStorageStats(),
-    ]);
-  }
-
-  async refreshDashboard() {
-    // Scholar status
-    const scholEl = document.getElementById('dash-scholar-status');
-    scholEl.textContent = this.status.scholar_running ? 'Running' : (this.status.scholar_available ? 'Stopped' : 'Not Installed');
-    scholEl.className = 'status-value' + (this.status.scholar_running ? ' running' : ' stopped');
-
-    const grabEl = document.getElementById('dash-grabnet-status');
-    grabEl.textContent = this.status.grabnet_running ? 'Running' : (this.status.grabnet_available ? 'Stopped' : 'Not Installed');
-    grabEl.className = 'status-value' + (this.status.grabnet_running ? ' running' : ' stopped');
-
-    document.getElementById('dash-peer-id').textContent =
-      this.status.peer_id ? this.truncateId(this.status.peer_id) : 'Not connected';
-
-    // Get storage stats
-    try {
-      const storage = await invoke('get_storage_stats');
-      document.getElementById('dash-data-dir').textContent = storage.data_dir || '—';
-      document.getElementById('dash-storage').textContent = this.formatBytes(storage.total_size_bytes);
-      document.getElementById('stat-files').textContent = storage.total_files;
-    } catch (_) {}
-
-    // Get network stats
-    try {
-      const net = await invoke('get_network_stats');
-      document.getElementById('stat-published').textContent = net.published_sites;
-      document.getElementById('stat-pinned').textContent = net.hosted_sites;
-      document.getElementById('badge-pinning').textContent = net.hosted_sites;
-    } catch (_) {}
-
-    // Load recent works
-    await this.loadRecentWorks();
-  }
-
-  async loadRecentWorks() {
-    const container = document.getElementById('recent-works');
-    try {
-      this.files = await invoke('get_files');
-      document.getElementById('badge-library').textContent = this.files.length;
-      if (this.files.length === 0) {
-        container.innerHTML = `<div class="empty-state small"><p>No works yet. ${this.status.scholar_running ? 'Browse the network to find content.' : 'Start Scholar to see your library.'}</p></div>`;
-        return;
-      }
-      container.innerHTML = this.files.slice(0, 5).map(f => this.renderWorkRow(f)).join('');
-    } catch (_) {
-      container.innerHTML = '<div class="empty-state small"><p>Start Scholar to view works.</p></div>';
-    }
-  }
-
-  async loadStorageStats() {
-    try {
-      const stats = await invoke('get_storage_stats');
-      document.getElementById('stat-files').textContent = stats.total_files;
-    } catch (_) {}
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // Library
-  // ════════════════════════════════════════════════════════════
-
-  setupViewToggle() {
-    document.querySelectorAll('.toggle-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this.libraryMode = btn.dataset.mode;
-        this.renderLibrary();
-      });
-    });
-
-    document.getElementById('lib-type-filter').addEventListener('change', () => this.renderLibrary());
-    document.getElementById('lib-sort').addEventListener('change', () => this.renderLibrary());
-  }
-
-  async refreshLibrary() {
-    try {
-      this.files = await invoke('get_files');
-    } catch (_) {
-      this.files = [];
-    }
-    this.renderLibrary();
-  }
-
-  renderLibrary() {
-    const container = document.getElementById('library-content');
-    let items = [...this.files];
-
-    // Filter
-    const typeFilter = document.getElementById('lib-type-filter').value;
-    if (typeFilter) {
-      items = items.filter(f => f.work_type === typeFilter);
-    }
-
-    // Sort
-    const sort = document.getElementById('lib-sort').value;
-    switch (sort) {
-      case 'newest': items.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')); break;
-      case 'oldest': items.sort((a, b) => (a.created_at || '').localeCompare(b.created_at || '')); break;
-      case 'name': items.sort((a, b) => (a.title || a.filename).localeCompare(b.title || b.filename)); break;
-      case 'size': items.sort((a, b) => b.size - a.size); break;
-    }
-
-    if (items.length === 0) {
-      container.innerHTML = '<div class="empty-state"><span class="empty-icon">◫</span><p>No works match your filters.</p></div>';
-      return;
-    }
-
-    container.className = this.libraryMode === 'list' ? 'works-grid list-mode' : 'works-grid';
-
-    if (this.libraryMode === 'grid') {
-      container.innerHTML = items.map(f => this.renderWorkCard(f)).join('');
-    } else {
-      container.innerHTML = '<div class="works-list">' + items.map(f => this.renderWorkRow(f)).join('') + '</div>';
-    }
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // Search
-  // ════════════════════════════════════════════════════════════
-
-  setupSearch() {
-    document.getElementById('search-input').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this.doSearch();
-    });
-  }
-
-  setupFilterChips() {
-    document.querySelectorAll('.filter-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        this.searchType = chip.dataset.type;
-        // Re-run search if there's a query
-        const q = document.getElementById('search-input').value.trim();
-        if (q) this.doSearch();
-      });
-    });
-  }
-
-  async doSearch() {
-    const query = document.getElementById('search-input').value.trim();
-    if (!query) return;
-
-    const container = document.getElementById('search-results');
-    container.innerHTML = '<div class="empty-state"><span class="spinner"></span><p>Searching the network...</p></div>';
-
-    try {
-      const result = await invoke('search_content', {
-        request: { query, work_type: this.searchType || null, page: 1 }
-      });
-      if (result.results.length === 0) {
-        container.innerHTML = '<div class="empty-state"><span class="empty-icon">⊕</span><p>No results found. Try a different query.</p></div>';
-        return;
-      }
-      container.innerHTML = result.results.map(f => this.renderWorkCard(f)).join('');
-    } catch (e) {
-      container.innerHTML = `<div class="empty-state"><span class="empty-icon">⊕</span><p>${this.status.scholar_running ? 'Search failed: ' + e : 'Start Scholar to search the network.'}</p></div>`;
-    }
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // Publish
-  // ════════════════════════════════════════════════════════════
-
-  setupUpload() {
-    const zone = document.getElementById('upload-zone');
-    const input = document.getElementById('file-input');
-
-    zone.addEventListener('click', () => input.click());
-    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
-    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-    zone.addEventListener('drop', (e) => {
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.addEventListener('click', e => {
       e.preventDefault();
-      zone.classList.remove('dragover');
-      if (e.dataTransfer.files.length) {
-        this.handleFiles(e.dataTransfer.files);
-      }
+      switchView(el.dataset.view);
     });
+  });
 
-    input.addEventListener('change', () => {
-      if (input.files.length) {
-        this.handleFiles(input.files);
-        input.value = '';
-      }
-    });
-  }
+  document.querySelectorAll('[data-nav]').forEach(el => {
+    el.addEventListener('click', () => switchView(el.dataset.nav));
+  });
 
-  handleFiles(fileList) {
-    const queue = document.getElementById('upload-queue');
-    queue.hidden = false;
+  // Logout
+  document.getElementById('btn-logout').addEventListener('click', handleLogout);
+  document.getElementById('btn-settings-logout').addEventListener('click', handleLogout);
 
-    for (const file of fileList) {
-      const item = document.createElement('div');
-      item.className = 'upload-item';
-      item.innerHTML = `
-        <span class="upload-item-name">${this.escapeHtml(file.name)}</span>
-        <span class="upload-item-size">${this.formatBytes(file.size)}</span>
-        <span class="upload-item-status pending">Ready</span>
-      `;
-      item.dataset.path = file.path || file.name;
-      queue.appendChild(item);
-    }
-  }
+  // Dashboard quick actions
+  document.getElementById('btn-toggle-node').addEventListener('click', toggleNode);
+  document.getElementById('btn-pin-archive').addEventListener('click', () => pinSite('rootedrevival'));
+  document.getElementById('btn-open-site').addEventListener('click', () => {
+    window.open('https://rootedrevival.us', '_blank');
+  });
 
-  async publishWork() {
-    const title = document.getElementById('pub-title').value.trim();
-    const description = document.getElementById('pub-description').value.trim();
-    const workType = document.getElementById('pub-type').value;
-    const tagsRaw = document.getElementById('pub-tags').value.trim();
-    const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+  // Archive
+  document.getElementById('btn-archive-search').addEventListener('click', searchArchive);
+  document.getElementById('archive-search').addEventListener('keydown', e => {
+    if (e.key === 'Enter') searchArchive();
+  });
 
-    const queue = document.getElementById('upload-queue');
-    const items = queue.querySelectorAll('.upload-item');
+  // Node
+  document.getElementById('btn-start-node').addEventListener('click', startNode);
+  document.getElementById('btn-stop-node').addEventListener('click', stopNode);
+  document.getElementById('btn-pin-site').addEventListener('click', () => {
+    const name = document.getElementById('pin-site-name').value.trim();
+    if (name) pinSite(name);
+  });
 
-    if (items.length === 0) {
-      this.toast('Add files to publish', 'error');
-      return;
-    }
-
-    if (!title) {
-      this.toast('Title is required', 'error');
-      return;
-    }
-
-    for (const item of items) {
-      const statusEl = item.querySelector('.upload-item-status');
-      statusEl.textContent = 'Uploading...';
-      statusEl.className = 'upload-item-status uploading';
-
-      try {
-        await invoke('upload_file', {
-          request: {
-            path: item.dataset.path,
-            title,
-            description: description || null,
-            work_type: workType,
-            tags: tags.length ? tags : null,
-          }
-        });
-        statusEl.textContent = 'Published';
-        statusEl.className = 'upload-item-status done';
-      } catch (e) {
-        statusEl.textContent = 'Failed';
-        statusEl.className = 'upload-item-status error';
-        this.toast(`Upload failed: ${e}`, 'error');
-      }
-    }
-
-    this.toast('Work published to network!', 'success');
-
-    // Clear form
-    document.getElementById('pub-title').value = '';
-    document.getElementById('pub-description').value = '';
-    document.getElementById('pub-tags').value = '';
-    setTimeout(() => { queue.innerHTML = ''; queue.hidden = true; }, 2000);
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // Pinning
-  // ════════════════════════════════════════════════════════════
-
-  async pinSite() {
-    const input = document.getElementById('pin-site-id');
-    const siteId = input.value.trim();
-    if (!siteId) {
-      this.toast('Enter a site ID to pin', 'error');
-      return;
-    }
-
-    try {
-      await invoke('pin_site', { request: { site_id: siteId } });
-      this.toast('Site pinned successfully!', 'success');
-      input.value = '';
-      await this.refreshPinning();
-    } catch (e) {
-      this.toast(`Pin failed: ${e}`, 'error');
-    }
-  }
-
-  async unpinSite(siteId) {
-    try {
-      await invoke('unpin_site', { request: { site_id: siteId } });
-      this.toast('Site unpinned', 'info');
-      await this.refreshPinning();
-    } catch (e) {
-      this.toast(`Unpin failed: ${e}`, 'error');
-    }
-  }
-
-  async refreshPinning() {
-    const container = document.getElementById('pinned-list');
-    try {
-      const sites = await invoke('get_published_sites');
-      document.getElementById('pinned-count').textContent = sites.length;
-      document.getElementById('badge-pinning').textContent = sites.length;
-      if (sites.length === 0) {
-        container.innerHTML = '<div class="empty-state small"><p>No pinned sites. Pin content to help the network.</p></div>';
-        return;
-      }
-      container.innerHTML = sites.map(id => `
-        <div class="site-row">
-          <span class="site-id" title="${this.escapeHtml(id)}">${this.escapeHtml(id)}</span>
-          <button class="btn-danger" onclick="app.unpinSite('${this.escapeHtml(id)}')">Unpin</button>
-        </div>
-      `).join('');
-    } catch (_) {
-      container.innerHTML = '<div class="empty-state small"><p>Start GrabNet to view pinned sites.</p></div>';
-    }
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // Network
-  // ════════════════════════════════════════════════════════════
-
-  async refreshNetwork() {
-    try {
-      const stats = await invoke('get_network_stats');
-      document.getElementById('net-peers').textContent = stats.connected_peers;
-      document.getElementById('net-published').textContent = stats.published_sites;
-      document.getElementById('net-hosted').textContent = stats.hosted_sites;
-      document.getElementById('net-bandwidth').textContent =
-        this.formatBytes(stats.bytes_sent + stats.bytes_received);
-    } catch (_) {}
-
-    // Peer ID
-    document.getElementById('net-peer-id').textContent =
-      this.status.peer_id || 'Not connected';
-
-    // Peers list
-    const peersContainer = document.getElementById('peers-list');
-    try {
-      const peers = await invoke('get_connected_peers');
-      if (peers.length === 0) {
-        peersContainer.innerHTML = '<div class="empty-state small"><p>No peers connected.</p></div>';
-        return;
-      }
-      peersContainer.innerHTML = peers.map(p => `
-        <div class="peer-row">
-          <span class="peer-dot"></span>
-          <span class="peer-id" title="${this.escapeHtml(p)}">${this.escapeHtml(p)}</span>
-        </div>
-      `).join('');
-    } catch (_) {
-      peersContainer.innerHTML = '<div class="empty-state small"><p>Start GrabNet to see peers.</p></div>';
-    }
-  }
-
-  // ════════════════════════════════════════════════════════════
   // Settings
-  // ════════════════════════════════════════════════════════════
+  document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
+  document.getElementById('settings-auto-pin').addEventListener('change', saveSettings);
 
-  async refreshSettings() {
-    try {
-      const config = await invoke('get_config');
-      document.getElementById('set-scholar-bin').textContent = config.scholar_bin || 'Not found';
-      document.getElementById('set-grab-bin').textContent = config.grabnet_bin || 'Not found';
-      document.getElementById('set-scholar-url').textContent = config.scholar_url;
-      document.getElementById('set-grabnet-url').textContent = config.grabnet_url;
-      document.getElementById('set-data-dir').textContent = config.data_dir;
-      document.getElementById('set-offline').checked = config.offline_mode;
-    } catch (_) {}
-  }
+  // Activity log
+  document.getElementById('btn-clear-log').addEventListener('click', clearLog);
+}
 
-  async toggleOffline(enabled) {
-    try {
-      await invoke('set_offline_mode', { enabled });
-      this.toast(enabled ? 'Offline mode enabled' : 'Online mode restored', 'info');
-      await this.refreshStatus();
-    } catch (e) {
-      this.toast(e, 'error');
-    }
-  }
+// ════════════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════════════
 
-  async exportIdentity() {
-    const password = prompt('Enter a password to encrypt your identity backup:');
-    if (!password) return;
-    try {
-      const data = await invoke('export_identity', { password });
-      // Create a downloadable file
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'rooted-revival-identity.json';
-      a.click();
-      URL.revokeObjectURL(url);
-      this.toast('Identity exported', 'success');
-    } catch (e) {
-      this.toast(`Export failed: ${e}`, 'error');
-    }
-  }
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  err.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Connecting...';
 
-  async importIdentity() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.addEventListener('change', async () => {
-      if (!input.files.length) return;
-      const text = await input.files[0].text();
-      const password = prompt('Enter the backup password:');
-      if (!password) return;
-      try {
-        await invoke('import_identity', { data: text, password });
-        this.toast('Identity imported. Restart GrabNet to use it.', 'success');
-      } catch (e) {
-        this.toast(`Import failed: ${e}`, 'error');
+  try {
+    const result = await invoke('login', {
+      request: {
+        server_url: document.getElementById('login-server').value.trim(),
+        username: document.getElementById('login-username').value.trim(),
+        password: document.getElementById('login-password').value,
       }
     });
-    input.click();
-  }
 
-  // ════════════════════════════════════════════════════════════
-  // Modal
-  // ════════════════════════════════════════════════════════════
-
-  showWorkDetail(work) {
-    const overlay = document.getElementById('modal-overlay');
-    const title = document.getElementById('modal-title');
-    const body = document.getElementById('modal-body');
-    const footer = document.getElementById('modal-footer');
-
-    title.textContent = work.title || work.filename;
-
-    body.innerHTML = `
-      <div class="status-list">
-        ${work.work_type ? `<div class="status-row"><span class="status-label">Type</span><span class="work-card-type type-${work.work_type}">${work.work_type}</span></div>` : ''}
-        <div class="status-row"><span class="status-label">Filename</span><span class="status-value mono">${this.escapeHtml(work.filename)}</span></div>
-        <div class="status-row"><span class="status-label">Content Type</span><span class="status-value mono">${this.escapeHtml(work.content_type)}</span></div>
-        <div class="status-row"><span class="status-label">Size</span><span class="status-value">${this.formatBytes(work.size)}</span></div>
-        ${work.grabnet_cid ? `<div class="status-row"><span class="status-label">GrabNet CID</span><span class="status-value mono" style="font-size:10px">${this.escapeHtml(work.grabnet_cid)}</span></div>` : ''}
-        <div class="status-row"><span class="status-label">Created</span><span class="status-value">${work.created_at || '—'}</span></div>
-        <div class="status-row"><span class="status-label">UUID</span><span class="status-value mono" style="font-size:10px">${this.escapeHtml(work.uuid)}</span></div>
-      </div>
-    `;
-
-    footer.innerHTML = `
-      <button class="btn-ghost" onclick="app.closeModal()">Close</button>
-      <button class="btn-primary" onclick="app.downloadWork('${this.escapeHtml(work.uuid)}', '${this.escapeHtml(work.filename)}')">Download</button>
-    `;
-
-    overlay.hidden = false;
-  }
-
-  closeModal() {
-    document.getElementById('modal-overlay').hidden = true;
-  }
-
-  async downloadWork(uuid, filename) {
-    const dest = prompt('Save to (full path):', `${this.homeDir()}/${filename}`);
-    if (!dest) return;
-    try {
-      await invoke('download_file', { request: { uuid, destination: dest } });
-      this.toast(`Downloaded to ${dest}`, 'success');
-    } catch (e) {
-      this.toast(`Download failed: ${e}`, 'error');
+    if (result.success && result.user) {
+      state.user = result.user;
+      state.serverUrl = document.getElementById('login-server').value.trim();
+      showApp();
+    } else {
+      err.textContent = result.error || 'Login failed';
     }
-  }
-
-  homeDir() {
-    // Best-effort home dir for Linux
-    return '/home/' + (window.__TAURI__?.path?.homeDir || 'user');
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // Rendering helpers
-  // ════════════════════════════════════════════════════════════
-
-  renderWorkCard(work) {
-    const typeClass = work.work_type ? `type-${work.work_type}` : '';
-    const title = work.title || work.filename || 'Untitled';
-    return `
-      <div class="work-card" onclick='app.showWorkDetail(${JSON.stringify(work)})'>
-        ${work.work_type ? `<span class="work-card-type ${typeClass}">${work.work_type}</span>` : ''}
-        <div class="work-card-title">${this.escapeHtml(title)}</div>
-        <div class="work-card-meta">
-          <span>${this.formatBytes(work.size)}</span>
-          <span>${work.content_type || ''}</span>
-        </div>
-        ${work.grabnet_cid ? `<div class="work-card-cid">cid: ${this.escapeHtml(work.grabnet_cid)}</div>` : ''}
-      </div>
-    `;
-  }
-
-  renderWorkRow(work) {
-    const title = work.title || work.filename || 'Untitled';
-    return `
-      <div class="work-row" onclick='app.showWorkDetail(${JSON.stringify(work)})'>
-        <span class="work-row-type">${work.work_type || '—'}</span>
-        <span class="work-row-title">${this.escapeHtml(title)}</span>
-        <span class="work-row-size">${this.formatBytes(work.size)}</span>
-        <span class="work-row-date">${work.created_at ? work.created_at.split('T')[0] : ''}</span>
-      </div>
-    `;
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // Toast
-  // ════════════════════════════════════════════════════════════
-
-  toast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
-    const el = document.createElement('div');
-    el.className = `toast ${type}`;
-    el.textContent = typeof message === 'string' ? message : JSON.stringify(message);
-    container.appendChild(el);
-    setTimeout(() => {
-      el.style.opacity = '0';
-      el.style.transform = 'translateX(20px)';
-      el.style.transition = 'all 300ms ease';
-      setTimeout(() => el.remove(), 300);
-    }, 4000);
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // Utils
-  // ════════════════════════════════════════════════════════════
-
-  formatBytes(bytes) {
-    if (!bytes || bytes === 0) return '0 B';
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return (bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0) + ' ' + units[i];
-  }
-
-  truncateId(id) {
-    if (!id || id.length <= 16) return id || '—';
-    return id.slice(0, 8) + '...' + id.slice(-8);
-  }
-
-  escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+  } catch (ex) {
+    err.textContent = typeof ex === 'string' ? ex : 'Connection failed';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Connect';
   }
 }
 
-// Close modal on overlay click
-document.getElementById('modal-overlay').addEventListener('click', (e) => {
-  if (e.target === e.currentTarget) app.closeModal();
-});
+async function handleLogout() {
+  try { await invoke('logout'); } catch (_) {}
+  state.user = null;
+  stopTimers();
+  showLogin();
+}
 
-// Close modal on Escape
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') app.closeModal();
-});
+// ════════════════════════════════════════════════════════════════
+// SCREEN MANAGEMENT
+// ════════════════════════════════════════════════════════════════
 
-// Boot
-const app = new OpenScholarApp();
+function showLogin() {
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app').classList.add('app-hidden');
+  document.getElementById('login-password').value = '';
+}
+
+function showApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('app-hidden');
+
+  // Populate user info
+  const u = state.user;
+  document.getElementById('sidebar-user').textContent = u ? (u.display_name || u.username) : '';
+
+  // Load initial data
+  refreshAll();
+
+  // Start periodic refresh + heartbeat
+  startTimers();
+}
+
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  const target = document.getElementById('view-' + view);
+  const nav = document.querySelector(`.nav-item[data-view="${view}"]`);
+  if (target) target.classList.add('active');
+  if (nav) nav.classList.add('active');
+
+  document.getElementById('view-title').textContent = {
+    dashboard: 'Dashboard',
+    archive: 'Knowledge Archive',
+    node: 'Node Management',
+    settings: 'Settings',
+  }[view] || view;
+
+  // Load view-specific data
+  if (view === 'archive') loadArchive();
+  if (view === 'node') refreshNodeStatus();
+  if (view === 'settings') loadSettings();
+}
+
+// ════════════════════════════════════════════════════════════════
+// REFRESH
+// ════════════════════════════════════════════════════════════════
+
+function startTimers() {
+  stopTimers();
+  // Refresh node status every 30s
+  state.refreshTimer = setInterval(refreshNodeUI, 30000);
+  // Send heartbeat every 60s
+  state.heartbeatTimer = setInterval(sendHeartbeat, 60000);
+  // Send first heartbeat after a short delay
+  setTimeout(sendHeartbeat, 5000);
+}
+
+function stopTimers() {
+  if (state.refreshTimer) { clearInterval(state.refreshTimer); state.refreshTimer = null; }
+  if (state.heartbeatTimer) { clearInterval(state.heartbeatTimer); state.heartbeatTimer = null; }
+}
+
+async function refreshAll() {
+  refreshNodeUI();
+  loadSystemInfo();
+  loadMyFileCount();
+}
+
+async function refreshNodeUI() {
+  try {
+    const ns = await invoke('get_node_status');
+    state.nodeRunning = ns.grabnet_running;
+
+    // Sidebar
+    const dot = document.getElementById('sidebar-dot');
+    const text = document.getElementById('sidebar-status-text');
+    dot.className = 'status-dot ' + (ns.grabnet_running ? 'online' : 'offline');
+    text.textContent = ns.grabnet_running ? 'Node Online' : 'Node Offline';
+
+    // Dashboard stats
+    document.getElementById('stat-node').textContent = ns.grabnet_running ? 'Online' : 'Offline';
+    document.getElementById('stat-node').style.color = ns.grabnet_running ? 'var(--accent)' : 'var(--text-muted)';
+    document.getElementById('stat-pinned').textContent = ns.hosted_sites.length;
+    document.getElementById('stat-archive').textContent = ns.pinning_archive ? 'Active' : 'Not Pinned';
+
+    // Dashboard system
+    document.getElementById('dash-grabnet').textContent = ns.grabnet_running ? '● Online' : '○ Offline';
+    document.getElementById('dash-grabnet').style.color = ns.grabnet_running ? 'var(--accent)' : 'var(--text-muted)';
+    document.getElementById('dash-peer-id').textContent = ns.peer_id ? truncate(ns.peer_id, 24) : '—';
+    document.getElementById('dash-peer-id').title = ns.peer_id || '';
+
+    // Toggle button text
+    const toggleBtn = document.getElementById('btn-toggle-node');
+    if (toggleBtn) {
+      toggleBtn.querySelector('span:last-child').textContent = ns.grabnet_running ? 'Stop Node' : 'Start Node';
+    }
+  } catch (e) {
+    console.error('Node status refresh failed:', e);
+  }
+}
+
+async function loadSystemInfo() {
+  try {
+    const info = await invoke('get_system_info');
+    document.getElementById('dash-server').textContent = state.serverUrl;
+    document.getElementById('dash-data-dir').textContent = info.data_dir || '—';
+    document.getElementById('dash-data-dir').title = info.data_dir || '';
+    document.getElementById('dash-version').textContent = 'v' + info.version;
+  } catch (_) {}
+}
+
+async function loadMyFileCount() {
+  try {
+    const resp = await invoke('get_my_files');
+    const files = extractFiles(resp);
+    document.getElementById('stat-my-files').textContent = files.length;
+  } catch (_) {
+    document.getElementById('stat-my-files').textContent = '—';
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// ARCHIVE
+// ════════════════════════════════════════════════════════════════
+
+async function loadArchive() {
+  const container = document.getElementById('archive-results');
+  const fileType = document.getElementById('archive-type').value;
+
+  try {
+    const resp = await invoke('browse_archive', { page: state.archivePage, fileType: fileType || null });
+    renderFiles(container, extractFiles(resp));
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Failed to load archive: ${escapeHtml(String(e))}</p></div>`;
+  }
+}
+
+async function searchArchive() {
+  const query = document.getElementById('archive-search').value.trim();
+  const fileType = document.getElementById('archive-type').value;
+  const container = document.getElementById('archive-results');
+
+  if (!query) {
+    loadArchive();
+    return;
+  }
+
+  try {
+    const resp = await invoke('search_archive', { query, fileType: fileType || null });
+    renderFiles(container, extractFiles(resp));
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Search failed: ${escapeHtml(String(e))}</p></div>`;
+  }
+}
+
+function renderFiles(container, files) {
+  if (!files || files.length === 0) {
+    container.innerHTML = '<div class="empty-state"><span class="empty-icon">◫</span><p>No files found</p></div>';
+    return;
+  }
+
+  container.innerHTML = files.map(f => `
+    <div class="file-card" data-uuid="${escapeHtml(f.uuid || '')}" onclick="showFileDetail('${escapeHtml(f.uuid || '')}')">
+      <div class="file-card-title">${escapeHtml(f.title || f.filename || 'Untitled')}</div>
+      <div class="file-card-meta">
+        <span>${escapeHtml(f.uploader_name || 'Unknown')}</span>
+        <span>${formatSize(f.size || f.file_size || 0)}</span>
+        <span>${formatDate(f.created_at)}</span>
+      </div>
+      ${f.file_type || f.paper_type ? `<span class="file-card-type">${escapeHtml(f.file_type || f.paper_type)}</span>` : ''}
+    </div>
+  `).join('');
+}
+
+async function showFileDetail(uuid) {
+  if (!uuid) return;
+  try {
+    const file = await invoke('get_file_detail', { uuid });
+    // Create a simple modal
+    let overlay = document.querySelector('.modal-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal">
+          <div class="modal-header">
+            <h2 id="modal-title"></h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+          </div>
+          <div class="modal-body" id="modal-body"></div>
+        </div>`;
+      document.body.appendChild(overlay);
+      overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    }
+
+    overlay.classList.remove('hidden');
+    const detail = file.paper || file;
+    document.getElementById('modal-title').textContent = detail.title || detail.filename || 'File Detail';
+    document.getElementById('modal-body').innerHTML = `
+      <div class="status-list">
+        ${detail.abstract ? `<div class="status-row"><span class="status-label">Abstract</span><span class="status-value">${escapeHtml(detail.abstract)}</span></div>` : ''}
+        <div class="status-row"><span class="status-label">Type</span><span class="status-value">${escapeHtml(detail.paper_type || detail.file_type || '—')}</span></div>
+        <div class="status-row"><span class="status-label">Uploaded by</span><span class="status-value">${escapeHtml(detail.uploader_name || '—')}</span></div>
+        ${detail.authors && detail.authors.length ? `<div class="status-row"><span class="status-label">Authors</span><span class="status-value">${escapeHtml(detail.authors.join(', '))}</span></div>` : ''}
+        <div class="status-row"><span class="status-label">Views</span><span class="status-value">${detail.view_count || 0}</span></div>
+        <div class="status-row"><span class="status-label">Downloads</span><span class="status-value">${detail.download_count || 0}</span></div>
+        <div class="status-row"><span class="status-label">Date</span><span class="status-value">${formatDate(detail.created_at)}</span></div>
+      </div>
+      ${detail.description ? `<p class="muted" style="margin-top:12px">${escapeHtml(detail.description)}</p>` : ''}
+      <div style="margin-top:16px; display:flex; gap:8px;">
+        <button class="btn-primary btn-sm" onclick="downloadFile('${escapeHtml(uuid)}', '${escapeHtml(detail.title || 'file')}')">Download</button>
+        <button class="btn-ghost btn-sm" onclick="window.open('${state.serverUrl}/view?id=${encodeURIComponent(uuid)}', '_blank')">View on Site</button>
+      </div>`;
+  } catch (e) {
+    log('Failed to load file detail: ' + e, 'err');
+  }
+}
+
+window.showFileDetail = showFileDetail;
+
+async function downloadFile(uuid, filename) {
+  try {
+    const destination = ''; // Let Rust pick the download directory
+    const result = await invoke('download_file', { uuid, destination });
+    log('Downloaded: ' + (result || filename), 'ok');
+    closeModal();
+  } catch (e) {
+    log('Download failed: ' + e, 'err');
+  }
+}
+
+window.downloadFile = downloadFile;
+
+function closeModal() {
+  const overlay = document.querySelector('.modal-overlay');
+  if (overlay) overlay.classList.add('hidden');
+}
+
+window.closeModal = closeModal;
+
+// ════════════════════════════════════════════════════════════════
+// NODE
+// ════════════════════════════════════════════════════════════════
+
+async function refreshNodeStatus() {
+  try {
+    const ns = await invoke('get_node_status');
+    state.nodeRunning = ns.grabnet_running;
+
+    // Big status
+    const dot = document.getElementById('node-dot');
+    const text = document.getElementById('node-status-text');
+    dot.className = 'node-dot' + (ns.grabnet_running ? ' online' : '');
+    text.textContent = ns.grabnet_running ? 'Node Running' : 'Node Stopped';
+
+    // Buttons
+    document.getElementById('btn-start-node').disabled = ns.grabnet_running;
+    document.getElementById('btn-stop-node').disabled = !ns.grabnet_running;
+
+    // Details
+    document.getElementById('node-bin').textContent = ns.grab_bin_found ? '✓ Found' : '✗ Not found';
+    document.getElementById('node-bin').style.color = ns.grab_bin_found ? 'var(--accent)' : 'var(--red)';
+    document.getElementById('node-gateway').textContent = ns.grabnet_available ? '✓ Reachable' : '✗ Unreachable';
+    document.getElementById('node-gateway').style.color = ns.grabnet_available ? 'var(--accent)' : 'var(--text-muted)';
+    document.getElementById('node-peer-id').textContent = ns.peer_id || '—';
+    document.getElementById('node-peer-id').title = ns.peer_id || '';
+    document.getElementById('node-pinning').textContent = ns.pinning_archive ? '✓ rootedrevival' : '✗ No';
+    document.getElementById('node-pinning').style.color = ns.pinning_archive ? 'var(--accent)' : 'var(--text-muted)';
+
+    // Hosted sites list
+    const list = document.getElementById('hosted-sites-list');
+    if (ns.hosted_sites.length > 0) {
+      list.innerHTML = ns.hosted_sites.map(s =>
+        `<div class="hosted-item"><span>${escapeHtml(s)}</span><span class="site-badge">pinned</span></div>`
+      ).join('');
+    } else {
+      list.innerHTML = '<div class="empty-state small">No sites pinned yet.</div>';
+    }
+  } catch (e) {
+    console.error('Node status failed:', e);
+  }
+}
+
+async function toggleNode() {
+  if (state.nodeRunning) {
+    await stopNode();
+  } else {
+    await startNode();
+  }
+}
+
+async function startNode() {
+  log('Starting GrabNet node...', 'ok');
+  try {
+    const result = await invoke('start_node');
+    log(result || 'Node started', 'ok');
+    await refreshNodeUI();
+    await refreshNodeStatus();
+  } catch (e) {
+    log('Failed to start node: ' + e, 'err');
+  }
+}
+
+async function stopNode() {
+  log('Stopping GrabNet node...', 'ok');
+  try {
+    await invoke('stop_node');
+    log('Node stopped', 'ok');
+    await refreshNodeUI();
+    await refreshNodeStatus();
+  } catch (e) {
+    log('Failed to stop node: ' + e, 'err');
+  }
+}
+
+async function pinSite(name) {
+  log('Pinning site: ' + name + '...', 'ok');
+  try {
+    const result = await invoke('pin_site', { siteName: name });
+    log(result || 'Pinned ' + name, 'ok');
+    document.getElementById('pin-site-name').value = '';
+    await refreshNodeUI();
+  } catch (e) {
+    log('Pin failed: ' + e, 'err');
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// HEARTBEAT
+// ════════════════════════════════════════════════════════════════
+
+async function sendHeartbeat() {
+  try {
+    await invoke('send_heartbeat');
+    const el = document.getElementById('node-heartbeat');
+    if (el) el.textContent = '✓ Active';
+    const ts = document.getElementById('node-last-heartbeat');
+    if (ts) ts.textContent = new Date().toLocaleTimeString();
+  } catch (e) {
+    const el = document.getElementById('node-heartbeat');
+    if (el) {
+      el.textContent = '✗ Failed';
+      el.style.color = 'var(--red)';
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// SETTINGS
+// ════════════════════════════════════════════════════════════════
+
+async function loadSettings() {
+  try {
+    const settings = await invoke('get_settings');
+    document.getElementById('settings-server').value = settings.server_url || '';
+    document.getElementById('settings-auto-pin').checked = settings.auto_pin || false;
+
+    const info = await invoke('get_system_info');
+    document.getElementById('info-version').textContent = 'v' + info.version;
+    document.getElementById('info-os').textContent = info.os;
+    document.getElementById('info-grab-bin').textContent = info.grab_bin || 'Not found';
+    document.getElementById('info-data-dir').textContent = info.data_dir || '—';
+
+    if (state.user) {
+      document.getElementById('info-username').textContent = state.user.username || '—';
+      document.getElementById('info-email').textContent = state.user.email || '—';
+    }
+  } catch (e) {
+    console.error('Settings load failed:', e);
+  }
+}
+
+async function saveSettings() {
+  try {
+    const serverUrl = document.getElementById('settings-server').value.trim() || undefined;
+    const autoPin = document.getElementById('settings-auto-pin').checked;
+    await invoke('update_settings', { serverUrl, autoPin });
+    log('Settings saved', 'ok');
+  } catch (e) {
+    log('Failed to save settings: ' + e, 'err');
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// ACTIVITY LOG
+// ════════════════════════════════════════════════════════════════
+
+function log(message, type) {
+  const container = document.getElementById('activity-log');
+  const time = new Date().toLocaleTimeString();
+  const cls = type === 'ok' ? 'log-ok' : type === 'err' ? 'log-err' : '';
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-time">${time}</span> <span class="${cls}">${escapeHtml(message)}</span>`;
+  container.appendChild(line);
+  container.scrollTop = container.scrollHeight;
+
+  // Keep max 100 lines
+  while (container.children.length > 100) {
+    container.removeChild(container.firstChild);
+  }
+}
+
+function clearLog() {
+  const container = document.getElementById('activity-log');
+  container.innerHTML = '<div class="log-line dim">Log cleared.</div>';
+}
+
+// ════════════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════════════
+
+function extractFiles(data) {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object') {
+    if (Array.isArray(data.files)) return data.files;
+    if (Array.isArray(data.papers)) return data.papers;
+    if (Array.isArray(data.results)) return data.results;
+  }
+  return [];
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function truncate(str, len) {
+  if (!str || str.length <= len) return str || '';
+  return str.substring(0, len) + '…';
+}
+
+function formatSize(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let i = 0;
+  let size = bytes;
+  while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+  return size.toFixed(i > 0 ? 1 : 0) + ' ' + units[i];
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  try {
+    return new Date(dateStr).toLocaleDateString();
+  } catch (_) {
+    return dateStr;
+  }
+}

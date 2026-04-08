@@ -766,11 +766,13 @@
                         </div>
                     </div>
 
-                    <div class="settings-section" style="margin-top: 30px;">
+                    <div class="settings-section" id="nodeStats" style="margin-top: 30px;">
                         <h3>📊 NODE STATISTICS</h3>
-                        <p style="color: var(--text-muted);">Node statistics are only available when running the desktop app.</p>
-                        <div style="margin-top: 20px;">
-                            <a href="download.html" class="btn btn-primary">⬇️ Download Desktop App</a>
+                        <div id="nodeStatsContent">
+                            <p style="color: var(--text-muted);">Node statistics are only available when running the desktop app.</p>
+                            <div style="margin-top: 20px;">
+                                <a href="download.html" class="btn btn-primary">⬇️ Download Desktop App</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -879,6 +881,60 @@
             if (form.email) form.email.value = user.email || '';
             if (form.bio) form.bio.value = user.bio || '';
             loadUploads();
+            loadNodeStatus();
+        }
+
+        // ========== NODE STATUS ==========
+
+        async function loadNodeStatus() {
+            if (!user) return;
+            try {
+                const data = await api(`/users/${user.username}/node`);
+                const icon = document.getElementById('nodeIcon');
+                const text = document.getElementById('nodeStatusText');
+                const msg = document.getElementById('nodeMessage');
+                const statsEl = document.getElementById('nodeStatsContent');
+
+                if (data && data.online) {
+                    icon.textContent = '🟢';
+                    icon.className = 'node-icon online';
+                    text.textContent = 'Online';
+                    msg.textContent = data.peer_id
+                        ? `Peer: ${data.peer_id.slice(0, 12)}... · v${data.version || '?'}`
+                        : 'Node is active';
+
+                    const fmtBytes = (b) => {
+                        if (!b) return '0 B';
+                        const u = ['B','KB','MB','GB','TB'];
+                        const i = Math.floor(Math.log(b)/Math.log(1024));
+                        return (b/Math.pow(1024,i)).toFixed(i>0?1:0)+' '+u[i];
+                    };
+                    statsEl.innerHTML = `
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-top:12px;">
+                            <div style="padding:16px;background:var(--bg-secondary,#111);border:1px solid var(--border,#333);border-radius:8px;text-align:center;">
+                                <div style="font-size:1.8rem;font-weight:bold;color:var(--primary,#0f0);">${data.grabnet_running ? '🟢' : '⚪'}</div>
+                                <div style="font-size:0.8rem;margin-top:4px;color:var(--text-muted);">GrabNet ${data.grabnet_running ? 'Active' : 'Inactive'}</div>
+                            </div>
+                            <div style="padding:16px;background:var(--bg-secondary,#111);border:1px solid var(--border,#333);border-radius:8px;text-align:center;">
+                                <div style="font-size:1.8rem;font-weight:bold;color:var(--primary,#0f0);">${data.content_pinned}</div>
+                                <div style="font-size:0.8rem;margin-top:4px;color:var(--text-muted);">Files Pinned</div>
+                            </div>
+                            <div style="padding:16px;background:var(--bg-secondary,#111);border:1px solid var(--border,#333);border-radius:8px;text-align:center;">
+                                <div style="font-size:1.8rem;font-weight:bold;color:var(--primary,#0f0);">${fmtBytes(data.bytes_hosted)}</div>
+                                <div style="font-size:0.8rem;margin-top:4px;color:var(--text-muted);">Data Hosted</div>
+                            </div>
+                        </div>
+                        <p style="color:var(--text-muted);font-size:0.8rem;margin-top:12px;">Last seen: ${new Date(data.last_seen + 'Z').toLocaleString()}</p>
+                    `;
+                } else if (data && data.last_seen) {
+                    icon.textContent = '🟡';
+                    icon.className = 'node-icon offline';
+                    text.textContent = 'Last seen ' + new Date(data.last_seen + 'Z').toLocaleString();
+                    msg.textContent = 'Node is currently offline. Start the desktop app to reconnect.';
+                }
+            } catch (e) {
+                console.warn('Failed to load node status:', e);
+            }
         }
 
         // ========== UPLOADS ==========

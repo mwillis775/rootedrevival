@@ -308,5 +308,45 @@ module.exports = {
         return db.prepare(
             'SELECT encrypted_private_key, key_salt, public_key FROM users WHERE id = ?'
         ).get(userId);
-    }
+    },
+
+    // Node/peer tracking
+    updateNodeStatus: function(userId, { peerId, version, grabnetRunning, contentPinned, bytesHosted }) {
+        const db = getDb();
+        db.prepare(`
+            UPDATE users SET 
+                peer_id = COALESCE(?, peer_id),
+                node_version = COALESCE(?, node_version),
+                node_last_seen = datetime('now'),
+                node_grabnet_running = ?,
+                node_content_pinned = ?,
+                node_bytes_hosted = ?
+            WHERE id = ?
+        `).run(peerId, version, grabnetRunning ? 1 : 0, contentPinned, bytesHosted, userId);
+    },
+
+    getNodeStatus: function(username) {
+        const db = getDb();
+        const row = db.prepare(`
+            SELECT peer_id, node_version, node_last_seen, node_grabnet_running,
+                   node_content_pinned, node_bytes_hosted
+            FROM users WHERE username = ?
+        `).get(username.toLowerCase());
+
+        if (!row || !row.node_last_seen) return null;
+
+        // Consider online if seen within the last 2 minutes
+        const lastSeen = new Date(row.node_last_seen + 'Z');
+        const online = (Date.now() - lastSeen.getTime()) < 120000;
+
+        return {
+            online,
+            peer_id: row.peer_id,
+            version: row.node_version,
+            last_seen: row.node_last_seen,
+            grabnet_running: !!row.node_grabnet_running,
+            content_pinned: row.node_content_pinned || 0,
+            bytes_hosted: row.node_bytes_hosted || 0,
+        };
+    },
 };
