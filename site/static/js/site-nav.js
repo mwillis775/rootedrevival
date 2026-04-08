@@ -7,10 +7,13 @@
   var page = location.pathname.split('/').pop() || 'index.html';
   var isIndex = page === 'index.html' || page === '' || page === '/';
 
+  var isTrinkets = page === 'trinkets.html';
+
   var primary = [
     { label: 'Home',     href: 'index.html',    page: 'index.html' },
     { label: 'Services', href: 'services.html', page: 'services.html' },
     { label: 'Shop',     href: 'products.html', page: 'products.html' },
+    { label: 'Trinkets', href: 'trinkets.html', page: 'trinkets.html', special: 'trinkets' },
     { label: 'About',    href: isIndex ? '#about' : 'about.html', page: 'about.html' },
   ];
 
@@ -27,8 +30,11 @@
   if (!header) return;
 
   function linkHtml(l) {
-    var active = (l.page === page && !isIndex) || (isIndex && l.page === 'index.html') ? ' class="active"' : '';
-    return '<a href="' + l.href + '"' + active + '>' + l.label + '</a>';
+    var cls = [];
+    if ((l.page === page && !isIndex) || (isIndex && l.page === 'index.html')) cls.push('active');
+    if (l.special === 'trinkets') cls.push('rr-trinkets-link');
+    var attr = cls.length ? ' class="' + cls.join(' ') + '"' : '';
+    return '<a href="' + l.href + '"' + attr + '>' + (l.special === 'trinkets' ? '✿ ' : '') + l.label + '</a>';
   }
 
   var primaryHtml = primary.map(linkHtml).join('');
@@ -55,6 +61,8 @@
       '.menu-toggle.open .bar:nth-child(2) { opacity:0; }' +
       '.menu-toggle.open .bar:nth-child(3) { transform:translateY(-6px) rotate(-45deg); }' +
       '.rr-logo-img { height:28px; width:auto; vertical-align:middle; margin-right:8px; }' +
+      '.rr-trinkets-link { color:#d4764e !important; }' +
+      '.rr-trinkets-link:hover { color:#c46842 !important; text-shadow:0 0 10px rgba(212,118,78,0.4) !important; }' +
       '@media(max-width:768px){' +
         '.menu-toggle { display:flex; }' +
         '.rr-more { display:none; }' + /* dropdown integrated in mobile nav */
@@ -66,16 +74,21 @@
     document.head.appendChild(style);
   }
 
-  var isShop = page === 'products.html';
+  var isShop = page === 'products.html' || page === 'trinkets.html';
   var cartHtml = isShop
     ? '<button class="cart-toggle" onclick="toggleCart()" aria-label="Cart">&#128722;<span class="cart-badge" id="cartBadge"></span></button>'
     : '';
 
+  var logoIcon = isTrinkets
+    ? '<span style="font-size:1.5rem;margin-right:8px">✿</span>'
+    : '<img src="/favi.png" alt="Rooted Revival" class="rr-logo-img">';
+  var logoText = isTrinkets ? 'ROOTED REVIVAL TRINKETS' : 'ROOTED_REVIVAL';
+
   header.innerHTML =
     '<div class="header-inner">' +
-      '<a href="index.html" class="logo">' +
-        '<img src="/favi.png" alt="Rooted Revival" class="rr-logo-img">' +
-        '<span>ROOTED_REVIVAL</span>' +
+      '<a href="' + (isTrinkets ? 'trinkets.html' : 'index.html') + '" class="logo">' +
+        logoIcon +
+        '<span>' + logoText + '</span>' +
       '</a>' +
       '<nav class="nav" id="mainNav">' +
         primaryHtml +
@@ -127,8 +140,9 @@
         more.forEach(function(l) {
           var a = document.createElement('a');
           a.href = l.href;
-          a.textContent = l.label;
+          a.textContent = (l.special === 'trinkets' ? '✿ ' : '') + l.label;
           if (l.page === page) a.className = 'active';
+          if (l.special === 'trinkets') a.classList.add('rr-trinkets-link');
           marker.appendChild(a);
         });
         // Insert before authLink

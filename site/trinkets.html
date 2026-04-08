@@ -109,6 +109,22 @@
             cursor: pointer;
         }
 
+        /* Override site-nav.js dark theme for trinkets warm palette */
+        .rr-more-btn { color: var(--text-muted) !important; font-family: var(--font-display) !important; font-weight: 600 !important; }
+        .rr-more-btn:hover, .rr-more-btn.active { color: var(--accent) !important; }
+        .rr-more-drop { background: var(--bg-surface) !important; border-color: var(--border) !important; box-shadow: 0 8px 24px rgba(61,50,41,0.12) !important; }
+        .rr-more-drop a { color: var(--text-muted) !important; font-family: var(--font-display) !important; }
+        .rr-more-drop a:hover, .rr-more-drop a.active { background: var(--accent-bg) !important; color: var(--accent) !important; }
+        header.header .nav a { color: var(--text-muted); font-family: var(--font-display); font-size: 0.9rem; font-weight: 600; }
+        header.header .nav a:hover, header.header .nav a.active { color: var(--accent); }
+        header.header .nav a.rr-trinkets-link { color: var(--accent) !important; }
+        header.header .nav a.rr-trinkets-link:hover { color: var(--accent-hover) !important; }
+        .menu-toggle .bar { background: var(--accent) !important; }
+        .menu-toggle { border-color: var(--border) !important; }
+        .menu-toggle:hover { border-color: var(--accent) !important; }
+        #authLink { font-family: var(--font-display) !important; font-weight: 600 !important; }
+        .rr-logo-img { display: none; } /* Using ✿ icon instead */
+
         /* ── Cart button ── */
         .cart-toggle {
             position: relative;
@@ -758,27 +774,28 @@
 
         /* ── Responsive ── */
         @media (max-width: 768px) {
-            .menu-toggle { display: block; }
-            .nav {
+            .menu-toggle { display: flex; }
+            header.header .nav {
                 display: none;
                 position: absolute;
                 top: 100%;
                 left: 0;
                 right: 0;
-                background: rgba(254, 249, 244, 0.98);
+                background: rgba(254, 249, 244, 0.98) !important;
                 backdrop-filter: blur(16px);
                 border-bottom: 1px solid var(--border);
                 flex-direction: column;
                 padding: 12px 24px;
                 gap: 0;
             }
-            .nav.open { display: flex; }
-            .nav a {
+            header.header .nav.open { display: flex; }
+            header.header .nav a {
                 padding: 12px 0;
                 border-bottom: 1px solid var(--border);
                 font-size: 1rem;
             }
-            .nav a:last-child { border-bottom: none; }
+            header.header .nav a:last-child { border-bottom: none; }
+            .rr-more { display: none !important; }
             .products-grid { grid-template-columns: 1fr; }
             .form-row { grid-template-columns: 1fr; }
             .hero { padding: 60px 0 40px; }
@@ -792,23 +809,11 @@
                 <span class="logo-icon">✿</span>
                 <span>Rooted Revival Trinkets</span>
             </a>
-            <nav class="nav" id="mainNav">
-                <a href="trinkets.html" class="active">Trinkets</a>
-                <a href="index.html">Main Site</a>
-                <a href="about.html">About</a>
-            </nav>
+            <nav class="nav" id="mainNav"></nav>
             <button class="menu-toggle" id="menuToggle" aria-label="Menu">&#9776;</button>
-            <button class="cart-toggle" onclick="toggleCart()" aria-label="Cart">
-                🛒 <span class="cart-badge" id="cartBadge"></span>
-            </button>
         </div>
     </header>
-
-    <script>
-    document.getElementById('menuToggle').addEventListener('click', () => {
-        document.getElementById('mainNav').classList.toggle('open');
-    });
-    </script>
+    <script src="/static/js/site-nav.js"></script>
 
     <main>
         <section class="hero">

@@ -883,13 +883,6 @@
     <script src="static/js/chat-widget.js"></script>
     <script src="static/js/e2e.js"></script>
     <script>
-        // Mobile menu toggle
-        document.getElementById('menuToggle').addEventListener('click', function() {
-            const nav = document.getElementById('mainNav');
-            nav.classList.toggle('open');
-            this.textContent = nav.classList.contains('open') ? '✕' : '☰';
-        });
-
         // Smooth scroll for nav links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
