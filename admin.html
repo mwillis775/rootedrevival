@@ -247,6 +247,7 @@ tr:hover{background:var(--el)}
       <div class="sb-section">
         <h3>SHOP</h3>
         <div class="sb-link" data-section="shopProducts">🛒 Products</div>
+        <div class="sb-link" data-section="shopTrinkets">✿ Trinkets</div>
         <div class="sb-link" data-section="shopOrders">📦 Orders <span class="badge" id="ordersBadge">0</span></div>
       </div>
     </aside>
@@ -489,6 +490,20 @@ tr:hover{background:var(--el)}
           <div class="card-hd"><h3>Custom Products</h3><button class="btn btn-p btn-s" onclick="openProductEditor()">+ New Product</button></div>
           <table><thead><tr><th>IMAGE</th><th>NAME</th><th>PRICE</th><th>CATEGORY</th><th>VARIANTS</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
           <tbody id="shopProductsTable"></tbody></table>
+        </div>
+      </section>
+
+      <!-- ===== SHOP TRINKETS ===== -->
+      <section id="sec-shopTrinkets" class="hidden">
+        <div class="page-hd"><h1>✿ TRINKETS</h1><p>Manage earrings, charms, and accessories for the <a href="/trinkets.html" target="_blank" style="color:var(--ac)">Trinkets storefront</a>.</p></div>
+        <div class="stats" id="trinketStats">
+          <div class="stat"><div class="label">TRINKET PRODUCTS</div><div class="val" id="sTrinketCount">—</div></div>
+          <div class="stat"><div class="label">ACTIVE</div><div class="val" id="sTrinketActive">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3>Trinket Products</h3><button class="btn btn-p btn-s" onclick="openProductEditor(null, 'trinkets')">+ New Trinket</button></div>
+          <table><thead><tr><th>IMAGE</th><th>NAME</th><th>PRICE</th><th>VARIANTS</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+          <tbody id="trinketsTable"></tbody></table>
         </div>
       </section>
 
@@ -816,7 +831,7 @@ function showSection(name) {
     l.classList.toggle('active', l.dataset.section === name);
   });
   // Lazy load section data
-  const loaders = { dashboard: loadDashboard, sitefiles: loadSiteFiles, pages: loadPages, media: loadMedia, navigation: () => loadNavigation(currentNavMenu), components: loadComponents, themes: loadThemes, settings: loadSettings, grabnet: loadGrabNet, pending: loadPending, users: loadUsers, logs: loadLogs, keys: loadKeys, messages: loadMessages, shopProducts: loadShopProducts, shopOrders: () => loadOrders() };
+  const loaders = { dashboard: loadDashboard, sitefiles: loadSiteFiles, pages: loadPages, media: loadMedia, navigation: () => loadNavigation(currentNavMenu), components: loadComponents, themes: loadThemes, settings: loadSettings, grabnet: loadGrabNet, pending: loadPending, users: loadUsers, logs: loadLogs, keys: loadKeys, messages: loadMessages, shopProducts: loadShopProducts, shopTrinkets: loadShopTrinkets, shopOrders: () => loadOrders() };
   if (loaders[name]) loaders[name]();
 }
 
@@ -2104,15 +2119,16 @@ async function saveDisplayOrder() {
   } catch(e) { toast(e.message, 'err'); }
 }
 
-function openProductEditor(id) {
+function openProductEditor(id, presetCategory) {
   _editingProductId = id || null;
   _editingProduct = null;
-  document.getElementById('productEditorTitle').textContent = id ? 'Edit Product' : 'New Product';
+  const isTrinket = presetCategory === 'trinkets';
+  document.getElementById('productEditorTitle').textContent = id ? 'Edit Product' : (isTrinket ? 'New Trinket' : 'New Product');
   document.getElementById('peName').value = '';
   document.getElementById('peDescription').value = '';
   document.getElementById('peBasePrice').value = '';
   document.getElementById('peActive').value = '1';
-  document.getElementById('peCategory').value = '';
+  document.getElementById('peCategory').value = presetCategory || '';
   document.getElementById('peImageGrid').innerHTML = '';
   document.getElementById('peOptionGroups').innerHTML = '';
   document.getElementById('peVariantsTable').innerHTML = '';
@@ -2161,6 +2177,7 @@ async function saveProduct() {
       toast('Product created! Add images and options.', 'ok');
     }
     loadShopProducts();
+    if (document.getElementById('sec-shopTrinkets') && !document.getElementById('sec-shopTrinkets').classList.contains('hidden')) loadShopTrinkets();
   } catch(e) { toast(e.message, 'err'); }
 }
 
@@ -2170,6 +2187,35 @@ async function deleteProduct(id) {
     await api(`/shop/admin/products/${id}`, { method: 'DELETE' });
     toast('Product deleted', 'ok');
     loadShopProducts();
+    if (document.getElementById('sec-shopTrinkets') && !document.getElementById('sec-shopTrinkets').classList.contains('hidden')) loadShopTrinkets();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function loadShopTrinkets() {
+  try {
+    const prodData = await api('/shop/admin/products');
+    const all = prodData.products || [];
+    const trinkets = all.filter(p => p.category === 'trinkets');
+    const activeCount = trinkets.filter(p => p.active).length;
+    document.getElementById('sTrinketCount').textContent = trinkets.length;
+    document.getElementById('sTrinketActive').textContent = activeCount;
+    const tb = document.getElementById('trinketsTable');
+    if (!trinkets.length) {
+      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="icon">✿</div><h3>NO TRINKETS YET</h3><p>Add your first earring, charm, or accessory.</p><button class="btn btn-p btn-s" style="margin-top:12px" onclick="openProductEditor(null, \'trinkets\')">+ New Trinket</button></div></td></tr>';
+      return;
+    }
+    tb.innerHTML = trinkets.map(p => {
+      const thumb = p.images?.[0] ? `/api/shop/images/${p.images[0].filename}` : '';
+      const st = p.active ? '<span class="st-badge st-active">Active</span>' : '<span class="st-badge st-draft">Draft</span>';
+      return `<tr>
+        <td>${thumb ? `<img src="${esc(thumb)}" style="width:48px;height:48px;object-fit:cover;border-radius:4px" loading="lazy">` : '<span style="color:var(--tm)">—</span>'}</td>
+        <td><strong>${esc(p.name)}</strong></td>
+        <td style="font-family:var(--fm)">$${parseFloat(p.base_price).toFixed(2)}</td>
+        <td>${p.variants?.length || 0}</td>
+        <td>${st}</td>
+        <td><button class="btn btn-g btn-s" onclick="editProduct(${p.id})">✏️ Edit</button> <button class="btn btn-d btn-s" onclick="deleteProduct(${p.id})">🗑️</button></td>
+      </tr>`;
+    }).join('');
   } catch(e) { toast(e.message, 'err'); }
 }
 
