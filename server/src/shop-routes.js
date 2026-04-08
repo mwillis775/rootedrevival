@@ -235,6 +235,7 @@ function formatCustomProductForShop(product) {
         custom_id: product.id,
         name: product.name,
         description: product.description || '',
+        category: product.category || null,
         thumbnail_url: thumbUrl,
         images: product.images.filter(img => !img.option_value_id).slice(0, 1).map(img => ({
             type: 'preview',
@@ -296,10 +297,12 @@ function registerShopRoutes(app) {
     // ────────────────────────────────────────────
     app.get('/api/shop/products', async (req, res) => {
         try {
+            const categoryFilter = typeof req.query?.category === 'string' ? req.query.category.trim() : null;
+            const excludeCategory = typeof req.query?.exclude_category === 'string' ? req.query.exclude_category.trim() : null;
             const results = [];
 
-            // Fetch Printful products if configured
-            if (config.printfulApiToken) {
+            // Fetch Printful products if configured (skip if filtering by category — Printful has no categories)
+            if (config.printfulApiToken && !categoryFilter) {
                 try {
                     const data = await printfulRequest('/store/products');
                     const products = data.result || [];
@@ -353,7 +356,11 @@ function registerShopRoutes(app) {
             }
 
             // Fetch custom products
-            const customProducts = shop.listProducts({ activeOnly: true });
+            const customProducts = shop.listProducts({
+                activeOnly: true,
+                category: categoryFilter || null,
+                excludeCategory: excludeCategory || null
+            });
             for (const cp of customProducts) {
                 results.push(formatCustomProductForShop(cp));
             }
@@ -839,13 +846,14 @@ function registerShopRoutes(app) {
     app.post('/api/shop/admin/products', async (req, res) => {
         await auth({ required: true })(req, res, async () => {
             await requireU2FAdmin(req, res, async () => {
-                const { name, description, base_price } = req.body || {};
+                const { name, description, base_price, category } = req.body || {};
                 if (!name || !name.trim()) return res.error('Product name is required');
                 if (base_price === undefined || parseFloat(base_price) < 0) return res.error('Valid price is required');
                 const product = shop.createProduct({
                     name: sanitizeStr(name, 200),
                     description: sanitizeStr(description, 5000),
-                    base_price: parseFloat(base_price) || 0
+                    base_price: parseFloat(base_price) || 0,
+                    category: category ? sanitizeStr(category, 50) : null
                 });
                 // Create site/shop/<slug>/ directory for GrabNet publishing
                 ensureProductDir(product.name);
@@ -860,12 +868,13 @@ function registerShopRoutes(app) {
             await requireU2FAdmin(req, res, async () => {
                 const existing = shop.getProduct(parseInt(req.params.id));
                 if (!existing) return res.error('Product not found', 404);
-                const { name, description, base_price, active } = req.body || {};
+                const { name, description, base_price, active, category } = req.body || {};
                 const product = shop.updateProduct(parseInt(req.params.id), {
                     name: name !== undefined ? sanitizeStr(name, 200) : undefined,
                     description: description !== undefined ? sanitizeStr(description, 5000) : undefined,
                     base_price: base_price !== undefined ? parseFloat(base_price) : undefined,
-                    active
+                    active,
+                    category: category !== undefined ? (category ? sanitizeStr(category, 50) : null) : undefined
                 });
                 res.json({ product });
             });

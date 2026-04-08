@@ -1263,7 +1263,7 @@
             try {
                 const [configRes, productsRes] = await Promise.all([
                     fetch(`${API_BASE}/shop/config`).then(r => r.json()),
-                    fetch(`${API_BASE}/shop/products`).then(r => r.json())
+                    fetch(`${API_BASE}/shop/products?exclude_category=trinkets`).then(r => r.json())
                 ]);
                 shopConfig = configRes;
                 allProducts = productsRes.products || [];

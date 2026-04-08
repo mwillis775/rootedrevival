@@ -23,6 +23,7 @@ function initShopTables() {
             slug TEXT UNIQUE NOT NULL,
             description TEXT DEFAULT '',
             base_price REAL NOT NULL DEFAULT 0,
+            category TEXT DEFAULT NULL,
             active INTEGER DEFAULT 1,
             created_at TEXT DEFAULT (datetime('now')),
             updated_at TEXT DEFAULT (datetime('now'))
@@ -117,22 +118,29 @@ function initShopTables() {
             sort_order INTEGER NOT NULL DEFAULT 0
         );
     `);
+
+    // Migrations for existing databases
+    try {
+        db.prepare("SELECT category FROM custom_products LIMIT 1").get();
+    } catch {
+        db.exec("ALTER TABLE custom_products ADD COLUMN category TEXT DEFAULT NULL");
+    }
 }
 
 // ========== PRODUCTS ==========
 
-function createProduct({ name, description, base_price }) {
+function createProduct({ name, description, base_price, category }) {
     const db = getDb();
     let slug = slugify(name);
     const existing = db.prepare('SELECT id FROM custom_products WHERE slug = ?').get(slug);
     if (existing) slug += '-' + Date.now().toString(36);
     const result = db.prepare(
-        'INSERT INTO custom_products (name, slug, description, base_price) VALUES (?, ?, ?, ?)'
-    ).run(name, slug, description || '', parseFloat(base_price) || 0);
+        'INSERT INTO custom_products (name, slug, description, base_price, category) VALUES (?, ?, ?, ?, ?)'
+    ).run(name, slug, description || '', parseFloat(base_price) || 0, category || null);
     return getProduct(result.lastInsertRowid);
 }
 
-function updateProduct(id, { name, description, base_price, active }) {
+function updateProduct(id, { name, description, base_price, active, category }) {
     const db = getDb();
     const sets = [];
     const params = [];
@@ -140,6 +148,7 @@ function updateProduct(id, { name, description, base_price, active }) {
     if (description !== undefined) { sets.push('description = ?'); params.push(description); }
     if (base_price !== undefined) { sets.push('base_price = ?'); params.push(parseFloat(base_price) || 0); }
     if (active !== undefined) { sets.push('active = ?'); params.push(active ? 1 : 0); }
+    if (category !== undefined) { sets.push('category = ?'); params.push(category || null); }
     if (!sets.length) return getProduct(id);
     sets.push("updated_at = datetime('now')");
     params.push(id);
@@ -176,10 +185,15 @@ function getProduct(id) {
     return product;
 }
 
-function listProducts({ activeOnly = false } = {}) {
+function listProducts({ activeOnly = false, category = null, excludeCategory = null } = {}) {
     const db = getDb();
-    const where = activeOnly ? 'WHERE active = 1' : '';
-    const products = db.prepare(`SELECT * FROM custom_products ${where} ORDER BY created_at DESC`).all();
+    const conditions = [];
+    const params = [];
+    if (activeOnly) conditions.push('active = 1');
+    if (category) { conditions.push('category = ?'); params.push(category); }
+    if (excludeCategory) { conditions.push('(category IS NULL OR category != ?)'); params.push(excludeCategory); }
+    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    const products = db.prepare(`SELECT * FROM custom_products ${where} ORDER BY created_at DESC`).all(...params);
     for (const p of products) {
         p.images = db.prepare(
             'SELECT * FROM custom_product_images WHERE product_id = ? ORDER BY sort_order, id'

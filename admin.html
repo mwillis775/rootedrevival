@@ -487,7 +487,7 @@ tr:hover{background:var(--el)}
         <!-- Custom Products CRUD -->
         <div class="card">
           <div class="card-hd"><h3>Custom Products</h3><button class="btn btn-p btn-s" onclick="openProductEditor()">+ New Product</button></div>
-          <table><thead><tr><th>IMAGE</th><th>NAME</th><th>PRICE</th><th>VARIANTS</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+          <table><thead><tr><th>IMAGE</th><th>NAME</th><th>PRICE</th><th>CATEGORY</th><th>VARIANTS</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
           <tbody id="shopProductsTable"></tbody></table>
         </div>
       </section>
@@ -677,6 +677,7 @@ tr:hover{background:var(--el)}
           <div class="form-row"><label>BASE PRICE (USD) *</label><input id="peBasePrice" type="number" step="0.01" min="0" placeholder="29.99"></div>
           <div class="form-row"><label>STATUS</label><select id="peActive"><option value="1">Active</option><option value="0">Draft</option></select></div>
         </div>
+        <div class="form-row"><label>CATEGORY</label><select id="peCategory"><option value="">(none)</option><option value="trinkets">Trinkets</option></select></div>
       </div>
       <!-- Images tab -->
       <div id="pe-images" class="hidden">
@@ -2033,16 +2034,18 @@ async function loadShopProducts() {
     // Render custom products CRUD table
     const tb = document.getElementById('shopProductsTable');
     if (!products.length) {
-      tb.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="icon">🛒</div><h3>NO CUSTOM PRODUCTS YET</h3><p>Create your first custom product.</p></div></td></tr>';
+      tb.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="icon">🛒</div><h3>NO CUSTOM PRODUCTS YET</h3><p>Create your first custom product.</p></div></td></tr>';
       return;
     }
     tb.innerHTML = products.map(p => {
       const thumb = p.images?.[0] ? `/api/shop/images/${p.images[0].filename}` : '';
       const st = p.active ? '<span class="st-badge st-active">Active</span>' : '<span class="st-badge st-draft">Draft</span>';
+      const cat = p.category ? `<span style="font-size:.75rem;background:var(--ac-dim);color:var(--ac);padding:2px 6px;border-radius:3px">${esc(p.category)}</span>` : '<span style="color:var(--tm)">—</span>';
       return `<tr>
         <td>${thumb ? `<img src="${esc(thumb)}" style="width:48px;height:48px;object-fit:cover;border-radius:4px" loading="lazy">` : '<span style="color:var(--tm)">—</span>'}</td>
         <td><strong>${esc(p.name)}</strong></td>
         <td style="font-family:var(--fm)">$${parseFloat(p.base_price).toFixed(2)}</td>
+        <td>${cat}</td>
         <td>${p.variants?.length || 0}</td>
         <td>${st}</td>
         <td><button class="btn btn-g btn-s" onclick="editProduct(${p.id})">✏️ Edit</button> <button class="btn btn-d btn-s" onclick="deleteProduct(${p.id})">🗑️</button></td>
@@ -2109,6 +2112,7 @@ function openProductEditor(id) {
   document.getElementById('peDescription').value = '';
   document.getElementById('peBasePrice').value = '';
   document.getElementById('peActive').value = '1';
+  document.getElementById('peCategory').value = '';
   document.getElementById('peImageGrid').innerHTML = '';
   document.getElementById('peOptionGroups').innerHTML = '';
   document.getElementById('peVariantsTable').innerHTML = '';
@@ -2128,6 +2132,7 @@ async function loadProductForEdit(id) {
     document.getElementById('peDescription').value = p.description || '';
     document.getElementById('peBasePrice').value = p.base_price || '';
     document.getElementById('peActive').value = p.active ? '1' : '0';
+    document.getElementById('peCategory').value = p.category || '';
     renderProductImages(p);
     renderOptionGroups(p);
     renderVariants(p);
@@ -2141,14 +2146,15 @@ async function saveProduct() {
   const description = document.getElementById('peDescription').value.trim();
   const base_price = parseFloat(document.getElementById('peBasePrice').value);
   const active = document.getElementById('peActive').value === '1';
+  const category = document.getElementById('peCategory').value || null;
   if (!name) return toast('Product name required', 'err');
   if (isNaN(base_price) || base_price < 0) return toast('Valid price required', 'err');
   try {
     if (_editingProductId) {
-      await api(`/shop/admin/products/${_editingProductId}`, { method: 'PUT', body: { name, description, base_price, active } });
+      await api(`/shop/admin/products/${_editingProductId}`, { method: 'PUT', body: { name, description, base_price, active, category } });
       toast('Product updated', 'ok');
     } else {
-      const data = await api('/shop/admin/products', { method: 'POST', body: { name, description, base_price } });
+      const data = await api('/shop/admin/products', { method: 'POST', body: { name, description, base_price, category } });
       _editingProductId = data.product.id;
       _editingProduct = data.product;
       document.getElementById('productEditorTitle').textContent = 'Edit Product';
