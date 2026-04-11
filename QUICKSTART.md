@@ -269,7 +269,7 @@ sudo systemctl start cloudflared       # Cloudflare tunnel
 sudo systemctl start pinning           # IPFS pinning service
 
 # Enable on boot
-sudo systemctl enable revival-server grab-gateway grabnet-relay scholar cloudflared
+sudo systemctl enable revival-server grab-gateway grabnet-relay cloudflared pinning
 
 # View logs
 sudo journalctl -u revival-server -f
