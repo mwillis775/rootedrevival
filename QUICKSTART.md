@@ -264,7 +264,6 @@ After installation, manage services with:
 sudo systemctl start revival-server    # Node.js API (port 3000)
 sudo systemctl start grab-gateway      # GrabNet gateway (port 8888)
 sudo systemctl start grabnet-relay     # P2P WebSocket relay (ports 4003/4004)
-sudo systemctl start scholar           # Scholar API (port 8889)
 sudo systemctl start cloudflared       # Cloudflare tunnel
 sudo systemctl start pinning           # IPFS pinning service
 
